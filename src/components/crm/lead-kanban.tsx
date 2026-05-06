@@ -1,0 +1,158 @@
+"use client";
+
+import { useOptimistic, useTransition } from "react";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { LeadStatus } from "@prisma/client";
+import { LeadCard, type LeadCardData } from "@/components/crm/lead-card";
+import {
+  LEAD_STATUS_COLUMN_DESC,
+  LEAD_STATUS_LABEL,
+  LEAD_STATUS_ORDER,
+} from "@/lib/crm";
+import { updateLeadStatusAction } from "@/server/actions/leads";
+import { cn } from "@/lib/utils";
+
+export type KanbanLead = LeadCardData & { status: LeadStatus };
+
+export function LeadKanban({ leads }: { leads: KanbanLead[] }) {
+  const [optimisticLeads, applyOptimistic] = useOptimistic<
+    KanbanLead[],
+    { id: string; status: LeadStatus }
+  >(leads, (current, change) =>
+    current.map((l) => (l.id === change.id ? { ...l, status: change.status } : l))
+  );
+
+  const [, startTransition] = useTransition();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+
+  function onDragStart(e: DragStartEvent) {
+    setActiveId(String(e.active.id));
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    setActiveId(null);
+    const id = String(e.active.id);
+    const overId = e.over?.id ? String(e.over.id) : null;
+    if (!overId) return;
+
+    const lead = optimisticLeads.find((l) => l.id === id);
+    if (!lead) return;
+
+    const targetStatus = isStatusId(overId)
+      ? overId
+      : optimisticLeads.find((l) => l.id === overId)?.status;
+    if (!targetStatus || targetStatus === lead.status) return;
+
+    startTransition(async () => {
+      applyOptimistic({ id, status: targetStatus });
+      try {
+        await updateLeadStatusAction(id, targetStatus);
+        toast.success(`Moved to ${LEAD_STATUS_LABEL[targetStatus]}`);
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Couldn't update status";
+        toast.error(msg);
+      }
+    });
+  }
+
+  const activeLead = activeId
+    ? optimisticLeads.find((l) => l.id === activeId)
+    : null;
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <div className="grid grid-flow-col auto-cols-[minmax(260px,1fr)] gap-4 overflow-x-auto pb-4">
+        {LEAD_STATUS_ORDER.map((status) => {
+          const items = optimisticLeads.filter((l) => l.status === status);
+          return (
+            <Column
+              key={status}
+              status={status}
+              items={items}
+              isOverlayTarget={activeLead?.status !== status}
+            />
+          );
+        })}
+      </div>
+      <DragOverlay>
+        {activeLead && <LeadCard lead={activeLead} />}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function Column({
+  status,
+  items,
+  isOverlayTarget,
+}: {
+  status: LeadStatus;
+  items: KanbanLead[];
+  isOverlayTarget: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex flex-col gap-3 rounded-3xl bg-white/40 border border-line/70 p-3 transition-colors",
+        isOver && isOverlayTarget && "bg-sand-50 border-sand-300"
+      )}
+    >
+      <header className="px-2 pb-2 border-b border-line/50">
+        <p className="font-display text-base text-navy">
+          {LEAD_STATUS_LABEL[status]}
+          <span className="ml-2 text-xs text-muted-foreground">
+            {items.length}
+          </span>
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-0.5">
+          {LEAD_STATUS_COLUMN_DESC[status]}
+        </p>
+      </header>
+      <SortableContext
+        items={items.map((l) => l.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space-y-3 min-h-[120px]">
+          {items.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-line p-6 text-center text-xs text-muted-foreground">
+              Empty
+            </div>
+          )}
+          {items.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} />
+          ))}
+        </div>
+      </SortableContext>
+    </div>
+  );
+}
+
+function isStatusId(id: string): id is LeadStatus {
+  return (LEAD_STATUS_ORDER as readonly string[]).includes(id);
+}

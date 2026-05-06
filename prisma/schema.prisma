@@ -1,0 +1,307 @@
+// TripCraft — CRM-extended schema (Phase 1)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadSource {
+  MANUAL
+  INSTAGRAM
+  REFERRAL
+  WEBSITE
+  WHATSAPP
+  GOOGLE
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  REQUIREMENT_UNDERSTOOD
+  QUOTED
+  FOLLOW_UP
+  WON
+  LOST
+}
+
+enum TripStatus {
+  PLANNING
+  QUOTED
+  BOOKED
+  COMPLETED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentType {
+  ADVANCE
+  PARTIAL
+  FINAL
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  WHATSAPP
+  EMAIL
+  STATUS_CHANGED
+  TRIP_CREATED
+  QUOTE_CREATED
+  QUOTE_SENT
+  QUOTE_ACCEPTED
+  BOOKING_CREATED
+  PAYMENT_RECORDED
+  CUSTOM
+}
+
+enum TravelSegmentType {
+  FLIGHT
+  TRAIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  leads     Lead[]
+  trips     Trip[]
+}
+
+model Lead {
+  id              String     @id @default(cuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  phone           String?
+  email           String?
+  source          LeadSource @default(MANUAL)
+  status          LeadStatus @default(NEW)
+
+  destination     String?
+  travelStartDate DateTime?
+  travelEndDate   DateTime?
+  adults          Int        @default(1)
+  children        Json?
+  budget          Int?
+  notes           String?
+  nextFollowUpAt  DateTime?
+  lostReason      String?
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  customer        Customer?
+  trips           Trip[]
+  activities      Activity[]
+  tasks           Task[]
+
+  @@index([userId, status, nextFollowUpAt])
+  @@index([userId, deletedAt])
+}
+
+model Customer {
+  id            String    @id @default(cuid())
+  leadId        String    @unique
+  lead          Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  preferences   Json?
+  lifetimeValue Int       @default(0)
+  convertedAt   DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+}
+
+model Trip {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  destination String
+  days        Int
+  travelers   Int
+  startDate   DateTime?
+  budget      Int?
+  travelType  String      @default("Luxury")
+  pace        String      @default("Moderate")
+  hotelType   String      @default("Boutique")
+  interests   String[]
+  notes       String?
+
+  status      TripStatus  @default(PLANNING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  itineraries    Itinerary[]
+  quotes         Quote[]
+  bookings       Booking[]
+  travelSegments TravelSegment[]
+
+  @@index([userId, createdAt])
+  @@index([leadId])
+  @@index([deletedAt])
+}
+
+model Itinerary {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  version   Int      @default(1)
+  label     String?
+  content   Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tripId, version])
+  @@index([tripId, isActive])
+}
+
+model Quote {
+  id           String      @id @default(cuid())
+  tripId       String
+  trip         Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  version      Int
+  label        String?
+  status       QuoteStatus @default(DRAFT)
+
+  items        QuoteItem[]
+  markupPct    Float       @default(15)
+  discountPct  Float       @default(0)
+  totalCost    Float       @default(0)
+  sellingPrice Float       @default(0)
+  profit       Float       @default(0)
+
+  shareToken   String?     @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  booking      Booking?
+
+  @@unique([tripId, version])
+  @@index([tripId, status])
+}
+
+model QuoteItem {
+  id       String @id @default(cuid())
+  quoteId  String
+  quote    Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  category String
+  label    String
+  cost     Float
+  position Int    @default(0)
+
+  @@index([quoteId])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  tripId      String
+  trip        Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  quoteId     String        @unique
+  quote       Quote         @relation(fields: [quoteId], references: [id])
+  status      BookingStatus @default(PENDING)
+  totalAmount Float
+  paidAmount  Float         @default(0)
+  payments    Payment[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([tripId])
+}
+
+model Payment {
+  id        String      @id @default(cuid())
+  bookingId String
+  booking   Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type      PaymentType
+  amount    Float
+  method    String?
+  reference String?
+  paidAt    DateTime    @default(now())
+
+  @@index([bookingId])
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  leadId    String
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      ActivityType
+  title     String
+  body      String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+model TravelSegment {
+  id            String            @id @default(cuid())
+  tripId        String
+  trip          Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  type          TravelSegmentType
+  dayNumber     Int               @default(1)
+
+  from          String
+  to            String
+  departureTime DateTime
+  arrivalTime   DateTime
+
+  // Flight fields
+  airline       String?
+  flightNumber  String?
+  pnr           String?
+
+  // Train fields
+  trainName     String?
+  trainNumber   String?
+  coach         String?
+  seat          String?
+
+  notes         String?
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([tripId, dayNumber])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  leadId      String?
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?
+  dueAt       DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([completedAt, dueAt])
+  @@index([leadId])
+}
