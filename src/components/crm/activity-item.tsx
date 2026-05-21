@@ -60,7 +60,13 @@ const ICONS: Record<ActivityType, React.ReactNode> = {
   VOUCHER_SENT_WHATSAPP: <Send className="h-3.5 w-3.5" />,
 };
 
-export function ActivityItem({ activity }: { activity: Activity }) {
+export type ActivityWithActor = Activity & {
+  actor?: { name: string | null; email: string } | null;
+};
+
+export function ActivityItem({ activity }: { activity: ActivityWithActor }) {
+  const actorName =
+    activity.actor?.name ?? activity.actor?.email ?? null;
   return (
     <article className="flex gap-4">
       <div className="relative">
@@ -73,6 +79,7 @@ export function ActivityItem({ activity }: { activity: Activity }) {
         <div className="flex items-baseline justify-between gap-3">
           <p className="font-medium text-navy text-sm">{activity.title}</p>
           <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground whitespace-nowrap">
+            {actorName ? `${actorName} · ` : ""}
             {formatDistanceToNow(activity.createdAt, { addSuffix: true })}
           </span>
         </div>

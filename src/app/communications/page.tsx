@@ -5,12 +5,14 @@ import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CommsFilterBar } from "@/components/whatsapp/comms-filter-bar";
+import { CommsAutoRefresh } from "@/components/whatsapp/comms-auto-refresh";
 import {
   WhatsappMessageRow,
   type WhatsappMessageRowData,
 } from "@/components/whatsapp/whatsapp-message-row";
 import { WhatsappComposer } from "@/components/whatsapp/whatsapp-composer";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 import { isWhatsappConfigured } from "@/lib/whatsapp/client";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +31,9 @@ export default async function CommunicationsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
 
-  const where: Prisma.WhatsappMessageWhereInput = { userId: user.id };
+  const where: Prisma.WhatsappMessageWhereInput = { agencyId };
   if (searchParams.status) where.status = searchParams.status as WhatsappStatus;
   if (searchParams.direction)
     where.direction = searchParams.direction as WhatsappDirection;
@@ -55,7 +57,7 @@ export default async function CommunicationsPage({
     }),
     prisma.whatsappMessage.groupBy({
       by: ["status"],
-      where: { userId: user.id },
+      where: { agencyId },
       _count: { _all: true },
     }),
   ]);
@@ -79,9 +81,12 @@ export default async function CommunicationsPage({
           <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             Communications
           </p>
-          <h1 className="font-display text-4xl text-navy tracking-tight mt-1">
-            WhatsApp activity
-          </h1>
+          <div className="flex items-center gap-3 mt-1">
+            <h1 className="font-display text-4xl md:text-5xl text-navy tracking-tight leading-tight">
+              WhatsApp activity
+            </h1>
+            <CommsAutoRefresh />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Every outbound message, delivery receipt and customer reply — one
             calm view.

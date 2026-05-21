@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 
 const LEAD_SOURCES = [
@@ -45,11 +46,12 @@ export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 
 export async function createLeadAction(input: CreateLeadInput) {
   const data = createLeadSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("lead:create");
 
   const lead = await prisma.lead.create({
     data: {
-      userId: user.id,
+      agencyId: user.activeAgencyId,
+      ownerId: user.id,
       name: data.name.trim(),
       phone: data.phone?.trim() || null,
       email: data.email?.trim() || null,
@@ -68,6 +70,7 @@ export async function createLeadAction(input: CreateLeadInput) {
 
   await logActivity({
     leadId: lead.id,
+    actorId: user.id,
     type: "STATUS_CHANGED",
     title: "Lead created",
     metadata: { from: null, to: "NEW", source: data.source },
@@ -82,8 +85,9 @@ export async function updateLeadStatusAction(
   leadId: string,
   status: (typeof LEAD_STATUSES)[number]
 ) {
-  const current = await prisma.lead.findUnique({
-    where: { id: leadId },
+  const user = await assertCan("lead:update");
+  const current = await prisma.lead.findFirst({
+    where: { id: leadId, agencyId: user.activeAgencyId },
     select: { status: true },
   });
   if (!current) throw new Error("Lead not found");
@@ -96,6 +100,7 @@ export async function updateLeadStatusAction(
 
   await logActivity({
     leadId,
+    actorId: user.id,
     type: "STATUS_CHANGED",
     title: `Status changed: ${current.status} → ${status}`,
     metadata: { from: current.status, to: status },
@@ -117,6 +122,14 @@ export async function updateLeadAction(
   patch: z.infer<typeof updateLeadSchema>
 ) {
   const data = updateLeadSchema.parse(patch);
+  const { agencyId } = await requireAgency();
+  await assertCan("lead:update");
+
+  const exists = await prisma.lead.findFirst({
+    where: { id: leadId, agencyId },
+    select: { id: true },
+  });
+  if (!exists) throw new Error("Lead not found");
 
   await prisma.lead.update({
     where: { id: leadId },
@@ -162,10 +175,110 @@ export async function updateLeadAction(
 }
 
 export async function softDeleteLeadAction(leadId: string) {
-  await prisma.lead.update({
-    where: { id: leadId },
+  const { agencyId } = await requireAgency();
+  await assertCan("lead:delete");
+  await prisma.lead.updateMany({
+    where: { id: leadId, agencyId },
     data: { deletedAt: new Date() },
   });
   revalidatePath("/leads");
   return { ok: true as const };
+}
+
+/**
+ * Assign (or clear, with null) the owner of a single lead. The owner must
+ * be a member of the same agency.
+ */
+export async function assignLeadOwnerAction(input: {
+  leadId: string;
+  ownerId: string | null;
+}) {
+  const { agencyId } = await requireAgency();
+  await assertCan("lead:assign");
+
+  if (input.ownerId) {
+    const member = await prisma.membership.findFirst({
+      where: { agencyId, userId: input.ownerId },
+      select: { id: true },
+    });
+    if (!member) {
+      return { ok: false as const, error: "Not a member of this agency." };
+    }
+  }
+
+  const res = await prisma.lead.updateMany({
+    where: { id: input.leadId, agencyId },
+    data: { ownerId: input.ownerId },
+  });
+  if (res.count === 0) return { ok: false as const, error: "Lead not found." };
+
+  revalidatePath(`/leads/${input.leadId}`);
+  revalidatePath("/leads");
+  return { ok: true as const };
+}
+
+// === Bulk operations ===
+
+const bulkSchema = z.object({
+  ids: z.array(z.string()).min(1).max(200),
+  // Exactly one operation per call.
+  op: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("status"), status: z.enum(LEAD_STATUSES) }),
+    z.object({ kind: z.literal("assign"), ownerId: z.string().nullable() }),
+    z.object({ kind: z.literal("delete") }),
+  ]),
+});
+
+/**
+ * Apply one operation to many leads at once. Every id is re-scoped to the
+ * caller's agency via `updateMany`, so a forged id from another tenant is
+ * silently skipped rather than mutated.
+ */
+export async function bulkUpdateLeadsAction(
+  input: z.infer<typeof bulkSchema>
+) {
+  const data = bulkSchema.parse(input);
+  const { agencyId } = await requireAgency();
+
+  if (data.op.kind === "delete") {
+    await assertCan("lead:delete");
+    const res = await prisma.lead.updateMany({
+      where: { id: { in: data.ids }, agencyId },
+      data: { deletedAt: new Date() },
+    });
+    revalidatePath("/leads");
+    return { ok: true as const, count: res.count };
+  }
+
+  if (data.op.kind === "assign") {
+    await assertCan("lead:assign");
+    // Validate the new owner is a member of this agency (or null = unassign).
+    if (data.op.ownerId) {
+      const member = await prisma.membership.findFirst({
+        where: { agencyId, userId: data.op.ownerId },
+        select: { id: true },
+      });
+      if (!member) {
+        return {
+          ok: false as const,
+          error: "That teammate isn't on this agency.",
+        };
+      }
+    }
+    const res = await prisma.lead.updateMany({
+      where: { id: { in: data.ids }, agencyId },
+      data: { ownerId: data.op.ownerId },
+    });
+    revalidatePath("/leads");
+    return { ok: true as const, count: res.count };
+  }
+
+  // status
+  await assertCan("lead:update");
+  const res = await prisma.lead.updateMany({
+    where: { id: { in: data.ids }, agencyId },
+    data: { status: data.op.status },
+  });
+  revalidatePath("/leads");
+  return { ok: true as const, count: res.count };
 }

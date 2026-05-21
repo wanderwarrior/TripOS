@@ -6,16 +6,17 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineWhatsappBadge } from "@/components/whatsapp/inline-whatsapp-badge";
 import { getWhatsappStatsForEntities } from "@/server/services/whatsapp";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 import { formatDate, formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
 
   const customers = await prisma.customer.findMany({
-    where: { lead: { userId: user.id, deletedAt: null }, deletedAt: null },
+    where: { lead: { agencyId, deletedAt: null }, deletedAt: null },
     include: {
       lead: {
         include: {
@@ -49,7 +50,7 @@ export default async function CustomersPage() {
   });
 
   const waStats = await getWhatsappStatsForEntities({
-    userId: user.id,
+    agencyId,
     scope: "leadId",
     ids: enriched.map((c) => c.lead.id),
   });

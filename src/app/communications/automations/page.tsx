@@ -5,7 +5,8 @@ import { PageShell } from "@/components/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AutomationRuleCard } from "@/components/whatsapp/automation-rule-card";
 import { RunAutomationsNowButton } from "@/components/whatsapp/run-automations-button";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +25,14 @@ const ALL_TRIGGERS: WhatsappAutomationTrigger[] = [
 ];
 
 export default async function CommsAutomationsPage() {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
   const [rules, templates] = await Promise.all([
     prisma.whatsappAutomationRule.findMany({
-      where: { userId: user.id },
+      where: { agencyId },
       include: { template: true },
     }),
     prisma.whatsappTemplate.findMany({
-      where: { userId: user.id, isActive: true },
+      where: { agencyId, isActive: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -48,7 +49,7 @@ export default async function CommsAutomationsPage() {
           >
             <ArrowLeft className="h-3 w-3" /> Communications
           </Link>
-          <h1 className="font-display text-4xl text-navy tracking-tight mt-2">
+          <h1 className="mt-2 font-display text-4xl md:text-5xl text-navy tracking-tight leading-tight">
             Automations
           </h1>
           <p className="text-sm text-muted-foreground mt-1">

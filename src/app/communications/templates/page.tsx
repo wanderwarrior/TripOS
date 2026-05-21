@@ -6,14 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TemplateEditor } from "@/components/whatsapp/template-editor";
 import { TEMPLATE_CATEGORY_LABEL } from "@/lib/whatsapp/templates";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommsTemplatesPage() {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
   const templates = await prisma.whatsappTemplate.findMany({
-    where: { userId: user.id },
+    where: { agencyId },
     orderBy: [{ category: "asc" }, { updatedAt: "desc" }],
   });
 
@@ -27,7 +28,7 @@ export default async function CommsTemplatesPage() {
           >
             <ArrowLeft className="h-3 w-3" /> Communications
           </Link>
-          <h1 className="font-display text-4xl text-navy tracking-tight mt-2">
+          <h1 className="mt-2 font-display text-4xl md:text-5xl text-navy tracking-tight leading-tight">
             Templates
           </h1>
           <p className="text-sm text-muted-foreground mt-1">

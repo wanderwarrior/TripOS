@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 
 const VENDOR_TYPES = [
@@ -43,9 +44,11 @@ export type VendorFormInput = z.input<typeof vendorBaseSchema>;
 
 export async function createVendorAction(input: VendorFormInput) {
   const data = vendorBaseSchema.parse(input);
+  const user = await assertCan("vendor:create");
 
   const vendor = await prisma.vendor.create({
     data: {
+      agencyId: user.activeAgencyId,
       name: data.name.trim(),
       type: data.type,
       phone: data.phone,
@@ -79,9 +82,11 @@ export async function updateVendorAction(
   input: VendorFormInput
 ) {
   const data = vendorBaseSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("vendor:update");
 
-  await prisma.vendor.update({
-    where: { id: vendorId },
+  await prisma.vendor.updateMany({
+    where: { id: vendorId, agencyId },
     data: {
       name: data.name.trim(),
       type: data.type,
@@ -109,8 +114,10 @@ export async function togglePreferredVendorAction(
   vendorId: string,
   preferred: boolean
 ) {
-  await prisma.vendor.update({
-    where: { id: vendorId },
+  const { agencyId } = await requireAgency();
+  await assertCan("vendor:update");
+  await prisma.vendor.updateMany({
+    where: { id: vendorId, agencyId },
     data: { isPreferred: preferred },
   });
   revalidatePath("/vendors");
@@ -122,8 +129,10 @@ export async function toggleVendorActiveAction(
   vendorId: string,
   active: boolean
 ) {
-  await prisma.vendor.update({
-    where: { id: vendorId },
+  const { agencyId } = await requireAgency();
+  await assertCan("vendor:update");
+  await prisma.vendor.updateMany({
+    where: { id: vendorId, agencyId },
     data: { isActive: active },
   });
   revalidatePath("/vendors");
@@ -132,10 +141,14 @@ export async function toggleVendorActiveAction(
 }
 
 export async function softDeleteVendorAction(vendorId: string) {
+  const { agencyId } = await requireAgency();
+  await assertCan("vendor:delete");
+
   // block delete if there are non-cancelled assignments
   const open = await prisma.vendorAssignment.count({
     where: {
       vendorId,
+      vendor: { agencyId },
       status: { not: "CANCELLED" },
     },
   });
@@ -145,8 +158,8 @@ export async function softDeleteVendorAction(vendorId: string) {
     );
   }
 
-  await prisma.vendor.update({
-    where: { id: vendorId },
+  await prisma.vendor.updateMany({
+    where: { id: vendorId, agencyId },
     data: { deletedAt: new Date() },
   });
 

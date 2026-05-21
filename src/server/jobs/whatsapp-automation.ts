@@ -53,7 +53,7 @@ function dayWindow(daysFromNow: number, padHours = 12) {
 }
 
 async function recentlyDispatched(args: {
-  userId: string;
+  agencyId: string;
   automationRuleId: string;
   entityField: "leadId" | "tripId" | "invoiceId" | "bookingId";
   entityId: string;
@@ -62,7 +62,7 @@ async function recentlyDispatched(args: {
   const since = new Date(Date.now() - (args.withinHours ?? 36) * HOUR);
   const row = await prisma.whatsappMessage.findFirst({
     where: {
-      userId: args.userId,
+      agencyId: args.agencyId,
       automationRuleId: args.automationRuleId,
       [args.entityField]: args.entityId,
       createdAt: { gte: since },
@@ -89,7 +89,7 @@ async function runFollowUpRule(rule: WhatsappAutomationRule): Promise<RuleResult
     where: {
       status: "SENT",
       updatedAt: { gte: since, lte: until },
-      trip: { userId: rule.userId },
+      trip: { agencyId: rule.agencyId },
     },
     include: { trip: { include: { lead: true } } },
   });
@@ -113,7 +113,7 @@ async function runFollowUpRule(rule: WhatsappAutomationRule): Promise<RuleResult
 
     if (
       await recentlyDispatched({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         automationRuleId: rule.id,
         entityField: "leadId",
         entityId: lead.id,
@@ -124,7 +124,7 @@ async function runFollowUpRule(rule: WhatsappAutomationRule): Promise<RuleResult
 
     try {
       const res = await sendFollowUp({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         leadId: lead.id,
         stage,
         automationRuleId: rule.id,
@@ -143,7 +143,7 @@ async function runInvoiceIssuedRule(rule: WhatsappAutomationRule): Promise<RuleR
   const since = new Date(Date.now() - 12 * HOUR);
   const invoices = await prisma.invoice.findMany({
     where: {
-      userId: rule.userId,
+      agencyId: rule.agencyId,
       status: "ISSUED",
       issuedAt: { gte: since },
     },
@@ -155,7 +155,7 @@ async function runInvoiceIssuedRule(rule: WhatsappAutomationRule): Promise<RuleR
   for (const inv of invoices) {
     if (
       await recentlyDispatched({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         automationRuleId: rule.id,
         entityField: "invoiceId",
         entityId: inv.id,
@@ -164,7 +164,7 @@ async function runInvoiceIssuedRule(rule: WhatsappAutomationRule): Promise<RuleR
     )
       continue;
     try {
-      const res = await shareInvoiceOnWhatsapp({ userId: rule.userId, invoiceId: inv.id });
+      const res = await shareInvoiceOnWhatsapp({ agencyId: rule.agencyId, invoiceId: inv.id });
       if (res.status === "FAILED") failed++;
       else dispatched++;
     } catch (err) {
@@ -191,7 +191,7 @@ async function runPaymentReminderRule(rule: WhatsappAutomationRule): Promise<Rul
   // the query simple beats trying to do this as a SQL aggregate.
   const invoices = await prisma.invoice.findMany({
     where: {
-      userId: rule.userId,
+      agencyId: rule.agencyId,
       status: "ISSUED",
       invoiceDate: { gte: win.start, lte: win.end },
     },
@@ -207,7 +207,7 @@ async function runPaymentReminderRule(rule: WhatsappAutomationRule): Promise<Rul
     scanned++;
     if (
       await recentlyDispatched({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         automationRuleId: rule.id,
         entityField: "invoiceId",
         entityId: inv.id,
@@ -217,7 +217,7 @@ async function runPaymentReminderRule(rule: WhatsappAutomationRule): Promise<Rul
       continue;
     try {
       const res = await sendPaymentReminder({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         invoiceId: inv.id,
         stage,
         automationRuleId: rule.id,
@@ -250,7 +250,7 @@ async function runTripReminderRule(rule: WhatsappAutomationRule): Promise<RuleRe
   // also gate on status to avoid double-firing on still-in-progress trips.
   const trips = await prisma.trip.findMany({
     where: {
-      userId: rule.userId,
+      agencyId: rule.agencyId,
       startDate: { gte: win.start, lte: win.end },
       lead: { phone: { not: null } },
       ...(stage === "THANKS" ? { status: { in: ["COMPLETED", "IN_PROGRESS"] } } : {}),
@@ -263,7 +263,7 @@ async function runTripReminderRule(rule: WhatsappAutomationRule): Promise<RuleRe
   for (const t of trips) {
     if (
       await recentlyDispatched({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         automationRuleId: rule.id,
         entityField: "tripId",
         entityId: t.id,
@@ -273,7 +273,7 @@ async function runTripReminderRule(rule: WhatsappAutomationRule): Promise<RuleRe
       continue;
     try {
       const res = await sendTripReminder({
-        userId: rule.userId,
+        agencyId: rule.agencyId,
         tripId: t.id,
         stage,
         automationRuleId: rule.id,

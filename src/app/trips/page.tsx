@@ -4,14 +4,15 @@ import { PageShell } from "@/components/page-shell";
 import { TripCard } from "@/components/trip-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function TripsIndexPage() {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
   const trips = await prisma.trip.findMany({
-    where: { userId: user.id, deletedAt: null },
+    where: { agencyId, deletedAt: null },
     orderBy: { createdAt: "desc" },
   });
 

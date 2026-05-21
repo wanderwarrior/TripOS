@@ -3,22 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search, X } from "lucide-react";
+import { Compass, Menu, Search, X } from "lucide-react";
+import { NAV_GROUPS, isNavActive } from "@/lib/nav";
 import { cn } from "@/lib/utils";
-
-const LINKS = [
-  { href: "/", label: "Dashboard" },
-  { href: "/leads", label: "Leads" },
-  { href: "/customers", label: "Customers" },
-  { href: "/trips", label: "Trips" },
-  { href: "/bookings", label: "Bookings" },
-  { href: "/invoices", label: "Invoices" },
-  { href: "/vendors", label: "Vendors" },
-  { href: "/operations", label: "Operations" },
-  { href: "/communications", label: "Communications" },
-  { href: "/follow-ups", label: "Follow-ups" },
-  { href: "/settings/agency", label: "Settings" },
-];
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -62,14 +49,14 @@ export function MobileNav() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-navy hover:border-sand-200"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-navy hover:border-sand-200"
       >
         <Menu className="h-4 w-4" />
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 md:hidden"
+          className="fixed inset-0 z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
@@ -81,11 +68,16 @@ export function MobileNav() {
           <aside
             role="dialog"
             aria-label="Menu"
-            className="absolute right-0 top-0 h-full w-[80vw] max-w-sm bg-ivory shadow-lift flex flex-col"
+            className="absolute left-0 top-0 h-full w-[82vw] max-w-xs bg-ivory shadow-lift flex flex-col"
           >
-            <header className="flex items-center justify-between px-4 py-4 border-b border-line/70">
-              <span className="font-display text-lg text-navy tracking-tight">
-                Menu
+            <header className="flex items-center justify-between px-4 h-16 border-b border-line/70">
+              <span className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-ivory">
+                  <Compass className="h-4 w-4" />
+                </span>
+                <span className="font-display text-lg text-navy tracking-tight">
+                  TripCraft
+                </span>
               </span>
               <button
                 type="button"
@@ -106,29 +98,43 @@ export function MobileNav() {
               Search everything
             </button>
 
-            <nav className="flex-1 px-2 py-2 overflow-y-auto">
-              <ul className="space-y-0.5">
-                {LINKS.map((l) => {
-                  const active =
-                    pathname === l.href ||
-                    (l.href !== "/" && pathname?.startsWith(l.href));
-                  return (
-                    <li key={l.href}>
-                      <Link
-                        href={l.href}
-                        className={cn(
-                          "flex items-center justify-between rounded-xl px-4 py-3 text-sm transition-colors",
-                          active
-                            ? "bg-sand-50/60 text-navy font-medium"
-                            : "text-navy hover:bg-white"
-                        )}
-                      >
-                        {l.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+            <nav className="flex-1 px-3 pb-4 overflow-y-auto space-y-5">
+              {NAV_GROUPS.map((group, gi) => (
+                <div key={group.label ?? `g${gi}`}>
+                  {group.label ? (
+                    <p className="px-3 mb-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                      {group.label}
+                    </p>
+                  ) : null}
+                  <ul className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const active = isNavActive(pathname, item.href);
+                      const Icon = item.icon;
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                              active
+                                ? "bg-navy text-ivory font-medium"
+                                : "text-navy hover:bg-white"
+                            )}
+                          >
+                            <Icon
+                              className={cn(
+                                "h-4 w-4",
+                                active ? "text-ivory" : "text-sand-700"
+                              )}
+                            />
+                            {item.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
             </nav>
 
             <footer className="border-t border-line/70 px-4 py-3 text-[11px] text-muted-foreground">

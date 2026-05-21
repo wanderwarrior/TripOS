@@ -9,8 +9,10 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import type { Prisma } from "@prisma/client";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { StatTile } from "@/components/crm/stat-tile";
 import {
   ActivityFeed,
@@ -20,13 +22,30 @@ import { FollowUpRow, type FollowUpRowData } from "@/components/crm/follow-up-ro
 import { NewLeadDialog } from "@/components/crm/lead-form-dialog";
 import { OneTimeHint } from "@/components/ui/one-time-hint";
 import { OnboardingPanel } from "@/components/onboarding-panel";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 import { formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const user = await getOrCreateDemoUser();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { scope?: string };
+}) {
+  const { agencyId, user } = await requireAgency();
+  const canEdit = user.activeAgencyRole !== "VIEWER";
+
+  // Personal lens: "You" (default) shows only what this user owns; "Agency"
+  // widens to everything. Multi-tenant teams want the personal view by
+  // default — a salesperson's daily plate, not the whole agency's.
+  const scope = searchParams.scope === "agency" ? "agency" : "mine";
+  const mine = scope === "mine";
+
+  // Scoped filter fragments. `leadFilter` is `{}` for agency view, so the
+  // queries below collapse to plain agency scoping when not personal.
+  const leadFilter: Prisma.LeadWhereInput = mine ? { ownerId: user.id } : {};
+  const tripFilter: Prisma.TripWhereInput = mine ? { ownerId: user.id } : {};
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -42,25 +61,32 @@ export default async function DashboardPage() {
     upcomingTasks,
     unreadInboundCount,
   ] = await Promise.all([
-    prisma.lead.count({ where: { userId: user.id, deletedAt: null } }),
+    prisma.lead.count({
+      where: { agencyId, deletedAt: null, ...leadFilter },
+    }),
     prisma.lead.count({
       where: {
-        userId: user.id,
+        agencyId,
         deletedAt: null,
         status: { notIn: ["WON", "LOST"] },
+        ...leadFilter,
       },
     }),
     prisma.lead.count({
       where: {
-        userId: user.id,
+        agencyId,
         deletedAt: null,
         status: "WON",
         updatedAt: { gte: startOfMonth },
+        ...leadFilter,
       },
     }),
     prisma.payment.aggregate({
       where: {
-        booking: { trip: { userId: user.id }, status: { not: "CANCELLED" } },
+        booking: {
+          trip: { agencyId, ...tripFilter },
+          status: { not: "CANCELLED" },
+        },
         paidAt: { gte: startOfMonth },
       },
       _sum: { amount: true },
@@ -69,17 +95,14 @@ export default async function DashboardPage() {
       where: {
         completedAt: null,
         dueAt: { lt: now },
-        OR: [
-          { lead: { userId: user.id, deletedAt: null } },
-          { leadId: null },
-        ],
+        lead: { agencyId, deletedAt: null, ...leadFilter },
       },
     }),
     prisma.customer.count({
-      where: { lead: { userId: user.id, deletedAt: null } },
+      where: { lead: { agencyId, deletedAt: null, ...leadFilter } },
     }),
     prisma.activity.findMany({
-      where: { lead: { userId: user.id, deletedAt: null } },
+      where: { lead: { agencyId, deletedAt: null, ...leadFilter } },
       include: { lead: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
       take: 12,
@@ -87,31 +110,25 @@ export default async function DashboardPage() {
     prisma.task.findMany({
       where: {
         completedAt: null,
-        OR: [
-          { lead: { userId: user.id, deletedAt: null } },
-          { leadId: null },
-        ],
+        lead: { agencyId, deletedAt: null, ...leadFilter },
       },
       include: { lead: { select: { id: true, name: true } } },
       orderBy: { dueAt: "asc" },
       take: 5,
     }),
-    // Inbound WhatsApp messages received in the last 7 days — proxy for
-    // "needs reply" since we don't yet track per-message read state on our
-    // side. Operators clear this by sending an outbound reply.
+    // Inbound WhatsApp messages in the last 7 days — proxy for "needs reply".
     prisma.whatsappMessage.count({
       where: {
-        userId: user.id,
+        agencyId,
         direction: "INBOUND",
         createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        ...(mine ? { lead: { ownerId: user.id } } : {}),
       },
     }),
   ]);
 
   const conversionPct =
-    leadsTotal > 0
-      ? Math.round((leadsWonThisMonth / leadsTotal) * 100)
-      : 0;
+    leadsTotal > 0 ? Math.round((leadsWonThisMonth / leadsTotal) * 100) : 0;
 
   const monthLabel = now.toLocaleString("en-IN", { month: "long" });
 
@@ -124,6 +141,8 @@ export default async function DashboardPage() {
     lead: t.lead ? { id: t.lead.id, name: t.lead.name } : null,
   }));
 
+  const firstName = (user.name ?? "").trim().split(/\s+/)[0];
+
   return (
     <PageShell>
       <OnboardingPanel />
@@ -135,39 +154,59 @@ export default async function DashboardPage() {
         className="mb-8"
       >
         Search across leads, trips, vendors, and vouchers from anywhere in
-        the app — even from inside a trip workspace. Tap the Search button in
-        the header on mobile.
+        the app — even from inside a trip workspace.
       </OneTimeHint>
 
-      <section className="grid gap-10 md:grid-cols-[1.4fr_1fr] items-end mb-12">
+      <section className="flex flex-wrap items-end justify-between gap-6 mb-10">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-sand-700 flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5" />
             {monthLabel}, {now.getFullYear()}
           </p>
-          <h1 className="mt-4 font-display text-5xl md:text-6xl text-navy leading-[1.05] text-balance">
-            Today's pipeline.
+          <h1 className="mt-3 font-display text-4xl md:text-5xl text-navy leading-[1.08] text-balance">
+            {mine
+              ? firstName
+                ? `${firstName}'s pipeline.`
+                : "Your pipeline."
+              : "Agency pipeline."}
           </h1>
-          <p className="mt-5 max-w-xl text-base md:text-lg text-ink/70 leading-relaxed">
-            A snapshot of leads in motion, follow-ups on your plate, and
-            revenue rolling in this month.
+          <p className="mt-3 max-w-xl text-sm md:text-base text-ink/70 leading-relaxed">
+            {mine
+              ? "Leads you own, follow-ups on your plate, and the revenue you're closing this month."
+              : "Everything across the agency — every teammate's leads, follow-ups and revenue."}
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <NewLeadDialog
-              trigger={
-                <Button size="lg">
-                  <UserPlus className="h-4 w-4" />
-                  New lead
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <ViewToggle
+            param="scope"
+            defaultValue="mine"
+            options={[
+              { value: "mine", label: "You", icon: "user" },
+              { value: "agency", label: "Agency", icon: "users" },
+            ]}
+          />
+          {canEdit ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <NewLeadDialog
+                trigger={
+                  <Button>
+                    <UserPlus className="h-4 w-4" />
+                    New lead
+                  </Button>
+                }
+              />
+              <Link href="/trips/new">
+                <Button variant="outline">
+                  <Plus className="h-4 w-4" />
+                  New trip
                 </Button>
-              }
-            />
-            <Link href="/trips/new">
-              <Button size="lg" variant="outline">
-                <Plus className="h-4 w-4" />
-                New trip
-              </Button>
-            </Link>
-          </div>
+              </Link>
+            </div>
+          ) : (
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Viewer access · read-only
+            </p>
+          )}
         </div>
       </section>
 
@@ -177,13 +216,13 @@ export default async function DashboardPage() {
           label="Active leads"
           value={String(leadsActive)}
           hint={`${leadsTotal} total in pipeline`}
-          href="/leads"
+          href={mine ? "/leads" : "/leads"}
         />
         <StatTile
           icon={<TrendingUp className="h-3 w-3" />}
           label="Won this month"
           value={`${leadsWonThisMonth}`}
-          hint={`${conversionPct}% lifetime conversion`}
+          hint={`${conversionPct}% conversion`}
           href="/customers"
         />
         <StatTile

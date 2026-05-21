@@ -1,8 +1,9 @@
 import "server-only";
 import type { AgencySettings, Prisma } from "@prisma/client";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
-const DEFAULTS: Omit<Prisma.AgencySettingsCreateWithoutUserInput, "legalName"> = {
+const DEFAULTS: Omit<Prisma.AgencySettingsCreateWithoutAgencyInput, "legalName"> = {
   invoicePrefix: "TC",
   defaultTaxScheme: "GST_5_NO_ITC",
   defaultTaxableBasis: "FULL_AMOUNT",
@@ -13,21 +14,19 @@ const DEFAULTS: Omit<Prisma.AgencySettingsCreateWithoutUserInput, "legalName"> =
 };
 
 /**
- * Returns the current user's AgencySettings. If none exists yet, returns null
- * so callers can show a setup prompt (we do NOT auto-seed an empty record —
- * the legalName + GSTIN fields require the user's input to be meaningful).
+ * Returns the current agency's AgencySettings. NULL while the Owner hasn't
+ * filled in legalName + GSTIN yet — callers show a setup prompt.
  */
 export async function getAgencySettings(): Promise<AgencySettings | null> {
-  const user = await getOrCreateDemoUser();
-  return prisma.agencySettings.findUnique({
-    where: { userId: user.id },
-  });
+  const { agencyId } = await requireAgency();
+  return prisma.agencySettings.findUnique({ where: { agencyId } });
 }
 
 export async function upsertAgencySettings(
   patch: Prisma.AgencySettingsUpdateInput & { legalName?: string }
 ): Promise<AgencySettings> {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
+
   const legalNameRaw =
     typeof patch.legalName === "string"
       ? patch.legalName
@@ -39,23 +38,23 @@ export async function upsertAgencySettings(
 
   // Build the create payload from `patch` minus the keys we set explicitly,
   // layered on top of DEFAULTS.
-  const { legalName: _legalNameOmit, user: _userOmit, ...rest } =
+  const { legalName: _legalNameOmit, agency: _agencyOmit, ...rest } =
     patch as Prisma.AgencySettingsUpdateInput & {
       legalName?: unknown;
-      user?: unknown;
+      agency?: unknown;
     };
   void _legalNameOmit;
-  void _userOmit;
+  void _agencyOmit;
 
   const createPayload: Prisma.AgencySettingsCreateInput = {
     ...DEFAULTS,
     ...(rest as Prisma.AgencySettingsCreateInput),
     legalName,
-    user: { connect: { id: user.id } },
+    agency: { connect: { id: agencyId } },
   };
 
   return prisma.agencySettings.upsert({
-    where: { userId: user.id },
+    where: { agencyId },
     create: createPayload,
     update: patch,
   });

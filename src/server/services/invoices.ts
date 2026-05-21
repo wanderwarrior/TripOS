@@ -72,7 +72,7 @@ export async function createOrRefreshDraftInvoice(
   if (!booking) throw new Error("Booking not found");
 
   const settings = await prisma.agencySettings.findUnique({
-    where: { userId: booking.trip.userId },
+    where: { agencyId: booking.trip.agencyId },
   });
   if (!settings) {
     throw new Error(
@@ -183,7 +183,7 @@ export async function createOrRefreshDraftInvoice(
   };
 
   const data: Prisma.InvoiceUncheckedCreateInput = {
-    userId: booking.trip.userId,
+    agencyId: booking.trip.agencyId,
     bookingId: booking.id,
     status: "DRAFT",
     invoiceDate: input.invoiceDate ?? new Date(),
@@ -292,7 +292,7 @@ export async function updateDraftInvoice(
   }
 
   const settings = await prisma.agencySettings.findUnique({
-    where: { userId: existing.userId },
+    where: { agencyId: existing.agencyId },
   });
   if (!settings) throw new Error("Agency settings missing");
 
@@ -389,7 +389,7 @@ export async function issueInvoice(invoiceId: string): Promise<Invoice> {
     }
 
     const settings = await tx.agencySettings.findUnique({
-      where: { userId: invoice.userId },
+      where: { agencyId: invoice.agencyId },
       select: { invoicePrefix: true },
     });
     if (!settings) {
@@ -398,7 +398,7 @@ export async function issueInvoice(invoiceId: string): Promise<Invoice> {
 
     const issueDate = new Date();
     const allocated = await allocateNextInvoiceNumber(tx, {
-      userId: invoice.userId,
+      agencyId: invoice.agencyId,
       prefix: settings.invoicePrefix,
       issueDate,
     });

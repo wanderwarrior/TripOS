@@ -4,8 +4,11 @@ import type { InvoiceStatus, Prisma } from "@prisma/client";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { FyFilter } from "@/components/invoices/fy-filter";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { InvoicesTable, type InvoiceRow } from "@/components/invoices/invoices-table";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 import { cn, formatDate, formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +29,14 @@ const TONE: Record<InvoiceStatus, "outline" | "success" | "danger"> = {
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: { status?: string; fy?: string };
+  searchParams: { status?: string; fy?: string; view?: string };
 }) {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
   const filter = (searchParams.status ?? "all").toLowerCase();
   const selected = FILTERS.find((f) => f.key === filter);
+  const view = searchParams.view === "table" ? "table" : "cards";
 
-  const where: Prisma.InvoiceWhereInput = { userId: user.id };
+  const where: Prisma.InvoiceWhereInput = { agencyId };
   if (selected?.status) where.status = selected.status;
   if (searchParams.fy) where.invoiceFy = searchParams.fy;
 
@@ -56,16 +60,42 @@ export default async function InvoicesPage({
       take: 100,
     }),
     prisma.invoice.aggregate({
-      where: { userId: user.id, status: "ISSUED" },
+      where: { agencyId, status: "ISSUED" },
       _sum: { grandTotal: true },
       _count: true,
     }),
     prisma.invoice.groupBy({
       by: ["invoiceFy"],
-      where: { userId: user.id, invoiceFy: { not: null } },
+      where: { agencyId, invoiceFy: { not: null } },
       orderBy: { invoiceFy: "desc" },
     }),
   ]);
+
+  const tableRows: InvoiceRow[] = invoices.map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    status: inv.status,
+    destination: inv.booking?.trip?.destination ?? null,
+    customerName: inv.booking?.trip?.lead?.name ?? null,
+    invoiceFy: inv.invoiceFy,
+    grandTotal: inv.grandTotal,
+    effectiveDate:
+      inv.status === "ISSUED" && inv.issuedAt
+        ? inv.issuedAt
+        : inv.status === "CANCELLED" && inv.cancelledAt
+          ? inv.cancelledAt
+          : inv.createdAt,
+  }));
+
+  // Preserve status + fy + view across filter navigation.
+  const filterHref = (key: string) => {
+    const p = new URLSearchParams();
+    if (key !== "all") p.set("status", key);
+    if (searchParams.fy) p.set("fy", searchParams.fy);
+    if (view === "table") p.set("view", "table");
+    const qs = p.toString();
+    return qs ? `/invoices?${qs}` : "/invoices";
+  };
 
   return (
     <PageShell>
@@ -88,29 +118,37 @@ export default async function InvoicesPage({
       </header>
 
       <div className="flex flex-wrap items-center gap-2 mb-8">
-        {FILTERS.map((f) => {
-          const href = f.key === "all" ? "/invoices" : `/invoices?status=${f.key}`;
-          return (
-            <Link
-              key={f.key}
-              href={href}
-              className={cn(
-                "h-9 px-4 rounded-full border text-xs uppercase tracking-[0.16em] transition-colors",
-                f.key === filter
-                  ? "border-navy bg-navy text-ivory"
-                  : "border-line bg-white text-navy hover:border-sand"
-              )}
-            >
-              {f.label}
-            </Link>
-          );
-        })}
+        {FILTERS.map((f) => (
+          <Link
+            key={f.key}
+            href={filterHref(f.key)}
+            className={cn(
+              "h-9 px-4 inline-flex items-center rounded-full border text-xs uppercase tracking-[0.16em] transition-colors",
+              f.key === filter
+                ? "border-navy bg-navy text-ivory"
+                : "border-line bg-white text-navy hover:border-sand"
+            )}
+          >
+            {f.label}
+          </Link>
+        ))}
         {fyOptions.length > 0 ? (
           <FyFilter
             options={fyOptions
               .map((o) => o.invoiceFy)
               .filter((fy): fy is string => Boolean(fy))}
           />
+        ) : null}
+        {invoices.length > 0 ? (
+          <div className="ml-auto">
+            <ViewToggle
+              defaultValue="cards"
+              options={[
+                { value: "cards", label: "Cards", icon: "grid" },
+                { value: "table", label: "Table", icon: "table" },
+              ]}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -129,6 +167,8 @@ export default async function InvoicesPage({
           }
           variant="card"
         />
+      ) : view === "table" ? (
+        <InvoicesTable invoices={tableRows} />
       ) : (
         <ul className="space-y-2">
           {invoices.map((inv) => (

@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
-import type { Activity } from "@prisma/client";
-import { ActivityItem } from "@/components/crm/activity-item";
+import {
+  ActivityItem,
+  type ActivityWithActor,
+} from "@/components/crm/activity-item";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { addNoteAction } from "@/server/actions/activities";
@@ -14,7 +16,7 @@ export function LeadTimeline({
   activities,
 }: {
   leadId: string;
-  activities: Activity[];
+  activities: ActivityWithActor[];
 }) {
   const [note, setNote] = useState("");
   const [isPending, startTransition] = useTransition();

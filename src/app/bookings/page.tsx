@@ -3,9 +3,12 @@ import { ArrowUpRight, Wallet } from "lucide-react";
 import type { BookingStatus } from "@prisma/client";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { InlineWhatsappBadge } from "@/components/whatsapp/inline-whatsapp-badge";
+import { BookingsTable, type BookingRow } from "@/components/bookings/bookings-table";
 import { getWhatsappStatsForEntities } from "@/server/services/whatsapp";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 import {
   BOOKING_STATUS_LABEL,
   BOOKING_STATUS_ORDER,
@@ -27,16 +30,17 @@ const FILTERS = [
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { status?: string; view?: string };
 }) {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
   const filter = (searchParams.status ?? "active").toLowerCase();
+  const view = searchParams.view === "table" ? "table" : "cards";
 
   let where: Parameters<typeof prisma.booking.findMany>[0] extends infer T
     ? T extends { where?: infer W }
       ? W
       : never
-    : never = { trip: { userId: user.id, deletedAt: null } };
+    : never = { trip: { agencyId, deletedAt: null } };
 
   if (filter === "active") {
     where = { ...where, status: { not: "CANCELLED" } };
@@ -66,16 +70,48 @@ export default async function BookingsPage({
   });
 
   const totals = await prisma.booking.aggregate({
-    where: { trip: { userId: user.id }, status: { not: "CANCELLED" } },
+    where: { trip: { agencyId }, status: { not: "CANCELLED" } },
     _sum: { totalAmount: true, paidAmount: true },
     _count: true,
   });
 
   const waStats = await getWhatsappStatsForEntities({
-    userId: user.id,
+    agencyId,
     scope: "tripId",
     ids: bookings.map((b) => b.trip.id),
   });
+
+  const waFor = (tripId: string) => {
+    const w = waStats.get(tripId);
+    return w
+      ? {
+          count: w.count,
+          unreadInbound: w.unreadInbound,
+          lastDirection: w.lastDirection,
+        }
+      : null;
+  };
+
+  const tableRows: BookingRow[] = bookings.map((b) => ({
+    id: b.id,
+    tripId: b.trip.id,
+    destination: b.trip.destination,
+    leadName: b.trip.lead?.name ?? null,
+    quoteVersion: b.quote.version,
+    status: b.status,
+    totalAmount: b.totalAmount,
+    paidAmount: b.paidAmount,
+    createdAt: b.createdAt,
+    wa: waFor(b.trip.id),
+  }));
+
+  // Preserve the active view when switching status filters.
+  const filterHref = (key: string) => {
+    const parts: string[] = [];
+    if (key !== "active") parts.push(`status=${key}`);
+    if (view === "table") parts.push("view=table");
+    return parts.length ? `/bookings?${parts.join("&")}` : "/bookings";
+  };
 
   return (
     <PageShell>
@@ -101,13 +137,13 @@ export default async function BookingsPage({
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap items-center gap-2 mb-8">
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={f.key === "active" ? "/bookings" : `/bookings?status=${f.key}`}
+            href={filterHref(f.key)}
             className={cn(
-              "h-9 px-4 rounded-full border text-xs uppercase tracking-[0.16em] transition-colors",
+              "h-9 px-4 inline-flex items-center rounded-full border text-xs uppercase tracking-[0.16em] transition-colors",
               f.key === filter
                 ? "border-navy bg-navy text-ivory"
                 : "border-line bg-white text-navy hover:border-sand"
@@ -116,6 +152,17 @@ export default async function BookingsPage({
             {f.label}
           </Link>
         ))}
+        {bookings.length > 0 ? (
+          <div className="ml-auto">
+            <ViewToggle
+              defaultValue="cards"
+              options={[
+                { value: "cards", label: "Cards", icon: "grid" },
+                { value: "table", label: "Table", icon: "table" },
+              ]}
+            />
+          </div>
+        ) : null}
       </div>
 
       {bookings.length === 0 ? (
@@ -143,6 +190,8 @@ export default async function BookingsPage({
             ) : null}
           </div>
         </div>
+      ) : view === "table" ? (
+        <BookingsTable bookings={tableRows} />
       ) : (
         <ul className="space-y-3">
           {bookings.map((b) => {

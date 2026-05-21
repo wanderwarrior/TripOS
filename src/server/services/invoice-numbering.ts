@@ -14,7 +14,7 @@ import { fiscalYearFor, formatInvoiceNumber } from "@/lib/gst";
 export async function allocateNextInvoiceNumber(
   tx: Prisma.TransactionClient,
   opts: {
-    userId: string;
+    agencyId: string;
     prefix: string;
     issueDate: Date;
   }
@@ -29,13 +29,13 @@ export async function allocateNextInvoiceNumber(
   // can't read the same lastSequence.
   const counter = await tx.invoiceCounter.upsert({
     where: {
-      userId_fiscalYear: { userId: opts.userId, fiscalYear },
+      agencyId_fiscalYear: { agencyId: opts.agencyId, fiscalYear },
     },
     update: {
       lastSequence: { increment: 1 },
     },
     create: {
-      userId: opts.userId,
+      agencyId: opts.agencyId,
       fiscalYear,
       prefix: opts.prefix,
       lastSequence: 1,
@@ -60,13 +60,13 @@ export async function allocateNextInvoiceNumber(
  * NOT atomic — for display only. Use allocateNextInvoiceNumber when issuing.
  */
 export async function previewNextInvoiceNumber(
-  userId: string,
+  agencyId: string,
   prefix: string,
   issueDate: Date = new Date()
 ): Promise<string> {
   const fiscalYear = fiscalYearFor(issueDate);
   const existing = await prisma.invoiceCounter.findUnique({
-    where: { userId_fiscalYear: { userId, fiscalYear } },
+    where: { agencyId_fiscalYear: { agencyId, fiscalYear } },
   });
   const nextSeq = (existing?.lastSequence ?? 0) + 1;
   return formatInvoiceNumber({ prefix, fiscalYear, sequence: nextSeq });

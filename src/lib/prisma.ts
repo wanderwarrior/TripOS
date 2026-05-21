@@ -14,13 +14,3 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") g[CACHE_KEY] = prisma;
-
-export const DEMO_USER_EMAIL = "demo@tripcraft.app";
-
-export async function getOrCreateDemoUser() {
-  return prisma.user.upsert({
-    where: { email: DEMO_USER_EMAIL },
-    update: {},
-    create: { email: DEMO_USER_EMAIL },
-  });
-}

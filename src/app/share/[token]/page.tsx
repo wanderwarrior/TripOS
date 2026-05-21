@@ -30,9 +30,9 @@ export default async function PublicQuotePage({
           travelSegments: {
             orderBy: [{ dayNumber: "asc" }, { departureTime: "asc" }],
           },
-          user: {
+          agency: {
             select: {
-              agencySettings: {
+              settings: {
                 select: {
                   legalName: true,
                   tradeName: true,
@@ -51,7 +51,7 @@ export default async function PublicQuotePage({
     | ItineraryContent
     | null;
 
-  const agency = quote.trip.user.agencySettings;
+  const agency = quote.trip.agency.settings;
   const agencyName = agency?.tradeName || agency?.legalName || "TripCraft";
 
   const pricing = {

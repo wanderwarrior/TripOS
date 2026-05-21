@@ -5,6 +5,10 @@ type LogInput = {
   leadId?: string | null;
   tripId?: string | null;
   vendorId?: string | null;
+  invoiceId?: string | null;
+  // Who performed the action. Pass the session user's id for interactive
+  // events; leave undefined for system / automation / webhook events.
+  actorId?: string | null;
   type: ActivityType;
   title: string;
   body?: string | null;
@@ -12,14 +16,18 @@ type LogInput = {
 };
 
 export async function logActivity(input: LogInput) {
-  if (!input.leadId && !input.tripId && !input.vendorId) {
-    throw new Error("logActivity requires at least one of leadId / tripId / vendorId");
+  if (!input.leadId && !input.tripId && !input.vendorId && !input.invoiceId) {
+    throw new Error(
+      "logActivity requires at least one of leadId / tripId / vendorId / invoiceId"
+    );
   }
   return prisma.activity.create({
     data: {
       leadId: input.leadId ?? null,
       tripId: input.tripId ?? null,
       vendorId: input.vendorId ?? null,
+      invoiceId: input.invoiceId ?? null,
+      actorId: input.actorId ?? null,
       type: input.type,
       title: input.title,
       body: input.body ?? null,

@@ -20,6 +20,7 @@ import {
   saveAgencySettingsAction,
   type AgencySettingsInput,
 } from "@/server/actions/agency-settings";
+import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import { INDIA_STATES } from "@/lib/gst";
 
 const TAX_SCHEMES = [
@@ -100,10 +101,20 @@ export function AgencySettingsForm({
     update("defaultPlaceOfSupplyState", match?.name ?? "");
   }
 
+  // Dirty-state guard: warn before leaving with unsaved edits. The snapshot
+  // is the last-saved serialization of the form; `dirty` is true whenever
+  // the live form diverges from it.
+  const [savedSnapshot, setSavedSnapshot] = useState(() =>
+    JSON.stringify(form)
+  );
+  const dirty = JSON.stringify(form) !== savedSnapshot;
+  useUnsavedChanges(dirty);
+
   function submit() {
     startTransition(async () => {
       try {
         await saveAgencySettingsAction(form);
+        setSavedSnapshot(JSON.stringify(form));
         toast.success("Settings saved");
         router.refresh();
       } catch (e) {
@@ -477,14 +488,19 @@ export function AgencySettingsForm({
         </div>
       </Card>
 
-      <div className="sticky bottom-4 flex justify-end">
-        <Button onClick={submit} disabled={isPending}>
+      <div className="sticky bottom-4 flex items-center justify-end gap-3">
+        {dirty ? (
+          <span className="rounded-full border border-sand-200 bg-sand-50 px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-sand-800 shadow-soft">
+            Unsaved changes
+          </span>
+        ) : null}
+        <Button onClick={submit} disabled={isPending || !dirty}>
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Save className="h-4 w-4" />
           )}
-          Save settings
+          {dirty ? "Save settings" : "Saved"}
         </Button>
       </div>
     </div>

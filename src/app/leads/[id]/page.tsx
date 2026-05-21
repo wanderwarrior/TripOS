@@ -22,7 +22,9 @@ import {
 import { WhatsappBadge } from "@/components/whatsapp/whatsapp-badge";
 import { WhatsappComposer } from "@/components/whatsapp/whatsapp-composer";
 import { WhatsappThread } from "@/components/whatsapp/whatsapp-thread";
+import { OwnerPicker } from "@/components/crm/owner-picker";
 import { prisma } from "@/lib/prisma";
+import { listAgencyMembers, requireAgency } from "@/lib/session";
 import {
   LEAD_SOURCE_LABEL,
   TRIP_STATUS_LABEL,
@@ -37,22 +39,32 @@ export default async function LeadDetailPage({
 }: {
   params: { id: string };
 }) {
-  const lead = await prisma.lead.findFirst({
-    where: { id: params.id, deletedAt: null },
-    include: {
-      customer: true,
-      trips: {
-        where: { deletedAt: null },
-        orderBy: { createdAt: "desc" },
+  const { agencyId, user } = await requireAgency();
+  const canEdit = user.activeAgencyRole !== "VIEWER";
+
+  const [lead, members] = await Promise.all([
+    prisma.lead.findFirst({
+      // Tenant-scoped: a lead id from another agency resolves to notFound().
+      where: { id: params.id, agencyId, deletedAt: null },
+      include: {
+        customer: true,
+        trips: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: "desc" },
+        },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          include: { actor: { select: { name: true, email: true } } },
+        },
+        tasks: { orderBy: [{ completedAt: "asc" }, { dueAt: "asc" }] },
+        whatsappMessages: {
+          orderBy: { createdAt: "asc" },
+          take: 200,
+        },
       },
-      activities: { orderBy: { createdAt: "desc" } },
-      tasks: { orderBy: [{ completedAt: "asc" }, { dueAt: "asc" }] },
-      whatsappMessages: {
-        orderBy: { createdAt: "asc" },
-        take: 200,
-      },
-    },
-  });
+    }),
+    listAgencyMembers(agencyId),
+  ]);
   if (!lead) notFound();
 
   const customerPrefs = (lead.customer?.preferences ?? {}) as CustomerPreferences;
@@ -86,16 +98,22 @@ export default async function LeadDetailPage({
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Source · {LEAD_SOURCE_LABEL[lead.source]}
           </p>
-          <ContactStrip
-            leadId={lead.id}
-            leadName={lead.name}
-            phone={lead.phone}
-            email={lead.email}
-          />
-          <WhatsappBadge
-            scope={{ leadId: lead.id }}
-            href="/communications"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ContactStrip
+              leadId={lead.id}
+              leadName={lead.name}
+              phone={lead.phone}
+              email={lead.email}
+            />
+            <OwnerPicker
+              kind="lead"
+              entityId={lead.id}
+              currentOwnerId={lead.ownerId}
+              members={members.map((m) => ({ id: m.id, name: m.name }))}
+              canAssign={canEdit}
+            />
+            <WhatsappBadge scope={{ leadId: lead.id }} href="/communications" />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {lead.phone ? (

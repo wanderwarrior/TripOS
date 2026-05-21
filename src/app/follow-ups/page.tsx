@@ -1,19 +1,17 @@
 import { CalendarClock } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { FollowUpRow, type FollowUpRowData } from "@/components/crm/follow-up-row";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function FollowUpsPage() {
-  const user = await getOrCreateDemoUser();
+  const { agencyId } = await requireAgency();
 
   const tasks = await prisma.task.findMany({
     where: {
-      OR: [
-        { lead: { userId: user.id, deletedAt: null } },
-        { leadId: null },
-      ],
+      lead: { agencyId, deletedAt: null },
     },
     include: { lead: { select: { id: true, name: true } } },
     orderBy: [{ completedAt: "asc" }, { dueAt: "asc" }],

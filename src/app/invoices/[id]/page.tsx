@@ -27,7 +27,7 @@ export default async function InvoiceDetailPage({
   let previewedNumber: string | null = null;
   if (invoice.status === "DRAFT" && settings) {
     previewedNumber = await previewNextInvoiceNumber(
-      invoice.userId,
+      invoice.agencyId,
       settings.invoicePrefix,
       new Date()
     );

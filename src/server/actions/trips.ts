@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { generateItineraryAI } from "@/lib/ai";
 import { logActivity } from "@/server/helpers/log-activity";
 
@@ -27,7 +28,7 @@ export type CreateTripInput = z.infer<typeof tripSchema>;
 
 export async function createTripAction(input: CreateTripInput) {
   const data = tripSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("trip:create");
 
   // Standalone trips still get a Lead so every trip is CRM-trackable.
   let leadId = data.leadId ?? null;
@@ -38,7 +39,8 @@ export async function createTripAction(input: CreateTripInput) {
       : null;
     const directLead = await prisma.lead.create({
       data: {
-        userId: user.id,
+        agencyId: user.activeAgencyId,
+        ownerId: user.id,
         name: `Direct — ${data.destination.trim()}`,
         source: "MANUAL",
         status: "REQUIREMENT_UNDERSTOOD",
@@ -55,7 +57,8 @@ export async function createTripAction(input: CreateTripInput) {
 
   const trip = await prisma.trip.create({
     data: {
-      userId: user.id,
+      agencyId: user.activeAgencyId,
+      ownerId: user.id,
       leadId,
       destination: data.destination.trim(),
       days: data.days,
@@ -109,8 +112,10 @@ export async function updateTripStatusAction(
   tripId: string,
   status: "PLANNING" | "QUOTED" | "BOOKED" | "COMPLETED" | "CANCELLED"
 ) {
-  await prisma.trip.update({
-    where: { id: tripId },
+  const { agencyId } = await requireAgency();
+  await assertCan("trip:update");
+  await prisma.trip.updateMany({
+    where: { id: tripId, agencyId },
     data: { status },
   });
   revalidatePath(`/trips/${tripId}`);
@@ -118,17 +123,52 @@ export async function updateTripStatusAction(
 }
 
 export async function deleteTripAction(tripId: string) {
-  await prisma.trip.update({
-    where: { id: tripId },
+  const { agencyId } = await requireAgency();
+  await assertCan("trip:delete");
+  await prisma.trip.updateMany({
+    where: { id: tripId, agencyId },
     data: { deletedAt: new Date() },
   });
   revalidatePath("/");
   return { ok: true as const };
 }
 
+/**
+ * Assign (or clear) the operations owner of a trip — the staffer
+ * responsible for executing it.
+ */
+export async function assignTripOwnerAction(input: {
+  tripId: string;
+  ownerId: string | null;
+}) {
+  const { agencyId } = await requireAgency();
+  await assertCan("trip:update");
+
+  if (input.ownerId) {
+    const member = await prisma.membership.findFirst({
+      where: { agencyId, userId: input.ownerId },
+      select: { id: true },
+    });
+    if (!member) {
+      return { ok: false as const, error: "Not a member of this agency." };
+    }
+  }
+
+  const res = await prisma.trip.updateMany({
+    where: { id: input.tripId, agencyId },
+    data: { ownerId: input.ownerId },
+  });
+  if (res.count === 0) return { ok: false as const, error: "Trip not found." };
+
+  revalidatePath(`/trips/${input.tripId}`);
+  return { ok: true as const };
+}
+
 export async function markTripStartedAction(tripId: string) {
-  const trip = await prisma.trip.findUnique({
-    where: { id: tripId },
+  const { agencyId } = await requireAgency();
+  await assertCan("trip:update");
+  const trip = await prisma.trip.findFirst({
+    where: { id: tripId, agencyId },
     select: { id: true, leadId: true, status: true },
   });
   if (!trip) throw new Error("Trip not found");
@@ -153,8 +193,10 @@ export async function markTripStartedAction(tripId: string) {
 }
 
 export async function markTripCompletedAction(tripId: string) {
-  const trip = await prisma.trip.findUnique({
-    where: { id: tripId },
+  const { agencyId } = await requireAgency();
+  await assertCan("trip:update");
+  const trip = await prisma.trip.findFirst({
+    where: { id: tripId, agencyId },
     select: { id: true, leadId: true, status: true },
   });
   if (!trip) throw new Error("Trip not found");

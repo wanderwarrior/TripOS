@@ -57,7 +57,9 @@ type LinkContext = {
 };
 
 type DispatchBase = {
-  userId: string;
+  agencyId: string;
+  // The operator who triggered this send (null for automation-driven sends).
+  sentByUserId?: string | null;
   toPhone: string;
   kind: WhatsappMessageKind;
   message: string;
@@ -118,7 +120,8 @@ async function recordQueued(args: DispatchBase): Promise<string> {
   const link = args.link ?? {};
   const row = await prisma.whatsappMessage.create({
     data: {
-      userId: args.userId,
+      agencyId: args.agencyId,
+      sentByUserId: args.sentByUserId ?? null,
       leadId: link.leadId ?? null,
       customerId: link.customerId ?? null,
       tripId: link.tripId ?? null,
@@ -142,10 +145,10 @@ async function recordQueued(args: DispatchBase): Promise<string> {
   return row.id;
 }
 
-async function findExistingByIdempotency(userId: string, key: string | null | undefined) {
+async function findExistingByIdempotency(agencyId: string, key: string | null | undefined) {
   if (!key) return null;
   return prisma.whatsappMessage.findUnique({
-    where: { userId_idempotencyKey: { userId, idempotencyKey: key } },
+    where: { agencyId_idempotencyKey: { agencyId, idempotencyKey: key } },
   });
 }
 
@@ -200,7 +203,7 @@ async function finalizeSuccess(messageRowId: string, res: WaSendResponse) {
 }
 
 async function dispatch(args: DispatchBase, payload: WaSendPayload): Promise<DispatchResult> {
-  const existing = await findExistingByIdempotency(args.userId, args.idempotencyKey);
+  const existing = await findExistingByIdempotency(args.agencyId, args.idempotencyKey);
   if (existing) {
     return {
       messageId: existing.id,

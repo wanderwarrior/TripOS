@@ -6,7 +6,8 @@ import {
   MessageCircle,
   Sparkles,
 } from "lucide-react";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 import { isWhatsappConfigured } from "@/lib/whatsapp/client";
 
 // First-run checklist. Renders as a card on the dashboard until every
@@ -29,15 +30,16 @@ type Step = {
 };
 
 export async function OnboardingPanel() {
-  const user = await getOrCreateDemoUser();
+  const { agencyId, user } = await requireAgency();
 
-  const [agency, templateCount, leadCount] = await Promise.all([
+  const [agency, templateCount, leadCount, memberCount] = await Promise.all([
     prisma.agencySettings.findUnique({
-      where: { userId: user.id },
+      where: { agencyId },
       select: { legalName: true, gstin: true, logoUrl: true },
     }),
-    prisma.whatsappTemplate.count({ where: { userId: user.id, isActive: true } }),
-    prisma.lead.count({ where: { userId: user.id, deletedAt: null } }),
+    prisma.whatsappTemplate.count({ where: { agencyId, isActive: true } }),
+    prisma.lead.count({ where: { agencyId, deletedAt: null } }),
+    prisma.membership.count({ where: { agencyId } }),
   ]);
 
   const steps: Step[] = [
@@ -82,6 +84,17 @@ export async function OnboardingPanel() {
       done: leadCount > 0,
     },
   ];
+
+  if (user.activeAgencyRole === "OWNER") {
+    steps.push({
+      key: "team",
+      label: "Invite your team",
+      hint: "Sales people, operations, accountants — bring them into the agency.",
+      href: "/settings/team",
+      cta: "Invite teammates",
+      done: memberCount > 1,
+    });
+  }
 
   const remaining = steps.filter((s) => !s.done);
   if (remaining.length === 0) return null;

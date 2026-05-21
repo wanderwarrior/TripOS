@@ -242,25 +242,125 @@ enum WhatsappAutomationTrigger {
   INVOICE_ISSUED
 }
 
+// === Multi-tenant primitives ===
+
+enum MembershipRole {
+  // Full control: agency settings, billing, team, every CRM action.
+  OWNER
+  // Day-to-day operator: leads, trips, quotes, invoices, WhatsApp.
+  // Cannot manage team or change billing.
+  STAFF
+  // Read-only — useful for accountants, auditors, advisors.
+  VIEWER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 model User {
-  id                  String                   @id @default(cuid())
-  email               String                   @unique
-  name                String?
-  createdAt           DateTime                 @default(now())
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  image          String?
+  // Set on credentials-provider signup. NULL means "passwordless invite
+  // pending" or "magic-link / OAuth only" once those are added.
+  hashedPassword String?
+  emailVerified  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  memberships Membership[]
+  sentInvites Invite[]     @relation("InviteSender")
+
+  // Attribution / assignment relations (who in the agency did/owns this).
+  // Agency tenancy itself lives on the entity via agencyId; these are
+  // nullable because the original creator may have been removed.
+  ownedLeads       Lead[]             @relation("LeadOwner")
+  ownedTrips       Trip[]             @relation("TripOwner")
+  createdInvoices  Invoice[]          @relation("InvoiceCreator")
+  sentMessages     WhatsappMessage[]  @relation("WhatsappSender")
+  createdTemplates WhatsappTemplate[] @relation("TemplateCreator")
+  activities       Activity[]         @relation("ActivityActor")
+}
+
+/// The tenant. Every business-domain row in the system roots up to an
+/// Agency via agencyId — that's the single fence for data isolation.
+/// One User can belong to many Agencies via Membership (e.g. consultants
+/// helping multiple agencies). Agency.slug is used for the future public
+/// microsite (/<slug>).
+model Agency {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships         Membership[]
+  invites             Invite[]
+  settings            AgencySettings?
+  invoiceCounters     InvoiceCounter[]
   leads               Lead[]
   trips               Trip[]
   invoices            Invoice[]
-  invoiceCounters     InvoiceCounter[]
-  agencySettings      AgencySettings?
+  vendors             Vendor[]
   whatsappMessages    WhatsappMessage[]
   whatsappTemplates   WhatsappTemplate[]
   whatsappAutomations WhatsappAutomationRule[]
+
+  @@index([slug])
+}
+
+/// User ↔ Agency edge. The `role` here drives every permission check —
+/// see [src/lib/auth.ts](src/lib/auth.ts).
+model Membership {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyId    String
+  agency      Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  role        MembershipRole @default(STAFF)
+  // Soft-suspend without losing history (audit trails still resolve).
+  suspendedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, agencyId])
+  @@index([agencyId, role])
+}
+
+/// Pending team invitation. The token is the URL fragment the recipient
+/// clicks; it's a long random string, no enumeration risk.
+model Invite {
+  id          String         @id @default(cuid())
+  agencyId    String
+  agency      Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  email       String
+  role        MembershipRole @default(STAFF)
+  token       String         @unique
+  invitedById String
+  invitedBy   User           @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Restrict)
+  status      InviteStatus   @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@unique([agencyId, email])
+  @@index([token])
+  @@index([agencyId, status])
 }
 
 model Lead {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String  @id @default(cuid())
+  agencyId String
+  agency   Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  // Lead owner — the sales person on the agency team responsible for this
+  // lead. Nullable so leads survive an owner's removal.
+  ownerId  String?
+  owner    User?   @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
   name   String
   phone  String?
@@ -297,8 +397,9 @@ model Lead {
   tasks            Task[]
   whatsappMessages WhatsappMessage[]
 
-  @@index([userId, status, nextFollowUpAt])
-  @@index([userId, deletedAt])
+  @@index([agencyId, status, nextFollowUpAt])
+  @@index([agencyId, deletedAt])
+  @@index([agencyId, ownerId])
   @@index([phone])
 }
 
@@ -316,11 +417,15 @@ model Customer {
 }
 
 model Trip {
-  id     String  @id @default(cuid())
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leadId String?
-  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  id       String  @id @default(cuid())
+  agencyId String
+  agency   Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  // Operations owner — the staffer responsible for executing this trip.
+  // Often different from the sales person who closed it.
+  ownerId  String?
+  owner    User?   @relation("TripOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  leadId   String?
+  lead     Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   destination String
   days        Int
@@ -348,7 +453,8 @@ model Trip {
   activities        Activity[]
   whatsappMessages  WhatsappMessage[]
 
-  @@index([userId, createdAt])
+  @@index([agencyId, createdAt])
+  @@index([agencyId, ownerId])
   @@index([leadId])
   @@index([deletedAt])
 }
@@ -449,6 +555,9 @@ model Activity {
   vendor    Vendor?      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   invoiceId String?
   invoice   Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  // Who performed the action — null for system / automation / webhook events.
+  actorId   String?
+  actor     User?        @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
   type      ActivityType
   title     String
   body      String?
@@ -509,9 +618,11 @@ model Task {
 }
 
 model Vendor {
-  id   String     @id @default(cuid())
-  name String
-  type VendorType @default(OTHER)
+  id       String     @id @default(cuid())
+  agencyId String
+  agency   Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  name     String
+  type     VendorType @default(OTHER)
 
   phone    String?
   whatsapp String?
@@ -536,8 +647,8 @@ model Vendor {
   payments    VendorPayment[]
   activities  Activity[]
 
-  @@index([type, isActive, deletedAt])
-  @@index([city])
+  @@index([agencyId, type, isActive, deletedAt])
+  @@index([agencyId, city])
   @@index([deletedAt])
 }
 
@@ -645,11 +756,11 @@ model VendorPayment {
   @@index([tripId])
 }
 
-/// Per-user agency identity + invoice configuration. Singleton per user.
+/// Per-agency identity + invoice configuration. Singleton per agency.
 model AgencySettings {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  agencyId String @unique
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
   // Identity
   legalName String
@@ -704,12 +815,12 @@ model AgencySettings {
   updatedAt DateTime @updatedAt
 }
 
-/// Per-user, per-fiscal-year sequence allocator. Locked atomically on
+/// Per-agency, per-fiscal-year sequence allocator. Locked atomically on
 /// invoice issue so numbers stay sequential and unique within the FY.
 model InvoiceCounter {
   id           String @id @default(cuid())
-  userId       String
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyId     String
+  agency       Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   fiscalYear   String // e.g. "26-27"
   prefix       String // captured at first allocation; informational
   lastSequence Int    @default(0)
@@ -717,13 +828,16 @@ model InvoiceCounter {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, fiscalYear])
+  @@unique([agencyId, fiscalYear])
 }
 
 model Invoice {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  agencyId    String
+  agency      Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  // Who in the agency drafted/issued this — survives the user being removed.
+  createdById String?
+  createdBy   User?   @relation("InvoiceCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   bookingId String  @unique
   booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
@@ -774,9 +888,9 @@ model Invoice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, invoiceFy, invoiceSequence])
-  @@index([userId, status])
-  @@index([userId, invoiceFy])
+  @@unique([agencyId, invoiceFy, invoiceSequence])
+  @@index([agencyId, status])
+  @@index([agencyId, invoiceFy])
 }
 
 model InvoiceItem {
@@ -811,8 +925,11 @@ model InvoiceItem {
 model WhatsappMessage {
   id String @id @default(cuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyId     String
+  agency       Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  // Operator who triggered this send (null for inbound).
+  sentByUserId String?
+  sentByUser   User?   @relation("WhatsappSender", fields: [sentByUserId], references: [id], onDelete: SetNull)
 
   // Optional links — any of these can be set so the message timelines
   // against the right CRM entity. Storing all of them keeps queries simple.
@@ -873,9 +990,10 @@ model WhatsappMessage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, idempotencyKey])
-  @@index([userId, status, scheduledFor])
-  @@index([userId, phone, createdAt])
+  @@unique([agencyId, idempotencyKey])
+  @@index([agencyId, status, scheduledFor])
+  @@index([agencyId, phone, createdAt])
+  @@index([agencyId, direction, createdAt])
   @@index([leadId, createdAt])
   @@index([customerId, createdAt])
   @@index([tripId, createdAt])
@@ -889,8 +1007,10 @@ model WhatsappMessage {
 model WhatsappTemplate {
   id String @id @default(cuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyId    String
+  agency      Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdBy   User?   @relation("TemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   name     String // display name (internal)
   category WhatsappTemplateCategory @default(CUSTOM)
@@ -912,8 +1032,8 @@ model WhatsappTemplate {
 
   automationRules WhatsappAutomationRule[]
 
-  @@unique([userId, templateId, language])
-  @@index([userId, category, isActive])
+  @@unique([agencyId, templateId, language])
+  @@index([agencyId, category, isActive])
 }
 
 /// Trigger → template binding. The automation runner scans the relevant
@@ -922,8 +1042,8 @@ model WhatsappTemplate {
 model WhatsappAutomationRule {
   id String @id @default(cuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
   trigger    WhatsappAutomationTrigger
   templateId String
@@ -941,6 +1061,6 @@ model WhatsappAutomationRule {
 
   messages WhatsappMessage[]
 
-  @@unique([userId, trigger])
-  @@index([userId, enabled])
+  @@unique([agencyId, trigger])
+  @@index([agencyId, enabled])
 }

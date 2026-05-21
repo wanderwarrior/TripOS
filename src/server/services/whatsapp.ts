@@ -4,7 +4,7 @@
 // the matching Activity rows.
 //
 // Everything here is single-tenant for now (operates on the demo user),
-// but takes `userId` so future multi-tenancy is a config flip, not a
+// but takes `agencyId` so future multi-tenancy is a config flip, not a
 // rewrite.
 
 import type {
@@ -69,9 +69,9 @@ function publicBase(): string {
   ).replace(/\/+$/, "");
 }
 
-async function getAgencyName(userId: string): Promise<string> {
+async function getAgencyName(agencyId: string): Promise<string> {
   const s = await prisma.agencySettings.findUnique({
-    where: { userId },
+    where: { agencyId },
     select: { tradeName: true, legalName: true },
   });
   return s?.tradeName || s?.legalName || "TripCraft";
@@ -94,12 +94,12 @@ type ResolvedTemplate = {
  * without operators having to register Meta templates first.
  */
 async function resolveTemplate(
-  userId: string,
+  agencyId: string,
   templateMetaName: string
 ): Promise<ResolvedTemplate> {
   const seed = findSeedTemplate(templateMetaName);
   const registered = await prisma.whatsappTemplate.findFirst({
-    where: { userId, templateId: templateMetaName, isActive: true },
+    where: { agencyId, templateId: templateMetaName, isActive: true },
     orderBy: { updatedAt: "desc" },
   });
 
@@ -144,7 +144,8 @@ function parseTemplateVars(t: WhatsappTemplate): TemplateVariableDef[] {
  * treat both paths the same way.
  */
 async function sendTemplatedOrText(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   toPhone: string;
   templateMetaName: string;
   values: TemplateVariables;
@@ -152,14 +153,15 @@ async function sendTemplatedOrText(args: {
   automationRuleId?: string | null;
   idempotencyKey?: string | null;
 }): Promise<{ result: DispatchResult; resolved: ResolvedTemplate; rendered: string }> {
-  const resolved = await resolveTemplate(args.userId, args.templateMetaName);
+  const resolved = await resolveTemplate(args.agencyId, args.templateMetaName);
 
   if (resolved.source === "registered" || resolved.source === "seed") {
     const rendered = interpolateTemplate(resolved.body, args.values);
 
     if (resolved.source === "registered") {
       const result = await sendTemplateMessage({
-        userId: args.userId,
+        agencyId: args.agencyId,
+        sentByUserId: args.sentByUserId ?? null,
         toPhone: args.toPhone,
         templateName: resolved.templateName,
         templateId: resolved.templateName,
@@ -181,7 +183,8 @@ async function sendTemplatedOrText(args: {
     }
     // seed → plain text with rendered body
     const result = await sendTextMessage({
-      userId: args.userId,
+      agencyId: args.agencyId,
+      sentByUserId: args.sentByUserId ?? null,
       toPhone: args.toPhone,
       message: rendered,
       templateName: resolved.templateName,
@@ -201,7 +204,8 @@ async function sendTemplatedOrText(args: {
 
   // No template at all — caller must supply a literal message.
   const result = await sendTextMessage({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: args.toPhone,
     message: "",
     link: args.link,
@@ -215,14 +219,16 @@ async function sendTemplatedOrText(args: {
 // === Public orchestration entry points ===
 
 export async function sendManualText(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   toPhone: string;
   message: string;
   link: EntityLink;
   asNote?: boolean;
 }): Promise<DispatchResult> {
   const result = await sendTextMessage({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: args.toPhone,
     message: args.message,
     link: args.link,
@@ -240,7 +246,8 @@ export async function sendManualText(args: {
 }
 
 export async function shareProposalOnWhatsapp(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   tripId: string;
   quoteId: string;
 }): Promise<DispatchResult & { previewUrl: string }> {
@@ -266,10 +273,10 @@ export async function shareProposalOnWhatsapp(args: {
     await prisma.quote.update({ where: { id: quote.id }, data: { shareToken } });
   }
   const previewUrl = `${publicBase()}/share/${shareToken}`;
-  const agency = await getAgencyName(args.userId);
+  const agency = await getAgencyName(args.agencyId);
 
   const idem = buildIdempotencyKey([
-    args.userId,
+    args.agencyId,
     "proposal",
     quote.id,
     quote.trip.lead.phone,
@@ -277,7 +284,8 @@ export async function shareProposalOnWhatsapp(args: {
   ]);
 
   const { result, rendered } = await sendTemplatedOrText({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: quote.trip.lead.phone,
     templateMetaName: "tc_proposal_share",
     values: {
@@ -310,7 +318,8 @@ export async function shareProposalOnWhatsapp(args: {
 }
 
 export async function shareInvoiceOnWhatsapp(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   invoiceId: string;
   documentUrl?: string | null;
 }): Promise<DispatchResult> {
@@ -348,7 +357,7 @@ export async function shareInvoiceOnWhatsapp(args: {
   const resolvedDocumentUrl =
     args.documentUrl ??
     `${publicBase()}/api/invoices/${invoice.id}/pdf?token=${invoice.shareToken}`;
-  const agency = await getAgencyName(args.userId);
+  const agency = await getAgencyName(args.agencyId);
   const balanceDue = invoice.grandTotal - 0; // could be reduced by paid amount in caller
   const amount = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -357,7 +366,7 @@ export async function shareInvoiceOnWhatsapp(args: {
   }).format(invoice.grandTotal);
 
   const idem = buildIdempotencyKey([
-    args.userId,
+    args.agencyId,
     "invoice",
     invoice.id,
     lead.phone,
@@ -373,7 +382,8 @@ export async function shareInvoiceOnWhatsapp(args: {
 
   // Send the message first (template or text-with-link)
   const { result, rendered } = await sendTemplatedOrText({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: lead.phone,
     templateMetaName: "tc_invoice_share",
     values: {
@@ -393,7 +403,8 @@ export async function shareInvoiceOnWhatsapp(args: {
   // attachment row's status.
   if (resolvedDocumentUrl) {
     await sendDocumentMessage({
-      userId: args.userId,
+      agencyId: args.agencyId,
+      sentByUserId: args.sentByUserId ?? null,
       toPhone: lead.phone,
       documentUrl: resolvedDocumentUrl,
       filename: `${invoice.invoiceNumber ?? invoice.id}.pdf`,
@@ -401,7 +412,7 @@ export async function shareInvoiceOnWhatsapp(args: {
       message: `Invoice ${invoice.invoiceNumber ?? ""}`,
       link: linkCtx,
       idempotencyKey: buildIdempotencyKey([
-        args.userId,
+        args.agencyId,
         "invoice-pdf",
         invoice.id,
         lead.phone,
@@ -423,7 +434,8 @@ export async function shareInvoiceOnWhatsapp(args: {
 }
 
 export async function sendPaymentReminder(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   invoiceId: string;
   stage: "T_MINUS_3" | "DUE_TODAY" | "OVERDUE_2D";
   automationRuleId?: string | null;
@@ -455,7 +467,7 @@ export async function sendPaymentReminder(args: {
     return { messageId: "", status: "FAILED", error: "Invoice already paid — skipping reminder" };
   }
 
-  const agency = await getAgencyName(args.userId);
+  const agency = await getAgencyName(args.agencyId);
   const amountStr = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -469,7 +481,7 @@ export async function sendPaymentReminder(args: {
     : `${publicBase()}/invoices/${invoice.id}`;
 
   const idem = buildIdempotencyKey([
-    args.userId,
+    args.agencyId,
     "payment-reminder",
     invoice.id,
     args.stage,
@@ -484,7 +496,8 @@ export async function sendPaymentReminder(args: {
   };
 
   const { result, rendered } = await sendTemplatedOrText({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: lead.phone,
     templateMetaName: templateMap[args.stage],
     values: {
@@ -510,7 +523,8 @@ export async function sendPaymentReminder(args: {
 }
 
 export async function sendFollowUp(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   leadId: string;
   stage: "T_24H" | "T_3D" | "T_7D";
   automationRuleId?: string | null;
@@ -528,9 +542,9 @@ export async function sendFollowUp(args: {
   if (!lead) throw new Error("Lead not found");
   if (!lead.phone) throw new Error("Lead has no phone");
 
-  const agency = await getAgencyName(args.userId);
+  const agency = await getAgencyName(args.agencyId);
   const idem = buildIdempotencyKey([
-    args.userId,
+    args.agencyId,
     "followup",
     lead.id,
     args.stage,
@@ -543,7 +557,8 @@ export async function sendFollowUp(args: {
   };
 
   const { result, rendered } = await sendTemplatedOrText({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: lead.phone,
     templateMetaName: templateMap[args.stage],
     values: {
@@ -567,7 +582,8 @@ export async function sendFollowUp(args: {
 }
 
 export async function sendTripReminder(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   tripId: string;
   stage: "T_MINUS_7" | "T_MINUS_1" | "DEPARTURE" | "THANKS";
   automationRuleId?: string | null;
@@ -588,13 +604,13 @@ export async function sendTripReminder(args: {
   const lead = trip.lead;
   if (!lead?.phone) throw new Error("Trip lead has no phone");
 
-  const agency = await getAgencyName(args.userId);
+  const agency = await getAgencyName(args.agencyId);
   const startDate = trip.startDate
     ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(trip.startDate)
     : "soon";
 
   const idem = buildIdempotencyKey([
-    args.userId,
+    args.agencyId,
     "trip-reminder",
     trip.id,
     args.stage,
@@ -607,7 +623,8 @@ export async function sendTripReminder(args: {
   };
 
   const { result, rendered } = await sendTemplatedOrText({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: lead.phone,
     templateMetaName: templateMap[args.stage],
     values: {
@@ -636,7 +653,8 @@ export async function sendTripReminder(args: {
 }
 
 export async function sendVoucherOnWhatsapp(args: {
-  userId: string;
+  agencyId: string;
+  sentByUserId?: string | null;
   voucherId: string;
 }): Promise<DispatchResult> {
   const voucher = await prisma.voucher.findUnique({
@@ -655,10 +673,10 @@ export async function sendVoucherOnWhatsapp(args: {
   const lead = trip.lead;
   if (!lead?.phone) throw new Error("Trip lead has no phone");
 
-  const agency = await getAgencyName(args.userId);
+  const agency = await getAgencyName(args.agencyId);
   const link = `${publicBase()}/v/${voucher.shareToken}`;
   const idem = buildIdempotencyKey([
-    args.userId,
+    args.agencyId,
     "voucher",
     voucher.id,
     lead.phone,
@@ -667,7 +685,8 @@ export async function sendVoucherOnWhatsapp(args: {
   const linkCtx: EntityLink = { leadId: lead.id, tripId: trip.id };
 
   const { result, rendered } = await sendTemplatedOrText({
-    userId: args.userId,
+    agencyId: args.agencyId,
+    sentByUserId: args.sentByUserId ?? null,
     toPhone: lead.phone,
     templateMetaName: "tc_ops_voucher",
     values: {
@@ -707,7 +726,7 @@ export async function sendVoucherOnWhatsapp(args: {
  * triggering N+1 queries — one DB round trip, bucket in memory.
  */
 export async function getWhatsappStatsForEntities(args: {
-  userId: string;
+  agencyId: string;
   scope: "leadId" | "tripId" | "customerId" | "invoiceId" | "bookingId";
   ids: string[];
 }): Promise<
@@ -735,7 +754,7 @@ export async function getWhatsappStatsForEntities(args: {
   if (args.ids.length === 0) return result;
 
   const rows = await prisma.whatsappMessage.findMany({
-    where: { userId: args.userId, [args.scope]: { in: args.ids } },
+    where: { agencyId: args.agencyId, [args.scope]: { in: args.ids } },
     select: {
       [args.scope]: true,
       direction: true,
@@ -780,15 +799,16 @@ export async function getWhatsappStatsForEntities(args: {
   return result;
 }
 
-export async function listTemplates(userId: string) {
+export async function listTemplates(agencyId: string) {
   return prisma.whatsappTemplate.findMany({
-    where: { userId },
+    where: { agencyId },
     orderBy: [{ category: "asc" }, { updatedAt: "desc" }],
   });
 }
 
 export async function upsertTemplate(args: {
-  userId: string;
+  agencyId: string;
+  createdById?: string | null;
   id?: string | null;
   name: string;
   templateId: string;
@@ -814,8 +834,8 @@ export async function upsertTemplate(args: {
   }
   return prisma.whatsappTemplate.upsert({
     where: {
-      userId_templateId_language: {
-        userId: args.userId,
+      agencyId_templateId_language: {
+        agencyId: args.agencyId,
         templateId: args.templateId,
         language: args.language,
       },
@@ -828,7 +848,8 @@ export async function upsertTemplate(args: {
       isActive: args.isActive ?? true,
     },
     create: {
-      userId: args.userId,
+      agencyId: args.agencyId,
+      createdById: args.createdById ?? null,
       name: args.name,
       templateId: args.templateId,
       category: args.category,
@@ -840,25 +861,25 @@ export async function upsertTemplate(args: {
   });
 }
 
-export async function listAutomationRules(userId: string) {
+export async function listAutomationRules(agencyId: string) {
   return prisma.whatsappAutomationRule.findMany({
-    where: { userId },
+    where: { agencyId },
     include: { template: true },
     orderBy: { trigger: "asc" },
   });
 }
 
 export async function upsertAutomationRule(args: {
-  userId: string;
+  agencyId: string;
   trigger: WhatsappAutomationTrigger;
   templateRowId: string;
   enabled: boolean;
   delayMinutes?: number;
 }) {
   return prisma.whatsappAutomationRule.upsert({
-    where: { userId_trigger: { userId: args.userId, trigger: args.trigger } },
+    where: { agencyId_trigger: { agencyId: args.agencyId, trigger: args.trigger } },
     create: {
-      userId: args.userId,
+      agencyId: args.agencyId,
       trigger: args.trigger,
       templateId: args.templateRowId,
       enabled: args.enabled,
@@ -873,7 +894,7 @@ export async function upsertAutomationRule(args: {
 }
 
 export async function setAutomationRuleEnabled(
-  userId: string,
+  agencyId: string,
   ruleId: string,
   enabled: boolean
 ) {

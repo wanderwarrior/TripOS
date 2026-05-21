@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getOrCreateDemoUser } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { retryFailedMessage } from "@/lib/whatsapp";
 import { normalizeWhatsappPhone } from "@/lib/whatsapp/phone";
 import {
@@ -60,14 +60,15 @@ const manualSendSchema = z.object({
 
 export async function sendWhatsappTextAction(input: z.infer<typeof manualSendSchema>) {
   const data = manualSendSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:send");
   const normalized = normalizeWhatsappPhone(data.toPhone);
   if (!normalized) {
     return { ok: false as const, error: "Phone number looks invalid" };
   }
 
   const result = await sendManualText({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
+    sentByUserId: user.id,
     toPhone: normalized,
     message: data.message,
     link: {
@@ -98,10 +99,11 @@ export async function shareProposalWhatsappAction(input: {
   tripId: string;
   quoteId: string;
 }) {
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("quote:share");
   try {
     const result = await shareProposalOnWhatsapp({
-      userId: user.id,
+      agencyId: user.activeAgencyId,
+      sentByUserId: user.id,
       tripId: input.tripId,
       quoteId: input.quoteId,
     });
@@ -135,10 +137,11 @@ const shareInvoiceSchema = z.object({
 
 export async function shareInvoiceWhatsappAction(input: z.infer<typeof shareInvoiceSchema>) {
   const data = shareInvoiceSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("invoice:share");
   try {
     const result = await shareInvoiceOnWhatsapp({
-      userId: user.id,
+      agencyId: user.activeAgencyId,
+      sentByUserId: user.id,
       invoiceId: data.invoiceId,
       documentUrl: data.documentUrl ?? null,
     });
@@ -170,9 +173,10 @@ const paymentReminderSchema = z.object({
 
 export async function sendPaymentReminderAction(input: z.infer<typeof paymentReminderSchema>) {
   const data = paymentReminderSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:send");
   const result = await sendPaymentReminder({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
+    sentByUserId: user.id,
     invoiceId: data.invoiceId,
     stage: data.stage,
   });
@@ -193,9 +197,10 @@ const followUpSchema = z.object({
 
 export async function sendFollowUpAction(input: z.infer<typeof followUpSchema>) {
   const data = followUpSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:send");
   const result = await sendFollowUp({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
+    sentByUserId: user.id,
     leadId: data.leadId,
     stage: data.stage,
   });
@@ -216,9 +221,10 @@ const tripReminderSchema = z.object({
 
 export async function sendTripReminderAction(input: z.infer<typeof tripReminderSchema>) {
   const data = tripReminderSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:send");
   const result = await sendTripReminder({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
+    sentByUserId: user.id,
     tripId: data.tripId,
     stage: data.stage,
   });
@@ -233,9 +239,10 @@ export async function sendTripReminderAction(input: z.infer<typeof tripReminderS
 }
 
 export async function sendVoucherWhatsappAction(input: { voucherId: string }) {
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:send");
   const result = await sendVoucherOnWhatsapp({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
+    sentByUserId: user.id,
     voucherId: input.voucherId,
   });
   revalidatePath("/operations");
@@ -249,13 +256,8 @@ export async function sendVoucherWhatsappAction(input: { voucherId: string }) {
 
 // === Manual automation trigger ===
 
-/**
- * Operator-triggered "run now" for the automation runner. Same code path
- * as the cron route, just doesn't require WHATSAPP_CRON_SECRET. Useful for
- * smoke-testing rules after creating one — instead of waiting for the
- * next cron tick.
- */
 export async function runAutomationsNowAction() {
+  await assertCan("whatsapp:automation:manage");
   const { runDueWhatsappAutomations } = await import(
     "@/server/jobs/whatsapp-automation"
   );
@@ -276,6 +278,7 @@ export async function runAutomationsNowAction() {
 // === Retry ===
 
 export async function retryWhatsappMessageAction(messageId: string) {
+  await assertCan("whatsapp:send");
   const result = await retryFailedMessage(messageId);
   revalidatePath("/communications");
   return {
@@ -307,9 +310,10 @@ const upsertTemplateSchema = z.object({
 
 export async function upsertTemplateAction(input: z.infer<typeof upsertTemplateSchema>) {
   const data = upsertTemplateSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:template:manage");
   const row = await upsertTemplate({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
+    createdById: user.id,
     id: data.id ?? null,
     name: data.name,
     templateId: data.templateId,
@@ -325,8 +329,8 @@ export async function upsertTemplateAction(input: z.infer<typeof upsertTemplateS
 }
 
 export async function listTemplatesAction() {
-  const user = await getOrCreateDemoUser();
-  return listTemplates(user.id);
+  const { agencyId } = await requireAgency();
+  return listTemplates(agencyId);
 }
 
 // === Automation rules ===
@@ -340,9 +344,9 @@ const upsertRuleSchema = z.object({
 
 export async function upsertAutomationRuleAction(input: z.infer<typeof upsertRuleSchema>) {
   const data = upsertRuleSchema.parse(input);
-  const user = await getOrCreateDemoUser();
+  const user = await assertCan("whatsapp:automation:manage");
   const rule = await upsertAutomationRule({
-    userId: user.id,
+    agencyId: user.activeAgencyId,
     trigger: data.trigger,
     templateRowId: data.templateRowId,
     enabled: data.enabled,
@@ -356,13 +360,14 @@ export async function toggleAutomationRuleAction(input: {
   ruleId: string;
   enabled: boolean;
 }) {
-  const user = await getOrCreateDemoUser();
-  await setAutomationRuleEnabled(user.id, input.ruleId, input.enabled);
+  const { agencyId } = await requireAgency();
+  await assertCan("whatsapp:automation:manage");
+  await setAutomationRuleEnabled(agencyId, input.ruleId, input.enabled);
   revalidatePath("/communications/automations");
   return { ok: true as const };
 }
 
 export async function listAutomationRulesAction() {
-  const user = await getOrCreateDemoUser();
-  return listAutomationRules(user.id);
+  const { agencyId } = await requireAgency();
+  return listAutomationRules(agencyId);
 }

@@ -12,7 +12,7 @@
 
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { prisma, getOrCreateDemoUser } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { fetchMediaUrl } from "./client";
 import { normalizeWhatsappPhone } from "./phone";
 import type {
@@ -149,7 +149,7 @@ function mapKind(msg: WaWebhookIncomingMessage): "TEXT" | "DOCUMENT" | "IMAGE" |
   }
 }
 
-async function resolveLinks(userId: string, phone: string) {
+async function resolveLinks(agencyId: string, phone: string) {
   const norm = normalizeWhatsappPhone(phone);
   if (!norm) return { leadId: null, customerId: null, tripId: null };
 
@@ -161,7 +161,7 @@ async function resolveLinks(userId: string, phone: string) {
 
   const lead = await prisma.lead.findFirst({
     where: {
-      userId,
+      agencyId,
       deletedAt: null,
       OR: variants.map((v) => ({ phone: { contains: v } })),
     },
@@ -176,11 +176,11 @@ async function resolveLinks(userId: string, phone: string) {
   };
 }
 
-async function persistInbound(userId: string, change: WaWebhookChange, msg: WaWebhookIncomingMessage) {
+async function persistInbound(agencyId: string, change: WaWebhookChange, msg: WaWebhookIncomingMessage) {
   const phone = normalizeWhatsappPhone(msg.from) ?? msg.from;
   const body = extractInboundBody(msg);
   const kind = mapKind(msg);
-  const links = await resolveLinks(userId, phone);
+  const links = await resolveLinks(agencyId, phone);
 
   // Inbound media: resolve the signed URL and store it. The actual asset is
   // hosted by Meta with a 5-minute signed URL — for long-term persistence
@@ -215,7 +215,7 @@ async function persistInbound(userId: string, change: WaWebhookChange, msg: WaWe
 
   const created = await prisma.whatsappMessage.create({
     data: {
-      userId,
+      agencyId,
       leadId: links.leadId,
       customerId: links.customerId,
       tripId: links.tripId,
@@ -261,10 +261,26 @@ async function persistInbound(userId: string, change: WaWebhookChange, msg: WaWe
   return created;
 }
 
+/**
+ * Route inbound webhooks to the correct agency. For now (single-agency
+ * dev), we pick the *only* agency. When multi-tenancy lands at scale,
+ * route by entry.id (Meta business account id) → AgencySettings.
+ * Returns null when no agency exists yet (fresh install).
+ */
+async function resolveAgencyIdForWebhook(): Promise<string | null> {
+  const agency = await prisma.agency.findFirst({
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+  return agency?.id ?? null;
+}
+
 export async function processWebhookPayload(payload: WaWebhookPayload) {
-  // Single-tenant for now — when multi-tenancy lands, route by
-  // entry[i].id (business account id) to the agency's userId.
-  const user = await getOrCreateDemoUser();
+  const agencyId = await resolveAgencyIdForWebhook();
+  if (!agencyId) {
+    console.warn("[whatsapp/webhook] no agency configured — dropping event");
+    return;
+  }
 
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
@@ -281,7 +297,7 @@ export async function processWebhookPayload(payload: WaWebhookPayload) {
       if (value.messages) {
         for (const m of value.messages) {
           try {
-            await persistInbound(user.id, change, m);
+            await persistInbound(agencyId, change, m);
           } catch (err) {
             console.error("[whatsapp/webhook] inbound persist failed", err);
           }
