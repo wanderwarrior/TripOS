@@ -267,7 +267,7 @@ export default async function OperationsDashboardPage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-navy truncate">
-                      {p.vendor.name}
+                      {p.vendor?.name ?? p.title}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       <Compass className="inline h-3 w-3 mr-1" />

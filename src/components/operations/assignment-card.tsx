@@ -112,7 +112,7 @@ export function AssignmentCard({
       try {
         const r = await deleteVendorAssignmentAction(assignment.id);
         const snap = r.snapshot;
-        toast.success(`Removed ${assignment.vendor.name}`, {
+        toast.success(`Removed ${assignment.vendor?.name ?? assignment.title}`, {
           description: assignment.title,
           duration: 6000,
           action: {
@@ -228,7 +228,7 @@ export function AssignmentCard({
 
   const editableValues: AssignmentEditableValues = {
     id: assignment.id,
-    vendorId: assignment.vendor.id,
+    vendorId: assignment.vendor?.id ?? null,
     category: assignment.category,
     title: assignment.title,
     description: assignment.description ?? "",
@@ -266,15 +266,25 @@ export function AssignmentCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/vendors/${assignment.vendor.id}`}
-              className="font-medium text-navy hover:text-sand-800 truncate"
-            >
-              {assignment.vendor.name}
-            </Link>
-            {assignment.vendor.isPreferred ? (
-              <Star className="h-3 w-3 fill-sand text-sand shrink-0" />
-            ) : null}
+            {assignment.vendor ? (
+              <>
+                <Link
+                  href={`/vendors/${assignment.vendor.id}`}
+                  className="font-medium text-navy hover:text-sand-800 truncate"
+                >
+                  {assignment.vendor.name}
+                </Link>
+                {assignment.vendor.isPreferred ? (
+                  <Star className="h-3 w-3 fill-sand text-sand shrink-0" />
+                ) : null}
+              </>
+            ) : (
+              // Draft seeded from a quote — vendor not yet assigned.
+              <span className="inline-flex items-center gap-1.5 text-amber-800">
+                <Star className="h-3 w-3 fill-amber-300 text-amber-500 shrink-0" />
+                <span className="font-medium">Vendor not assigned</span>
+              </span>
+            )}
           </div>
           <p className="text-sm text-ink/80 truncate">{assignment.title}</p>
         </div>
@@ -451,40 +461,42 @@ export function AssignmentCard({
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {assignment.vendor.phone ? (
-          <a
-            href={`tel:${assignment.vendor.phone}`}
-            className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] text-navy hover:border-sand-200"
-          >
-            <Phone className="h-3 w-3" />
-            Call
-          </a>
-        ) : null}
-        {assignment.vendor.whatsapp ? (
-          <a
-            href={`https://wa.me/${assignment.vendor.whatsapp.replace(
-              /\D/g,
-              ""
-            )}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] text-emerald-700 hover:border-emerald-200"
-          >
-            <MessageCircle className="h-3 w-3" />
-            WhatsApp
-          </a>
-        ) : null}
-        {assignment.vendor.email ? (
-          <a
-            href={`mailto:${assignment.vendor.email}`}
-            className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] text-navy hover:border-sand-200"
-          >
-            <Mail className="h-3 w-3" />
-            Email
-          </a>
-        ) : null}
-      </div>
+      {assignment.vendor ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {assignment.vendor.phone ? (
+            <a
+              href={`tel:${assignment.vendor.phone}`}
+              className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] text-navy hover:border-sand-200"
+            >
+              <Phone className="h-3 w-3" />
+              Call
+            </a>
+          ) : null}
+          {assignment.vendor.whatsapp ? (
+            <a
+              href={`https://wa.me/${assignment.vendor.whatsapp.replace(
+                /\D/g,
+                ""
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] text-emerald-700 hover:border-emerald-200"
+            >
+              <MessageCircle className="h-3 w-3" />
+              WhatsApp
+            </a>
+          ) : null}
+          {assignment.vendor.email ? (
+            <a
+              href={`mailto:${assignment.vendor.email}`}
+              className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] text-navy hover:border-sand-200"
+            >
+              <Mail className="h-3 w-3" />
+              Email
+            </a>
+          ) : null}
+        </div>
+      ) : null}
 
       {latestVoucher ? (
         <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-sand-200/70 bg-sand-50/40 px-3 py-2">
@@ -542,7 +554,7 @@ export function AssignmentCard({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {assignment.vendor.name} · {assignment.title}
+              {assignment.vendor?.name ?? "Vendor"} · {assignment.title}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="conf-num">Confirmation #</Label>

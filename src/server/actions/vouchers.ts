@@ -19,6 +19,10 @@ export async function generateVoucherAction(assignmentId: string) {
     },
   });
   if (!assignment) throw new Error("Assignment not found");
+  if (!assignment.vendor) {
+    throw new Error("Assign a vendor to this service before generating a voucher.");
+  }
+  const vendor = assignment.vendor;
   if (
     assignment.status !== "CONFIRMED" &&
     assignment.status !== "COMPLETED"
@@ -43,10 +47,10 @@ export async function generateVoucherAction(assignmentId: string) {
 
   await logActivity({
     tripId: assignment.trip.id,
-    vendorId: assignment.vendor.id,
+    vendorId: vendor.id,
     contactId: assignment.trip.contactId,
     type: "VOUCHER_GENERATED",
-    title: `Voucher ${snapshot.voucherNumber} · ${assignment.vendor.name}`,
+    title: `Voucher ${snapshot.voucherNumber} · ${vendor.name}`,
     metadata: { voucherId: voucher.id, assignmentId },
   });
 
@@ -89,10 +93,10 @@ export async function markVoucherSentAction(
 
   await logActivity({
     tripId: voucher.assignment.trip.id,
-    vendorId: voucher.assignment.vendor.id,
+    vendorId: voucher.assignment.vendor?.id,
     contactId: voucher.assignment.trip.contactId,
     type: "VOUCHER_SENT",
-    title: `Sent voucher ${voucher.voucherNumber} · ${voucher.assignment.vendor.name}`,
+    title: `Sent voucher ${voucher.voucherNumber} · ${voucher.assignment.vendor?.name ?? "Vendor"}`,
     metadata: { voucherId: voucher.id },
   });
 

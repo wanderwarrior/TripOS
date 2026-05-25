@@ -29,11 +29,23 @@
   }
 }
 
-/* Print-optimized layout for PDF export */
+/* Print-optimized layout for PDF export.
+   When the user hits "Export PDF" we call window.print(), so what they get
+   IS this page rendered by the browser — these rules close the gap between
+   the screen and the saved PDF. */
 @media print {
   @page {
     size: A4;
     margin: 14mm;
+  }
+  /* Force every background, colour, gradient and shadow to render. Without
+     this, browsers strip CSS backgrounds (navy hero, sand accents, pricing
+     block, badges, etc.) when "Background graphics" is off in the dialog. */
+  html,
+  body,
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   body {
     background: white !important;
@@ -44,5 +56,20 @@
   }
   .print\:hidden {
     display: none !important;
+  }
+  /* Framer Motion sets inline opacity/transform for the initial state and
+     animates to visible on whileInView. Sections that haven't been scrolled
+     into view yet still carry opacity:0 and would print blank — neutralise
+     all motion transforms in print. */
+  [style*="opacity"],
+  [style*="transform"] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  img {
+    /* Don't slice an image across two pages. */
+    page-break-inside: avoid;
+    break-inside: avoid;
+    max-width: 100% !important;
   }
 }

@@ -34,6 +34,8 @@ export type AssignmentRow = {
   voucherSent: boolean;
   customerVisible: boolean;
   notes: string | null;
+  // Null while the assignment is still a draft seeded from a quote and no
+  // vendor has been sourced for it yet.
   vendor: {
     id: string;
     name: string;
@@ -42,7 +44,7 @@ export type AssignmentRow = {
     whatsapp: string | null;
     email: string | null;
     isPreferred: boolean;
-  };
+  } | null;
   vouchersCount: number;
   vouchers: AssignmentVoucher[];
 };

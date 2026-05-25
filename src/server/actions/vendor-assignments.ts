@@ -31,7 +31,9 @@ const STATUSES = [
 
 const baseSchema = z.object({
   tripId: z.string(),
-  vendorId: z.string(),
+  // Nullable — a draft assignment can exist before a vendor is sourced.
+  // Manual create/update still require one (enforced in the action).
+  vendorId: z.string().nullable(),
   category: z.enum(CATEGORIES),
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().max(2000).optional().nullable(),
@@ -63,6 +65,8 @@ export async function createVendorAssignmentAction(
   input: AssignmentFormInput
 ) {
   const data = baseSchema.parse(input);
+  if (!data.vendorId) throw new Error("Pick a vendor");
+  const vendorId = data.vendorId;
 
   const [trip, vendor] = await Promise.all([
     prisma.trip.findFirst({
@@ -70,7 +74,7 @@ export async function createVendorAssignmentAction(
       select: { id: true, contactId: true, status: true },
     }),
     prisma.vendor.findFirst({
-      where: { id: data.vendorId, deletedAt: null },
+      where: { id: vendorId, deletedAt: null },
       select: { id: true, name: true, isActive: true },
     }),
   ]);
@@ -81,7 +85,7 @@ export async function createVendorAssignmentAction(
     const created = await tx.vendorAssignment.create({
       data: {
         tripId: data.tripId,
-        vendorId: data.vendorId,
+        vendorId,
         category: data.category,
         title: data.title.trim(),
         description: trimOrNull(data.description),
@@ -210,7 +214,7 @@ export async function transitionVendorAssignmentAction(
       vendorId: existing.vendorId,
       contactId: existing.trip.contactId,
       type: "VENDOR_CONFIRMED",
-      title: `Confirmed ${existing.vendor.name} · ${existing.title}`,
+      title: `Confirmed ${(existing.vendor?.name ?? "Vendor")} · ${existing.title}`,
       metadata: {
         assignmentId: existing.id,
         confirmationNumber: trimOrNull(data.confirmationNumber),
@@ -222,7 +226,7 @@ export async function transitionVendorAssignmentAction(
       vendorId: existing.vendorId,
       contactId: existing.trip.contactId,
       type: "VENDOR_CANCELLED",
-      title: `Cancelled ${existing.vendor.name} · ${existing.title}`,
+      title: `Cancelled ${(existing.vendor?.name ?? "Vendor")} · ${existing.title}`,
       metadata: { assignmentId: existing.id },
     });
   } else if (data.status === "COMPLETED") {
@@ -231,7 +235,7 @@ export async function transitionVendorAssignmentAction(
       vendorId: existing.vendorId,
       contactId: existing.trip.contactId,
       type: "CUSTOM",
-      title: `Marked complete · ${existing.vendor.name} · ${existing.title}`,
+      title: `Marked complete · ${(existing.vendor?.name ?? "Vendor")} · ${existing.title}`,
       metadata: { assignmentId: existing.id },
     });
   }

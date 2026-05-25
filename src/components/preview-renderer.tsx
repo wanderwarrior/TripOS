@@ -163,9 +163,13 @@ function Hero({
     >
       {hasCover && (
         <>
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-40"
-            style={{ backgroundImage: `url(${coverImageUrl})` }}
+          {/* Real <img>, not a CSS background — CSS backgrounds get dropped
+              by browsers when "Save as PDF" runs without "Background
+              graphics" enabled. An <img> always prints. */}
+          <img
+            src={coverImageUrl!}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-40"
             aria-hidden
           />
           <div
@@ -511,10 +515,11 @@ function DayBlock({
 
       <div className="space-y-6">
         {day.imageUrl && (
-          <div
-            className="h-48 md:h-56 w-full rounded-2xl bg-cover bg-center border border-line print:break-inside-avoid"
-            style={{ backgroundImage: `url(${day.imageUrl})` }}
-            aria-hidden
+          // Real <img> so the image survives PDF export — see Hero above.
+          <img
+            src={day.imageUrl}
+            alt={day.title}
+            className="h-48 md:h-56 w-full rounded-2xl object-cover border border-line print:break-inside-avoid"
           />
         )}
         {(day.hotel || day.mealPlan) && <StayCard day={day} />}

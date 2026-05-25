@@ -93,6 +93,10 @@ export async function buildVoucherSnapshot(
     },
   });
   if (!a) throw new Error("Assignment not found");
+  if (!a.vendor) {
+    throw new Error("Assign a vendor before generating a voucher.");
+  }
+  const vendor = a.vendor;
 
   return {
     voucherNumber: newVoucherNumber(PREFIX_BY_CATEGORY[a.category]),
@@ -111,15 +115,15 @@ export async function buildVoucherSnapshot(
       days: a.trip.days,
     },
     vendor: {
-      name: a.vendor.name,
-      type: a.vendor.type,
-      phone: a.vendor.phone,
-      whatsapp: a.vendor.whatsapp,
-      email: a.vendor.email,
-      address: a.vendor.address,
-      city: a.vendor.city,
-      state: a.vendor.state,
-      country: a.vendor.country,
+      name: vendor.name,
+      type: vendor.type,
+      phone: vendor.phone,
+      whatsapp: vendor.whatsapp,
+      email: vendor.email,
+      address: vendor.address,
+      city: vendor.city,
+      state: vendor.state,
+      country: vendor.country,
     },
     service: {
       category: a.category,

@@ -39,7 +39,7 @@ export type PendingAssignment = {
   status: VendorAssignmentStatus;
   title: string;
   startDate: Date | null;
-  vendor: { id: string; name: string };
+  vendor: { id: string; name: string } | null;
 };
 
 export type OverdueTask = {
@@ -281,12 +281,15 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
     }),
   ]);
 
-  // Vendor balances
+  // Vendor balances. Skip the unassigned-vendor bucket (vendorId null) —
+  // there's nothing to owe a non-existent supplier.
   const paidByVendor = new Map<string, number>();
   for (const r of vendorAggPaid) {
-    paidByVendor.set(r.vendorId, r._sum.amount ?? 0);
+    if (r.vendorId) paidByVendor.set(r.vendorId, r._sum.amount ?? 0);
   }
-  const balanceVendorIds = vendorAggCommitted.map((r) => r.vendorId);
+  const balanceVendorIds = vendorAggCommitted
+    .map((r) => r.vendorId)
+    .filter((id): id is string => id !== null);
   const vendors = await prisma.vendor.findMany({
     where: { id: { in: balanceVendorIds } },
     select: { id: true, name: true },
@@ -294,6 +297,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
   const nameById = new Map(vendors.map((v) => [v.id, v.name] as const));
 
   const vendorBalances: VendorBalanceRow[] = vendorAggCommitted
+    .filter((r): r is typeof r & { vendorId: string } => r.vendorId !== null)
     .map((r) => {
       const committed = r._sum.totalCost ?? 0;
       const paid = paidByVendor.get(r.vendorId) ?? 0;

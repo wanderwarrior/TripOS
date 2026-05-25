@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { assertCan, requireAgency } from "@/lib/session";
 import { generateItineraryAI } from "@/lib/ai";
 import { logActivity } from "@/server/helpers/log-activity";
+import { recomputeContactStatus } from "@/server/helpers/contact-status";
 
 const tripSchema = z.object({
   destination: z.string().min(2, "Destination is required").max(80),
@@ -98,8 +99,11 @@ export async function createTripAction(input: CreateTripInput) {
     console.error("itinerary generation failed", e);
   }
 
+  if (trip.contactId) {
+    await recomputeContactStatus(trip.contactId);
+    revalidatePath(`/contacts/${trip.contactId}`);
+  }
   revalidatePath("/");
-  if (trip.contactId) revalidatePath(`/contacts/${trip.contactId}`);
   redirect(`/trips/${trip.id}`);
 }
 
@@ -191,6 +195,10 @@ export async function linkTripToLeadAction(input: {
     where: { id: trip.id },
     data: { contactId: contact.id },
   });
+
+  // The newly-linked contact inherits this trip's stage — a booked trip
+  // makes them WON, a quoted one QUOTED.
+  await recomputeContactStatus(contact.id);
 
   await logActivity({
     contactId: contact.id,

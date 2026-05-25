@@ -6,6 +6,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { computePricing, type PricingItem } from "@/types";
 import { logActivity } from "@/server/helpers/log-activity";
+import { recomputeContactStatus } from "@/server/helpers/contact-status";
+import { seedVendorAssignmentsFromQuote } from "@/server/helpers/seed-vendor-assignments";
 
 const itemSchema = z.object({
   id: z.string(),
@@ -165,10 +167,9 @@ export async function markQuoteSentAction(quoteId: string) {
   ]);
 
   if (quote.trip.contactId) {
-    await prisma.contact.update({
-      where: { id: quote.trip.contactId },
-      data: { status: "QUOTED" },
-    });
+    // Forward-only — won't drag a contact back if they're already WON
+    // on another trip.
+    await recomputeContactStatus(quote.trip.contactId);
     await logActivity({
       contactId: quote.trip.contactId,
       type: "QUOTE_SENT",
@@ -232,7 +233,7 @@ export async function acceptQuoteAction(quoteId: string) {
       where: { id: quoteId },
       data: { status: "ACCEPTED" },
     });
-    await tx.booking.create({
+    const booking = await tx.booking.create({
       data: {
         tripId: quote.tripId,
         quoteId,
@@ -244,13 +245,16 @@ export async function acceptQuoteAction(quoteId: string) {
       where: { id: quote.tripId },
       data: { status: "BOOKED" },
     });
+    // Turn the quoted line items into draft vendor assignments.
+    await seedVendorAssignmentsFromQuote(tx, {
+      tripId: quote.tripId,
+      quoteId,
+      bookingId: booking.id,
+    });
   });
 
   if (quote.trip.contactId) {
-    await prisma.contact.update({
-      where: { id: quote.trip.contactId },
-      data: { status: "WON" },
-    });
+    await recomputeContactStatus(quote.trip.contactId);
     await logActivity({
       contactId: quote.trip.contactId,
       type: "QUOTE_ACCEPTED",
@@ -399,7 +403,7 @@ export async function acceptQuoteByTokenAction(token: string) {
       where: { id: quote.id },
       data: { status: "ACCEPTED" },
     });
-    await tx.booking.create({
+    const booking = await tx.booking.create({
       data: {
         tripId: quote.tripId,
         quoteId: quote.id,
@@ -411,13 +415,15 @@ export async function acceptQuoteByTokenAction(token: string) {
       where: { id: quote.tripId },
       data: { status: "BOOKED" },
     });
+    await seedVendorAssignmentsFromQuote(tx, {
+      tripId: quote.tripId,
+      quoteId: quote.id,
+      bookingId: booking.id,
+    });
   });
 
   if (quote.trip.contactId) {
-    await prisma.contact.update({
-      where: { id: quote.trip.contactId },
-      data: { status: "WON" },
-    });
+    await recomputeContactStatus(quote.trip.contactId);
     await logActivity({
       contactId: quote.trip.contactId,
       type: "QUOTE_ACCEPTED",

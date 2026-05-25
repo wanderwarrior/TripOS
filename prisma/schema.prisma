@@ -717,8 +717,10 @@ model VendorAssignment {
   bookingId String?
   booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
-  vendorId String
-  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  // Nullable — an assignment can be seeded from an accepted quote's line
+  // items before a vendor has been sourced for it.
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
 
   category    VendorAssignmentCategory
   title       String
