@@ -41,6 +41,15 @@ export default async function PublicQuotePage({
                   email: true,
                   website: true,
                   invoiceTerms: true,
+                  // Proposal branding — chosen template + customization.
+                  proposalTheme: true,
+                  proposalAccentColor: true,
+                  proposalCoverStyle: true,
+                  proposalShowAtAGlance: true,
+                  proposalShowInclusions: true,
+                  proposalShowTerms: true,
+                  proposalSignatureNote: true,
+                  proposalRepeatLogo: true,
                 },
               },
             },
@@ -82,6 +91,25 @@ export default async function PublicQuotePage({
     email: agency?.email ?? null,
     website: agency?.website ?? null,
     terms: agency?.invoiceTerms ?? null,
+  };
+
+  // Each agency's chosen template + customization. Defaults are fine when
+  // the agency hasn't visited /settings/proposal yet.
+  const proposalBranding = {
+    theme: (agency?.proposalTheme ?? "classic") as
+      | "classic"
+      | "editorial"
+      | "minimal",
+    accentColor: agency?.proposalAccentColor ?? null,
+    coverStyle: (agency?.proposalCoverStyle ?? "photo") as
+      | "photo"
+      | "gradient"
+      | "solid",
+    showAtAGlance: agency?.proposalShowAtAGlance ?? true,
+    showInclusions: agency?.proposalShowInclusions ?? true,
+    showTerms: agency?.proposalShowTerms ?? true,
+    signatureNote: agency?.proposalSignatureNote ?? null,
+    repeatLogo: agency?.proposalRepeatLogo ?? true,
   };
 
   const canAccept =
@@ -132,6 +160,7 @@ export default async function PublicQuotePage({
           pricing={pricing}
           segments={quote.trip.travelSegments}
           agency={proposalAgency}
+          branding={proposalBranding}
           meta={{
             version: quote.version,
             preparedAt: quote.updatedAt.toISOString(),

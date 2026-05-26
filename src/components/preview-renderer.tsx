@@ -49,6 +49,91 @@ export type ProposalMeta = {
   validityDays?: number;
 };
 
+export type ProposalTheme = "classic" | "editorial" | "minimal";
+export type ProposalCoverStyle = "photo" | "gradient" | "solid";
+
+/** Per-agency look + content toggles for the customer-facing proposal. */
+export type ProposalBranding = {
+  theme?: ProposalTheme;
+  /** Hex colour. Falls back to the sand token when null/undefined. */
+  accentColor?: string | null;
+  coverStyle?: ProposalCoverStyle;
+  showAtAGlance?: boolean;
+  showInclusions?: boolean;
+  showTerms?: boolean;
+  signatureNote?: string | null;
+  /** Stamp the agency logo on every major section header. */
+  repeatLogo?: boolean;
+};
+
+type ResolvedBranding = {
+  theme: ProposalTheme;
+  accent: string; // always a concrete colour, falls back to sand token
+  coverStyle: ProposalCoverStyle;
+  showAtAGlance: boolean;
+  showInclusions: boolean;
+  showTerms: boolean;
+  signatureNote: string | null;
+  repeatLogo: boolean;
+};
+
+const SAND_ACCENT = "#C8A96A";
+
+function resolveBranding(b?: ProposalBranding | null): ResolvedBranding {
+  return {
+    theme: b?.theme ?? "classic",
+    accent: b?.accentColor?.trim() || SAND_ACCENT,
+    // Minimal template forces a flat cover regardless of the saved choice —
+    // a photo hero would defeat the whole point of "minimal".
+    coverStyle:
+      b?.theme === "minimal" ? "solid" : b?.coverStyle ?? "photo",
+    showAtAGlance: b?.showAtAGlance ?? true,
+    showInclusions: b?.showInclusions ?? true,
+    showTerms: b?.showTerms ?? true,
+    signatureNote: b?.signatureNote?.trim() || null,
+    repeatLogo: b?.repeatLogo ?? true,
+  };
+}
+
+/**
+ * Small round agency monogram — used in section headers, hero, closing.
+ * Falls back to a navy disc with the compass mark when no logo is on file.
+ */
+function AgencyMonogram({
+  logoUrl,
+  agencyName,
+  size = 32,
+  className = "",
+}: {
+  logoUrl: string | null | undefined;
+  agencyName: string;
+  size?: number;
+  className?: string;
+}) {
+  const cls = `inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-white overflow-hidden ${className}`;
+  if (logoUrl) {
+    return (
+      <span className={cls} style={{ height: size, width: size }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={logoUrl}
+          alt={agencyName}
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-navy text-ivory ${className}`}
+      style={{ height: size, width: size }}
+      aria-label={agencyName}
+    >
+      <Compass style={{ height: size * 0.5, width: size * 0.5 }} />
+    </span>
+  );
+}
+
 function fmtFull(d: Date | string | null | undefined): string {
   if (!d) return "";
   const date = typeof d === "string" ? new Date(d) : d;
@@ -74,6 +159,7 @@ export function PreviewRenderer({
   segments = [],
   agency,
   meta,
+  branding,
 }: {
   trip: Trip;
   itinerary: ItineraryContent | null;
@@ -81,6 +167,7 @@ export function PreviewRenderer({
   segments?: TravelSegment[];
   agency?: ProposalAgency | null;
   meta?: ProposalMeta;
+  branding?: ProposalBranding | null;
 }) {
   // Normalize legacy itinerary shapes transparently.
   const normalized: ItineraryContent | null = itinerary
@@ -89,38 +176,95 @@ export function PreviewRenderer({
 
   const startDate = trip.startDate ? new Date(trip.startDate) : null;
   const agencyName = agency?.name?.trim() || "TripCraft";
+  const b = resolveBranding(branding);
+  const logoUrl = agency?.logoUrl ?? null;
 
   // Aggregate per-day inclusions / exclusions into one trip-level list.
   const { included, excluded } = collectInclusions(normalized);
 
+  // Expose the accent as a CSS custom property so descendants can opt in.
+  const accentStyle = {
+    ["--proposal-accent" as string]: b.accent,
+  } as React.CSSProperties;
+
   return (
-    <div className="space-y-16 md:space-y-20 print:space-y-10">
+    <div
+      data-theme={b.theme}
+      style={accentStyle}
+      className="space-y-16 md:space-y-20 print:space-y-10"
+    >
       <Hero
         trip={trip}
         startDate={startDate}
         summary={normalized?.summary}
         coverImageUrl={normalized?.coverImageUrl ?? null}
         agencyName={agencyName}
+        logoUrl={logoUrl}
         version={meta?.version}
+        branding={b}
       />
 
-      {normalized && normalized.days.length > 0 && (
-        <AtAGlance itinerary={normalized} startDate={startDate} />
+      {b.showAtAGlance &&
+        normalized &&
+        normalized.days.length > 0 && (
+          <AtAGlance
+            itinerary={normalized}
+            startDate={startDate}
+            agencyName={agencyName}
+            logoUrl={logoUrl}
+            branding={b}
+          />
+        )}
+
+      {segments.length > 0 && (
+        <TravelPlan
+          segments={segments}
+          agencyName={agencyName}
+          logoUrl={logoUrl}
+          branding={b}
+        />
       )}
 
-      {segments.length > 0 && <TravelPlan segments={segments} />}
-
-      {normalized && <Itinerary itinerary={normalized} startDate={startDate} />}
-
-      {(included.length > 0 || excluded.length > 0) && (
-        <InclusionSummary included={included} excluded={excluded} />
+      {normalized && (
+        <Itinerary
+          itinerary={normalized}
+          startDate={startDate}
+          agencyName={agencyName}
+          logoUrl={logoUrl}
+          branding={b}
+        />
       )}
 
-      {pricing && <PricingBlock pricing={pricing} meta={meta} />}
+      {b.showInclusions && (included.length > 0 || excluded.length > 0) && (
+        <InclusionSummary
+          included={included}
+          excluded={excluded}
+          agencyName={agencyName}
+          logoUrl={logoUrl}
+          branding={b}
+        />
+      )}
 
-      {agency?.terms?.trim() ? <TermsBlock terms={agency.terms} /> : null}
+      {pricing && (
+        <PricingBlock
+          pricing={pricing}
+          meta={meta}
+          agencyName={agencyName}
+          logoUrl={logoUrl}
+          branding={b}
+        />
+      )}
 
-      <ClosingBlock agency={agency} agencyName={agencyName} />
+      {b.showTerms && agency?.terms?.trim() ? (
+        <TermsBlock terms={agency.terms} />
+      ) : null}
+
+      <ClosingBlock
+        agency={agency}
+        agencyName={agencyName}
+        logoUrl={logoUrl}
+        signatureNote={b.signatureNote}
+      />
     </div>
   );
 }
@@ -135,16 +279,20 @@ function Hero({
   summary,
   coverImageUrl,
   agencyName,
+  logoUrl,
   version,
+  branding,
 }: {
   trip: Trip;
   startDate: Date | null;
   summary?: string;
   coverImageUrl?: string | null;
   agencyName: string;
+  logoUrl: string | null;
   version?: number;
+  branding: ResolvedBranding;
 }) {
-  const hasCover = !!coverImageUrl;
+  const hasCover = !!coverImageUrl && branding.coverStyle === "photo";
   const endDate = startDate ? addDays(startDate, trip.days - 1) : null;
   const dateValue =
     startDate && endDate
@@ -154,12 +302,30 @@ function Hero({
         })} – ${fmtFull(endDate)}`
       : "Dates flexible";
 
+  // Theme-specific surface colours.
+  const isMinimal = branding.theme === "minimal";
+  const isEditorial = branding.theme === "editorial";
+
+  const shellClass = isMinimal
+    ? "bg-white text-navy border border-line"
+    : isEditorial
+      ? "bg-ivory text-navy border border-line"
+      : "bg-navy text-ivory";
+
+  const eyebrowColor = branding.accent;
+  const headlineSize = isMinimal
+    ? "text-4xl md:text-6xl"
+    : "text-5xl md:text-7xl";
+  const subtextColor = isMinimal || isEditorial
+    ? "text-ink/75"
+    : "text-ivory/75";
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-3xl bg-navy text-ivory print:rounded-none"
+      className={`relative overflow-hidden rounded-3xl print:rounded-none ${shellClass}`}
     >
       {hasCover && (
         <>
@@ -169,32 +335,68 @@ function Hero({
           <img
             src={coverImageUrl!}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-40"
+            className={`absolute inset-0 h-full w-full object-cover ${
+              isEditorial ? "opacity-25" : "opacity-40"
+            }`}
             aria-hidden
           />
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-navy/90 via-navy/65 to-navy/45"
-            aria-hidden
-          />
+          {!isEditorial && (
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-navy/90 via-navy/65 to-navy/45"
+              aria-hidden
+            />
+          )}
         </>
       )}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,169,106,0.18),transparent_60%)]" />
+      {branding.theme === "classic" && (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,169,106,0.18),transparent_60%)]" />
+      )}
       <div className="relative px-8 py-14 md:px-16 md:py-20">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-sand">
-            Travel proposal · prepared by {agencyName}
-          </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <AgencyMonogram
+              logoUrl={logoUrl}
+              agencyName={agencyName}
+              size={44}
+              className={isMinimal || isEditorial ? "" : "border-white/20"}
+            />
+            <div>
+              <p
+                className="text-[11px] uppercase tracking-[0.3em]"
+                style={{ color: eyebrowColor }}
+              >
+                Travel proposal
+              </p>
+              <p
+                className={`mt-0.5 text-sm font-medium ${
+                  isMinimal || isEditorial ? "text-navy" : "text-ivory"
+                }`}
+              >
+                {agencyName}
+              </p>
+            </div>
+          </div>
           {version ? (
-            <span className="text-[10px] uppercase tracking-[0.2em] text-ivory/50">
+            <span
+              className={`text-[10px] uppercase tracking-[0.2em] ${
+                isMinimal || isEditorial ? "text-muted-foreground" : "text-ivory/50"
+              }`}
+            >
               v{version}
             </span>
           ) : null}
         </div>
 
-        <h1 className="mt-6 font-display text-5xl md:text-7xl leading-[0.95] tracking-tight">
+        <h1 className={`mt-8 font-display ${headlineSize} leading-[0.95] tracking-tight`}>
           {trip.destination}
         </h1>
-        <p className="mt-6 max-w-2xl text-ivory/75 text-base md:text-lg leading-relaxed">
+        {isEditorial && (
+          <div
+            className="mt-4 h-px w-16"
+            style={{ backgroundColor: branding.accent }}
+          />
+        )}
+        <p className={`mt-6 max-w-2xl text-base md:text-lg leading-relaxed ${subtextColor}`}>
           {summary?.trim()
             ? summary
             : `A ${trip.days}-day ${trip.travelType.toLowerCase()} journey, curated for ${
@@ -209,21 +411,29 @@ function Hero({
             icon={<CalendarDays className="h-4 w-4" />}
             label="Duration"
             value={`${trip.days} days / ${Math.max(0, trip.days - 1)} nights`}
+            invert={!(isMinimal || isEditorial)}
+            accent={branding.accent}
           />
           <Meta
             icon={<Map className="h-4 w-4" />}
             label="Travel dates"
             value={dateValue}
+            invert={!(isMinimal || isEditorial)}
+            accent={branding.accent}
           />
           <Meta
             icon={<Users className="h-4 w-4" />}
             label="Travellers"
             value={`${trip.travelers}`}
+            invert={!(isMinimal || isEditorial)}
+            accent={branding.accent}
           />
           <Meta
             icon={<Compass className="h-4 w-4" />}
             label="Style"
             value={trip.travelType}
+            invert={!(isMinimal || isEditorial)}
+            accent={branding.accent}
           />
         </div>
       </div>
@@ -235,18 +445,30 @@ function Meta({
   icon,
   label,
   value,
+  invert,
+  accent,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  /** When true, render against a dark navy hero (light foreground). */
+  invert: boolean;
+  accent: string;
 }) {
   return (
     <div>
-      <div className="flex items-center gap-2 text-sand">
+      <div
+        className="flex items-center gap-2"
+        style={{ color: accent }}
+      >
         {icon}
         <span className="text-[10px] uppercase tracking-[0.22em]">{label}</span>
       </div>
-      <p className="mt-2 font-display text-lg text-ivory leading-snug">
+      <p
+        className={`mt-2 font-display text-lg leading-snug ${
+          invert ? "text-ivory" : "text-navy"
+        }`}
+      >
         {value}
       </p>
     </div>
@@ -260,9 +482,15 @@ function Meta({
 function AtAGlance({
   itinerary,
   startDate,
+  agencyName,
+  logoUrl,
+  branding,
 }: {
   itinerary: ItineraryContent;
   startDate: Date | null;
+  agencyName: string;
+  logoUrl: string | null;
+  branding: ResolvedBranding;
 }) {
   return (
     <motion.section
@@ -272,9 +500,24 @@ function AtAGlance({
       transition={{ duration: 0.6 }}
       className="rounded-3xl border border-line bg-white p-6 md:p-10 shadow-soft print:break-inside-avoid"
     >
-      <p className="text-[11px] uppercase tracking-[0.25em] text-sand-700 mb-5 text-center">
-        Trip at a glance
-      </p>
+      <div className="flex items-center justify-between mb-5">
+        {branding.repeatLogo ? (
+          <AgencyMonogram
+            logoUrl={logoUrl}
+            agencyName={agencyName}
+            size={28}
+          />
+        ) : (
+          <span />
+        )}
+        <p
+          className="text-[11px] uppercase tracking-[0.25em] text-center flex-1"
+          style={{ color: branding.accent }}
+        >
+          Trip at a glance
+        </p>
+        <span className="w-7" aria-hidden />
+      </div>
       <div className="overflow-x-auto -mx-2 md:mx-0">
         <table className="w-full">
           <thead>
@@ -336,19 +579,36 @@ function AtAGlance({
 // Travel plan
 // ---------------------------------------------------------------------------
 
-function TravelPlan({ segments }: { segments: TravelSegment[] }) {
+function TravelPlan({
+  segments,
+  agencyName,
+  logoUrl,
+  branding,
+}: {
+  segments: TravelSegment[];
+  agencyName: string;
+  logoUrl: string | null;
+  branding: ResolvedBranding;
+}) {
   const flights = segments.filter((s) => s.type === "FLIGHT");
   const trains = segments.filter((s) => s.type === "TRAIN");
 
   return (
     <section className="space-y-10">
-      <SectionHeading eyebrow="Getting there" title="Travel plan" />
+      <SectionHeading
+        eyebrow="Getting there"
+        title="Travel plan"
+        agencyName={agencyName}
+        logoUrl={logoUrl}
+        branding={branding}
+      />
       <div className="grid gap-6 md:grid-cols-2 print:grid-cols-2">
         {flights.length > 0 && (
           <SegmentGroup
             title="Flights"
             icon={<Plane className="h-3.5 w-3.5" />}
             segments={flights}
+            accent={branding.accent}
           />
         )}
         {trains.length > 0 && (
@@ -356,6 +616,7 @@ function TravelPlan({ segments }: { segments: TravelSegment[] }) {
             title="Trains"
             icon={<Train className="h-3.5 w-3.5" />}
             segments={trains}
+            accent={branding.accent}
           />
         )}
       </div>
@@ -367,10 +628,12 @@ function SegmentGroup({
   title,
   icon,
   segments,
+  accent,
 }: {
   title: string;
   icon: React.ReactNode;
   segments: TravelSegment[];
+  accent: string;
 }) {
   return (
     <motion.div
@@ -380,7 +643,10 @@ function SegmentGroup({
       transition={{ duration: 0.6 }}
       className="rounded-3xl border border-line bg-white p-6 md:p-8 shadow-soft print:break-inside-avoid"
     >
-      <p className="text-[11px] uppercase tracking-[0.22em] text-sand-700 flex items-center gap-2 mb-5">
+      <p
+        className="text-[11px] uppercase tracking-[0.22em] flex items-center gap-2 mb-5"
+        style={{ color: accent }}
+      >
         {icon}
         {title}
       </p>
@@ -450,13 +716,25 @@ function SegmentLine({ segment }: { segment: TravelSegment }) {
 function Itinerary({
   itinerary,
   startDate,
+  agencyName,
+  logoUrl,
+  branding,
 }: {
   itinerary: ItineraryContent;
   startDate: Date | null;
+  agencyName: string;
+  logoUrl: string | null;
+  branding: ResolvedBranding;
 }) {
   return (
     <section className="space-y-12">
-      <SectionHeading eyebrow="The journey" title="Day by day" />
+      <SectionHeading
+        eyebrow="The journey"
+        title="Day by day"
+        agencyName={agencyName}
+        logoUrl={logoUrl}
+        branding={branding}
+      />
       <div className="space-y-12">
         {itinerary.days.map((day, i) => (
           <DayBlock key={i} day={day} index={i} startDate={startDate} />
@@ -706,13 +984,25 @@ function collectInclusions(itinerary: ItineraryContent | null): {
 function InclusionSummary({
   included,
   excluded,
+  agencyName,
+  logoUrl,
+  branding,
 }: {
   included: string[];
   excluded: string[];
+  agencyName: string;
+  logoUrl: string | null;
+  branding: ResolvedBranding;
 }) {
   return (
     <section className="space-y-10 print:break-inside-avoid">
-      <SectionHeading eyebrow="The fine print" title="What's included" />
+      <SectionHeading
+        eyebrow="The fine print"
+        title="What's included"
+        agencyName={agencyName}
+        logoUrl={logoUrl}
+        branding={branding}
+      />
       <div className="grid gap-6 md:grid-cols-2">
         {included.length > 0 && (
           <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-6 md:p-8">
@@ -764,9 +1054,15 @@ function InclusionSummary({
 function PricingBlock({
   pricing,
   meta,
+  agencyName,
+  logoUrl,
+  branding,
 }: {
   pricing: ProposalPricing;
   meta?: ProposalMeta;
+  agencyName: string;
+  logoUrl: string | null;
+  branding: ResolvedBranding;
 }) {
   const validityDays = meta?.validityDays ?? 14;
   const validUntil = meta?.preparedAt
@@ -775,12 +1071,31 @@ function PricingBlock({
 
   return (
     <section className="space-y-10 print:break-before-page">
-      <SectionHeading eyebrow="Investment" title="Your package price" />
+      <SectionHeading
+        eyebrow="Investment"
+        title="Your package price"
+        agencyName={agencyName}
+        logoUrl={logoUrl}
+        branding={branding}
+      />
 
       <div className="rounded-3xl border border-line bg-white shadow-soft overflow-hidden">
         {/* Headline price */}
         <div className="bg-navy text-ivory px-8 py-10 md:px-12 text-center">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-sand">
+          {branding.repeatLogo && (
+            <div className="flex justify-center mb-4">
+              <AgencyMonogram
+                logoUrl={logoUrl}
+                agencyName={agencyName}
+                size={36}
+                className="border-white/20"
+              />
+            </div>
+          )}
+          <p
+            className="text-[11px] uppercase tracking-[0.25em]"
+            style={{ color: branding.accent }}
+          >
             Total package
           </p>
           <p className="mt-2 font-display text-5xl md:text-6xl tracking-tight">
@@ -797,7 +1112,10 @@ function PricingBlock({
         {/* Category breakdown — selling amounts, summing to the total */}
         {pricing.categories.length > 0 && (
           <div className="px-8 py-8 md:px-12">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-sand-700 mb-4">
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] mb-4"
+              style={{ color: branding.accent }}
+            >
               How it breaks down
             </p>
             <ul className="divide-y divide-line/70">
@@ -862,9 +1180,13 @@ function TermsBlock({ terms }: { terms: string }) {
 function ClosingBlock({
   agency,
   agencyName,
+  logoUrl,
+  signatureNote,
 }: {
   agency?: ProposalAgency | null;
   agencyName: string;
+  logoUrl: string | null;
+  signatureNote: string | null;
 }) {
   const contacts: { icon: React.ReactNode; value: string }[] = [];
   if (agency?.phone)
@@ -885,15 +1207,32 @@ function ClosingBlock({
 
   return (
     <section className="text-center pt-10 border-t border-line print:break-inside-avoid">
-      <p className="text-[11px] uppercase tracking-[0.25em] text-sand-700">
-        Ready when you are
-      </p>
+      {/* Prominent agency logo — the strongest brand moment in the doc. */}
+      <div className="flex justify-center mb-5">
+        <AgencyMonogram
+          logoUrl={logoUrl}
+          agencyName={agencyName}
+          size={88}
+        />
+      </div>
+      {signatureNote ? (
+        <p className="mt-4 max-w-md mx-auto text-sm text-ink/80 italic leading-relaxed whitespace-pre-line">
+          {signatureNote}
+        </p>
+      ) : (
+        <p
+          className="text-[11px] uppercase tracking-[0.25em]"
+          style={{ color: "var(--proposal-accent)" }}
+        >
+          Ready when you are
+        </p>
+      )}
       <p className="mt-3 font-display text-3xl text-navy">{agencyName}</p>
       {contacts.length > 0 ? (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink/75">
           {contacts.map((c, i) => (
             <span key={i} className="inline-flex items-center gap-1.5">
-              <span className="text-sand-700">{c.icon}</span>
+              <span style={{ color: "var(--proposal-accent)" }}>{c.icon}</span>
               {c.value}
             </span>
           ))}
@@ -941,10 +1280,20 @@ function Callout({
 function SectionHeading({
   eyebrow,
   title,
+  agencyName,
+  logoUrl,
+  branding,
 }: {
   eyebrow: string;
   title: string;
+  // Optional so callers without branding context still work.
+  agencyName?: string;
+  logoUrl?: string | null;
+  branding?: ResolvedBranding;
 }) {
+  const accent = branding?.accent ?? SAND_ACCENT;
+  const showLogo = branding?.repeatLogo && agencyName;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -953,7 +1302,19 @@ function SectionHeading({
       transition={{ duration: 0.6 }}
       className="text-center"
     >
-      <p className="text-xs uppercase tracking-[0.3em] text-sand-700">
+      {showLogo && (
+        <div className="flex justify-center mb-4">
+          <AgencyMonogram
+            logoUrl={logoUrl ?? null}
+            agencyName={agencyName}
+            size={32}
+          />
+        </div>
+      )}
+      <p
+        className="text-xs uppercase tracking-[0.3em]"
+        style={{ color: accent }}
+      >
         {eyebrow}
       </p>
       <h2 className="mt-3 font-display text-4xl md:text-5xl text-navy">

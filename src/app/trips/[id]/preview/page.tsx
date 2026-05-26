@@ -41,6 +41,14 @@ export default async function PreviewPage({
               email: true,
               website: true,
               invoiceTerms: true,
+              proposalTheme: true,
+              proposalAccentColor: true,
+              proposalCoverStyle: true,
+              proposalShowAtAGlance: true,
+              proposalShowInclusions: true,
+              proposalShowTerms: true,
+              proposalSignatureNote: true,
+              proposalRepeatLogo: true,
             },
           },
         },
@@ -85,6 +93,23 @@ export default async function PreviewPage({
     terms: settings?.invoiceTerms ?? null,
   };
 
+  const proposalBranding = {
+    theme: (settings?.proposalTheme ?? "classic") as
+      | "classic"
+      | "editorial"
+      | "minimal",
+    accentColor: settings?.proposalAccentColor ?? null,
+    coverStyle: (settings?.proposalCoverStyle ?? "photo") as
+      | "photo"
+      | "gradient"
+      | "solid",
+    showAtAGlance: settings?.proposalShowAtAGlance ?? true,
+    showInclusions: settings?.proposalShowInclusions ?? true,
+    showTerms: settings?.proposalShowTerms ?? true,
+    signatureNote: settings?.proposalSignatureNote ?? null,
+    repeatLogo: settings?.proposalRepeatLogo ?? true,
+  };
+
   return (
     <div className="min-h-screen bg-ivory">
       <header className="sticky top-0 z-30 border-b border-line/70 bg-ivory/85 backdrop-blur-md print:hidden">
@@ -119,6 +144,7 @@ export default async function PreviewPage({
           pricing={pricing}
           segments={trip.travelSegments}
           agency={proposalAgency}
+          branding={proposalBranding}
           meta={{
             version: quote?.version,
             preparedAt: (quote?.updatedAt ?? trip.updatedAt).toISOString(),

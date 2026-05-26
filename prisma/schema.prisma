@@ -865,6 +865,20 @@ model AgencySettings {
   invoiceTerms String?
   invoiceNotes String?
 
+  // === Proposal / itinerary branding =======================================
+  // How the customer-facing proposal page renders. All optional with
+  // sensible defaults — the agency can ship without touching any of these.
+  proposalTheme         String  @default("classic") // classic | editorial | minimal
+  proposalAccentColor   String? // hex e.g. "#C8A96A" — overrides the sand accent
+  proposalCoverStyle    String  @default("photo")   // photo | gradient | solid
+  proposalShowAtAGlance Boolean @default(true)
+  proposalShowInclusions Boolean @default(true)
+  proposalShowTerms      Boolean @default(true)
+  // Closing sign-off shown above the agency contact block.
+  proposalSignatureNote  String?
+  // Stamp the agency logo on every major section header.
+  proposalRepeatLogo     Boolean @default(true)
+
   // Future-proof feature flags
   eInvoiceEnabled Boolean @default(false)
   eWayBillEnabled Boolean @default(false)

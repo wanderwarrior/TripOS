@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { LogOut, Settings, ShieldCheck, User, Users } from "lucide-react";
+import {
+  LogOut,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  User,
+  Users,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,6 +101,14 @@ export function UserMenu({
             Agency settings
           </Link>
         </DropdownMenuItem>
+        {role === "OWNER" ? (
+          <DropdownMenuItem asChild>
+            <Link href="/settings/proposal" className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5" />
+              Proposal branding
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         {role === "OWNER" ? (
           <DropdownMenuItem asChild>
             <Link href="/settings/team" className="flex items-center gap-2">
