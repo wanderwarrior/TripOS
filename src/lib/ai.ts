@@ -163,31 +163,44 @@ export function writeDay(d: ItineraryDay): ItineraryDay {
   return cleaned;
 }
 
-/** Translate hotel meal-plan shorthand (BB / HB / AP / AI / CP) into toggles. */
+/**
+ * Translate a meal-plan string into toggles. Handles both industry codes
+ * (BB / CP / HB / MAP / AP / FB / AI / EP) AND free-form phrasings like
+ * "BB+D", "Breakfast and dinner", "B+L+D" — the latter were silently
+ * dropping meals before, because the first-match-wins regex would stop at
+ * "BB" and never see the "+D".
+ */
 function inferMealsFromPlan(plan?: string | null): DayMeals {
   if (!plan) return {};
   const t = plan.trim().toUpperCase();
-  // All-inclusive
+
+  // Standard codes — each implies a fixed, well-defined set of meals.
   if (/\bAI\b|ALL.?INCLUSIVE/.test(t)) {
     return { breakfast: true, lunch: true, dinner: true };
   }
-  // American Plan / Full board
-  if (/\bAP\b|FULL.?BOARD|FB\b/.test(t)) {
+  if (/\bAP\b|FULL.?BOARD|\bFB\b/.test(t)) {
     return { breakfast: true, lunch: true, dinner: true };
   }
-  // Modified American Plan / Half board
   if (/\bMAP\b|HALF.?BOARD|\bHB\b/.test(t)) {
     return { breakfast: true, dinner: true };
   }
-  // Continental Plan / Bed & Breakfast
-  if (/\bCP\b|\bBB\b|B&B|BED.?AND.?BREAKFAST|BREAKFAST/.test(t)) {
-    return { breakfast: true };
-  }
-  // EP / room-only
   if (/\bEP\b|ROOM.?ONLY|EUROPEAN.?PLAN/.test(t)) {
     return {};
   }
-  return {};
+
+  // Free-form / compound shorthand — detect each meal independently so
+  // "BB+D" gets both breakfast AND dinner, not just breakfast.
+  const meals: DayMeals = {};
+  if (/BREAKFAST|\bBB\b|\bCP\b|B&B|BED.?AND.?BREAKFAST/.test(t)) {
+    meals.breakfast = true;
+  }
+  if (/LUNCH|\+\s*L\b/.test(t)) {
+    meals.lunch = true;
+  }
+  if (/DINNER|SUPPER|\+\s*D\b/.test(t)) {
+    meals.dinner = true;
+  }
+  return meals;
 }
 
 // ---------------------------------------------------------------------------
@@ -554,4 +567,278 @@ function mockItinerary(input: GenerateInput): ItineraryContent {
       };
     }),
   };
+}
+
+// ---------------------------------------------------------------------------
+// "Build to spec" — generate a trip + itinerary from a freeform brief.
+//
+// Used by the "Detailed brief" tab on /trips/new. The agent dumps the
+// requirements as natural prose; the model extracts the structured Trip
+// columns AND writes the day-by-day in a single call.
+// ---------------------------------------------------------------------------
+
+export const BRIEF_TRAVEL_TYPES = [
+  "Luxury",
+  "Honeymoon",
+  "Family",
+  "Budget",
+] as const;
+export const BRIEF_PACES = ["Relaxed", "Moderate", "Packed"] as const;
+export const BRIEF_HOTEL_TYPES = [
+  "Boutique",
+  "Luxury Resort",
+  "Heritage",
+  "Villa",
+  "Standard",
+] as const;
+
+export type BriefTrip = {
+  destination: string;
+  days: number;
+  travelers: number;
+  startDate: string | null; // YYYY-MM-DD or null
+  budget: number | null;
+  travelType: (typeof BRIEF_TRAVEL_TYPES)[number];
+  pace: (typeof BRIEF_PACES)[number];
+  hotelType: (typeof BRIEF_HOTEL_TYPES)[number];
+  interests: string[];
+  /** Free-form catch-all for specifics not modelled on Trip — vehicles,
+   *  pick-up/drop, meal-plan shorthand, special requests. */
+  notes: string;
+};
+
+export type BriefResult = {
+  trip: BriefTrip;
+  itinerary: ItineraryContent;
+};
+
+const BRIEF_SYSTEM = `You are a senior travel operations specialist. Given a freeform brief from a travel agent, you extract the trip's structured details AND build a day-by-day itinerary that follows the brief EXACTLY. You never invent activities, hotels, vehicles, meal plans, or routes the agent did not mention. When the agent says something specific ("Swift Dzire ex-Delhi", "2N Shimla / 2N Manali", "BB+D"), you preserve it verbatim in the appropriate field — do not paraphrase it away. Tone is calm, premium, factual.`;
+
+function buildBriefPrompt(brief: string): string {
+  return `Read this agent brief and return BOTH the structured trip fields AND the full day-by-day itinerary.
+
+Agent brief (verbatim):
+"""
+${brief.trim()}
+"""
+
+Output requirements — return JSON ONLY in this exact shape:
+
+{
+  "trip": {
+    "destination": "string (2-80 chars). If multiple cities, combine like 'Shimla & Manali'.",
+    "days": number (1-30, total trip days including arrival/departure),
+    "travelers": number (1-40, default 2 if not stated),
+    "startDate": "YYYY-MM-DD or null. Only set if the brief gives a concrete date — never guess.",
+    "budget": "number in INR, or null if not stated",
+    "travelType": "one of: Luxury | Honeymoon | Family | Budget (best fit; default Family for unspecified)",
+    "pace": "one of: Relaxed | Moderate | Packed (default Moderate)",
+    "hotelType": "one of: Boutique | Luxury Resort | Heritage | Villa | Standard (default Standard)",
+    "interests": ["array of broad interest tags inferred from the brief — e.g. Nature, Adventure, Culture"],
+    "notes": "Capture EVERY specific the brief mentioned that doesn't map to other fields: pickup/drop city + vehicle, meal-plan shorthand, special requests. Concise sentences, NO marketing prose."
+  },
+  "itinerary": {
+    "summary": "2-3 sentence overview that mirrors the brief — same destinations, same shape.",
+    "days": [
+      {
+        "title": "Day 1: <short title that reflects the brief's day-1 plan>",
+        "summary": "Single paragraph (3-5 sentences) describing the day's flow, anchored on what the brief said. No fabrication.",
+        "city": "the city the day takes place in (e.g. 'Shimla')",
+        "hotel": null,
+        "mealPlan": "the meal plan as stated (e.g. 'BB+D' or 'Breakfast + Dinner') — null if not specified",
+        "activities": ["EXACT named places/experiences from the brief for this day; no additions"],
+        "transferNote": "any transfer/transport mentioned for this day (e.g. 'Pickup ex-Delhi by Swift Dzire to Shimla')",
+        "foodNote": "ONLY a specific dining recommendation the brief explicitly mentions (e.g. 'Authentic Himachali thali at Manikaran gurudwara'). DO NOT restate which meals are included — meal chips already convey that. If the brief has no specific food recommendation, leave this null.",
+        "notes": "logistics relevant to this day; null if none"
+      }
+    ]
+  }
+}
+
+Rules — these are non-negotiable:
+- Produce EXACTLY trip.days day objects in itinerary.days.
+- Use destinations and activities VERBATIM from the brief. If the brief says "Jakhu temple", write "Jakhu temple" — don't substitute "a hilltop temple".
+- If the brief assigns an activity to a specific day, that activity goes ONLY on that day.
+- If the brief mentions transport (vehicle + route), record it on the relevant day's transferNote AND in trip.notes.
+- Meal plans: keep the agent's shorthand (BB / BB+D / MAP / AP / AI) in mealPlan; expand naturally into foodNote.
+- For days the brief does not detail, leave activities as an empty array — do NOT invent fillers.
+- Pick the closest enum value for travelType / pace / hotelType; do not invent new values.
+- startDate: ONLY set when an explicit date is in the brief. Otherwise null.`;
+}
+
+function coerceTravelType(v: unknown): BriefTrip["travelType"] {
+  return BRIEF_TRAVEL_TYPES.includes(v as BriefTrip["travelType"])
+    ? (v as BriefTrip["travelType"])
+    : "Family";
+}
+function coercePace(v: unknown): BriefTrip["pace"] {
+  return BRIEF_PACES.includes(v as BriefTrip["pace"])
+    ? (v as BriefTrip["pace"])
+    : "Moderate";
+}
+function coerceHotelType(v: unknown): BriefTrip["hotelType"] {
+  return BRIEF_HOTEL_TYPES.includes(v as BriefTrip["hotelType"])
+    ? (v as BriefTrip["hotelType"])
+    : "Standard";
+}
+
+/** Normalize whatever the model returned into a safe BriefResult. */
+function normalizeBriefResult(raw: unknown, brief: string): BriefResult {
+  const r = (raw ?? {}) as { trip?: unknown; itinerary?: unknown };
+  const t = (r.trip ?? {}) as Record<string, unknown>;
+  const i = (r.itinerary ?? {}) as Record<string, unknown>;
+
+  const days = Math.max(1, Math.min(30, Math.round(Number(t.days) || 1)));
+  const travelers = Math.max(
+    1,
+    Math.min(40, Math.round(Number(t.travelers) || 2))
+  );
+
+  // Brief is short, so if the model misses a destination we fall back to a
+  // first-line snippet rather than failing the whole flow.
+  const destinationRaw = typeof t.destination === "string" ? t.destination.trim() : "";
+  const destination =
+    destinationRaw.slice(0, 80) ||
+    brief.trim().split(/[.,\n]/)[0].slice(0, 80) ||
+    "Custom trip";
+
+  const startDate =
+    typeof t.startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.startDate)
+      ? t.startDate
+      : null;
+
+  const budgetN = Number(t.budget);
+  const budget = Number.isFinite(budgetN) && budgetN > 0 ? Math.round(budgetN) : null;
+
+  const interests = Array.isArray(t.interests)
+    ? (t.interests as unknown[])
+        .filter((x): x is string => typeof x === "string")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .slice(0, 12)
+    : [];
+
+  const notes = typeof t.notes === "string" ? t.notes.trim() : "";
+
+  const trip: BriefTrip = {
+    destination,
+    days,
+    travelers,
+    startDate,
+    budget,
+    travelType: coerceTravelType(t.travelType),
+    pace: coercePace(t.pace),
+    hotelType: coerceHotelType(t.hotelType),
+    interests,
+    notes,
+  };
+
+  const summary = typeof i.summary === "string" ? i.summary.trim() : "";
+  const rawDays = Array.isArray(i.days) ? i.days : [];
+  const itineraryDays: ItineraryDay[] = Array.from({ length: days }, (_, idx) => {
+    const d = (rawDays[idx] ?? {}) as Record<string, unknown>;
+    const str = (k: string): string =>
+      typeof d[k] === "string" ? (d[k] as string).trim() : "";
+    const arr = (k: string): string[] =>
+      Array.isArray(d[k])
+        ? (d[k] as unknown[])
+            .filter((x): x is string => typeof x === "string")
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [];
+    const title = str("title") || `Day ${idx + 1}`;
+    return {
+      title,
+      summary: str("summary"),
+      city: str("city") || null,
+      hotel: str("hotel") || null,
+      roomType: str("roomType") || null,
+      mealPlan: str("mealPlan") || null,
+      meals: inferMealsFromPlan(str("mealPlan")),
+      foodNote: str("foodNote") || null,
+      activities: arr("activities"),
+      inclusions: arr("inclusions"),
+      exclusions: arr("exclusions"),
+      transferNote: str("transferNote") || null,
+      notes: str("notes") || undefined,
+    };
+  });
+
+  return {
+    trip,
+    itinerary: { summary, days: itineraryDays },
+  };
+}
+
+/** Mock fallback when GEMINI_API_KEY isn't set — keeps dev flows working. */
+function mockBriefResult(brief: string): BriefResult {
+  const lower = brief.toLowerCase();
+  const m = brief.match(/(\d+)\s*(?:n(?:ight)?s?|nights?)\s*(\d+)?\s*(?:d(?:ay)?s?)?/i);
+  const guessDays =
+    m && m[2]
+      ? Math.min(30, Math.max(1, Number(m[2])))
+      : m
+        ? Math.min(30, Math.max(1, Number(m[1]) + 1))
+        : 5;
+  const dest =
+    brief.trim().split(/[.,\n]/)[0].slice(0, 80) || "Custom trip";
+  return {
+    trip: {
+      destination: dest,
+      days: guessDays,
+      travelers: 2,
+      startDate: null,
+      budget: null,
+      travelType: lower.includes("honeymoon")
+        ? "Honeymoon"
+        : lower.includes("family")
+          ? "Family"
+          : "Family",
+      pace: "Moderate",
+      hotelType: "Standard",
+      interests: [],
+      notes: brief.trim(),
+    },
+    itinerary: {
+      summary: `A ${guessDays}-day trip as outlined in the agent's brief.`,
+      days: Array.from({ length: guessDays }, (_, i) => ({
+        title: `Day ${i + 1}`,
+        summary:
+          "Itinerary draft — fill in details from the brief in the trip workspace.",
+        activities: [],
+      })),
+    },
+  };
+}
+
+export async function generateTripFromBriefAI(
+  brief: string
+): Promise<BriefResult> {
+  const trimmed = brief.trim();
+  if (trimmed.length === 0) {
+    throw new Error("Brief is empty.");
+  }
+  if (!genai) {
+    return mockBriefResult(trimmed);
+  }
+  try {
+    const response = await genai.models.generateContent({
+      model,
+      contents: buildBriefPrompt(trimmed),
+      config: {
+        systemInstruction: BRIEF_SYSTEM,
+        // Lower temperature than the inspire flow — we want faithful
+        // extraction, not creative reinterpretation.
+        temperature: 0.3,
+        responseMimeType: "application/json",
+      },
+    });
+    const raw = response.text ?? "{}";
+    const parsed = JSON.parse(raw);
+    return normalizeBriefResult(parsed, trimmed);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[gemini] brief-to-trip falling back to mock —", msg);
+    return mockBriefResult(trimmed);
+  }
 }

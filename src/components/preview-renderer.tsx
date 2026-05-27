@@ -546,15 +546,7 @@ function AtAGlance({
                 </td>
                 <td className="py-3 px-2 text-ink/80 text-sm align-top">
                   {day.hotel ? (
-                    <>
-                      {day.hotel}
-                      {day.mealPlan && (
-                        <span className="text-muted-foreground">
-                          {" · "}
-                          {day.mealPlan}
-                        </span>
-                      )}
-                    </>
+                    day.hotel
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
@@ -753,7 +745,11 @@ function DayBlock({
   index: number;
   startDate: Date | null;
 }) {
-  const foodText = day.foodNote?.trim() || day.food?.trim() || null;
+  // Hide foodNotes that are just paraphrasing "breakfast and dinner
+  // included" — the meal chips beside them already say exactly that.
+  // Genuine dining recommendations ("Try the duck at Mozaic") survive.
+  const rawFood = day.foodNote?.trim() || day.food?.trim() || null;
+  const foodText = isGenericMealNote(rawFood) ? null : rawFood;
   const dateLabel = startDate ? fmtDayLabel(addDays(startDate, index)) : null;
 
   return (
@@ -783,10 +779,15 @@ function DayBlock({
           </p>
         )}
         {day.meals && hasAnyMeal(day.meals) && (
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {day.meals.breakfast && <MealChip label="Breakfast" />}
-            {day.meals.lunch && <MealChip label="Lunch" />}
-            {day.meals.dinner && <MealChip label="Dinner" />}
+          <div className="mt-4">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-sand-700 mb-1.5">
+              Meals included
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {day.meals.breakfast && <MealChip label="Breakfast" />}
+              {day.meals.lunch && <MealChip label="Lunch" />}
+              {day.meals.dinner && <MealChip label="Dinner" />}
+            </div>
           </div>
         )}
       </div>
@@ -800,7 +801,7 @@ function DayBlock({
             className="h-48 md:h-56 w-full rounded-2xl object-cover border border-line print:break-inside-avoid"
           />
         )}
-        {(day.hotel || day.mealPlan) && <StayCard day={day} />}
+        {day.hotel && <StayCard day={day} />}
 
         {day.summary?.trim() && (
           <p className="text-ink/85 text-base md:text-[17px] leading-relaxed whitespace-pre-line">
@@ -882,6 +883,26 @@ function hasAnyMeal(m: {
   return !!(m.breakfast || m.lunch || m.dinner);
 }
 
+/**
+ * True when a foodNote is just a generic restatement of which meals are
+ * included ("Breakfast and dinner will be provided"). The meal chips
+ * already convey this; we hide the redundant Dining callout. A genuine
+ * recommendation like "Try the duck at Mozaic" survives.
+ */
+function isGenericMealNote(note: string | null): boolean {
+  if (!note) return false;
+  // Strip meal words and filler — if what's left is essentially empty,
+  // the note adds no information beyond the chips.
+  const remainder = note
+    .toLowerCase()
+    .replace(
+      /breakfast|lunch|dinner|supper|\bmeal[s]?\s*plan\b|\bmeal[s]?\b|will be (?:provided|served)|included|provided|served|at (?:the )?hotel|\band\b|\bthe\b|\bare\b|\bis\b|\ball\b|\bboth\b/g,
+      ""
+    )
+    .replace(/[\s.,;:()\-+&/]/g, "");
+  return remainder.length < 4;
+}
+
 function StayCard({ day }: { day: ItineraryDay }) {
   return (
     <div className="rounded-2xl border border-sand-200 bg-sand-50/50 px-5 py-4 flex items-start gap-4">
@@ -895,12 +916,6 @@ function StayCard({ day }: { day: ItineraryDay }) {
             {day.roomType && (
               <span className="text-ink/70 font-normal"> · {day.roomType}</span>
             )}
-          </p>
-        )}
-        {day.mealPlan && (
-          <p className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-1.5">
-            <Utensils className="h-3 w-3" />
-            {day.mealPlan}
           </p>
         )}
       </div>

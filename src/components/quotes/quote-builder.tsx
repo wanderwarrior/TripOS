@@ -1,25 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
-  Copy,
+  ChevronDown,
+  ChevronRight,
+  Cloud,
+  CloudOff,
+  Download,
+  Info,
   Link2,
   Loader2,
   Plus,
   Send,
+  Sparkles,
   Trash2,
   Undo2,
+  Wand2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { QuoteStatus } from "@prisma/client";
+import type { QuoteStatus, TravelSegment } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,12 +36,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   computePricing,
   type LineItemCategory,
   type PricingItem,
 } from "@/types";
+import type { ItineraryContent } from "@/lib/ai";
 import { ShareDialog } from "@/components/quotes/share-dialog";
 import { SuccessFlash } from "@/components/ui/success-flash";
+import { ShareOnWhatsappButton } from "@/components/whatsapp/share-on-whatsapp-button";
 import {
   acceptQuoteAction,
   deleteQuoteAction,
@@ -52,6 +70,14 @@ const CATEGORIES: LineItemCategory[] = [
   "Flights",
   "Other",
 ];
+
+const CATEGORY_LABEL: Record<LineItemCategory, string> = {
+  Hotel: "Accommodation",
+  Transport: "Transfers & transport",
+  Activities: "Experiences",
+  Flights: "Flights",
+  Other: "Other",
+};
 
 const STATUS_TONE: Record<
   QuoteStatus,
@@ -72,11 +98,22 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   EXPIRED: "Expired",
 };
 
+// Pre-built shortcuts the agent reaches for on every trip.
+const COMMON_ITEMS: { label: string; category: LineItemCategory }[] = [
+  { label: "Travel insurance", category: "Other" },
+  { label: "Visa fees", category: "Other" },
+  { label: "Tips / gratuities", category: "Other" },
+  { label: "Airport transfer", category: "Transport" },
+  { label: "SIM card / data plan", category: "Other" },
+  { label: "Tour guide", category: "Activities" },
+];
+
 function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
 const NEW_ID = "__new__";
+const AUTOSAVE_DELAY_MS = 1500;
 
 export type QuoteData = {
   id: string;
@@ -84,7 +121,9 @@ export type QuoteData = {
   status: QuoteStatus;
   markupPct: number;
   discountPct: number;
+  sellingPrice: number;
   shareToken: string | null;
+  internalNotes: string | null;
   items: PricingItem[];
 };
 
@@ -92,7 +131,11 @@ type DraftState = {
   items: PricingItem[];
   markupPct: number;
   discountPct: number;
+  internalNotes: string;
 };
+
+type DiscountMode = "PCT" | "AMOUNT";
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 function defaultDraft(): DraftState {
   return {
@@ -102,15 +145,36 @@ function defaultDraft(): DraftState {
     ],
     markupPct: 15,
     discountPct: 0,
+    internalNotes: "",
   };
+}
+
+/** Stable signature of a draft — used to detect unsaved changes. */
+function signatureOf(d: DraftState): string {
+  return JSON.stringify({
+    items: d.items.map((i) => ({
+      category: i.category,
+      label: i.label.trim(),
+      cost: i.cost,
+    })),
+    markupPct: d.markupPct,
+    discountPct: d.discountPct,
+    internalNotes: d.internalNotes.trim(),
+  });
 }
 
 export function QuoteBuilder({
   tripId,
+  travelers,
   quotes,
+  itinerary,
+  segments,
 }: {
   tripId: string;
+  travelers: number;
   quotes: QuoteData[];
+  itinerary: ItineraryContent | null;
+  segments: TravelSegment[];
 }) {
   const router = useRouter();
 
@@ -125,21 +189,30 @@ export function QuoteBuilder({
           items: activeQuote.items,
           markupPct: activeQuote.markupPct,
           discountPct: activeQuote.discountPct,
+          internalNotes: activeQuote.internalNotes ?? "",
         }
       : defaultDraft()
   );
 
-  // Reload draft when active tab changes (or server data refreshes)
+  // Last known-saved signature for the active quote. Compared against the
+  // current draft to drive autosave + "Unsaved changes" indicator.
+  const savedSignatureRef = useRef<string>(signatureOf(draft));
+
+  // Reload draft when the active tab changes (or server data refreshes).
   useEffect(() => {
-    if (isNew) {
-      setDraft(defaultDraft());
-    } else if (activeQuote) {
-      setDraft({
-        items: activeQuote.items,
-        markupPct: activeQuote.markupPct,
-        discountPct: activeQuote.discountPct,
-      });
-    }
+    const next: DraftState = isNew
+      ? defaultDraft()
+      : activeQuote
+        ? {
+            items: activeQuote.items,
+            markupPct: activeQuote.markupPct,
+            discountPct: activeQuote.discountPct,
+            internalNotes: activeQuote.internalNotes ?? "",
+          }
+        : defaultDraft();
+    setDraft(next);
+    savedSignatureRef.current = signatureOf(next);
+    setSaveStatus("idle");
   }, [activeId, isNew, activeQuote]);
 
   // Sync activeId with server quotes — handles first-save (NEW_ID -> v1)
@@ -162,29 +235,38 @@ export function QuoteBuilder({
     [draft]
   );
 
-  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const marginPct =
+    summary.sellingPrice > 0 ? (summary.profit / summary.sellingPrice) * 100 : 0;
+  const perPersonSelling =
+    travelers > 0 ? Math.round(summary.sellingPrice / travelers) : 0;
+
+  const [discountMode, setDiscountMode] = useState<DiscountMode>("PCT");
+  const [perPerson, setPerPerson] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<LineItemCategory>>(() => new Set());
+
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [agoTick, setAgoTick] = useState(0);
   const [isSaving, startSave] = useTransition();
   const [isMutating, startMutation] = useTransition();
-  const [flash, setFlash] = useState<{
-    title: string;
-    body?: string;
-  } | null>(null);
+  const [flash, setFlash] = useState<{ title: string; body?: string } | null>(
+    null
+  );
 
   const editable = isNew || activeQuote?.status === "DRAFT";
+  const currentSignature = useMemo(() => signatureOf(draft), [draft]);
+  const isDirty = currentSignature !== savedSignatureRef.current;
 
   function patch(partial: Partial<DraftState>) {
     if (!editable) return;
     setDraft((d) => ({ ...d, ...partial }));
   }
 
-  function addItem(category: LineItemCategory = "Other") {
+  function addItem(category: LineItemCategory = "Other", label = "") {
     if (!editable) return;
     setDraft((d) => ({
       ...d,
-      items: [
-        ...d.items,
-        { id: uid(), category, label: "", cost: 0 },
-      ],
+      items: [...d.items, { id: uid(), category, label, cost: 0 }],
     }));
   }
   function removeItem(id: string) {
@@ -199,8 +281,11 @@ export function QuoteBuilder({
     }));
   }
 
-  function save() {
-    startSave(async () => {
+  // --- save (manual + autosave) ----------------------------------------
+
+  const runSave = useCallback(
+    async (silent: boolean) => {
+      setSaveStatus("saving");
       try {
         const r = await saveQuoteAction({
           tripId,
@@ -208,20 +293,50 @@ export function QuoteBuilder({
           items: draft.items,
           markupPct: draft.markupPct,
           discountPct: draft.discountPct,
+          internalNotes: draft.internalNotes,
         });
-        setSavedAt(new Date().toLocaleTimeString());
-        toast.success(isNew ? "Quote created" : "Quote saved");
+        savedSignatureRef.current = currentSignature;
+        setLastSavedAt(new Date());
+        setSaveStatus("saved");
+        if (!silent) toast.success(isNew ? "Quote created" : "Quote saved");
         if (isNew) setActiveId(r.quoteId);
         router.refresh();
       } catch (e) {
+        setSaveStatus("error");
         toast.error(e instanceof Error ? e.message : "Couldn't save quote");
       }
-    });
+    },
+    [tripId, isNew, activeQuote, draft, currentSignature, router]
+  );
+
+  function save() {
+    startSave(() => runSave(false));
   }
+
+  // Autosave: only for existing DRAFT quotes (a brand-new tab waits for an
+  // explicit Save to materialize). Debounced so rapid edits don't fire a
+  // request per keystroke.
+  useEffect(() => {
+    if (!editable || isNew || !activeQuote) return;
+    if (!isDirty) return;
+    const t = setTimeout(() => {
+      runSave(true);
+    }, AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [editable, isNew, activeQuote, isDirty, runSave]);
+
+  // Tick once a minute so "Saved 12s ago" stays fresh.
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    const t = setInterval(() => setAgoTick((x) => x + 1), 30_000);
+    return () => clearInterval(t);
+  }, [lastSavedAt]);
+  void agoTick;
+
+  // --- version actions --------------------------------------------------
 
   function addVersion() {
     if (!activeQuote) {
-      // First quote — just save the new draft
       save();
       return;
     }
@@ -320,15 +435,106 @@ export function QuoteBuilder({
     });
   }
 
+  // --- pull from itinerary ---------------------------------------------
+
+  const pullable = useMemo(
+    () => buildPullSuggestions(itinerary, segments),
+    [itinerary, segments]
+  );
+
+  function pullFromItinerary() {
+    if (!editable) return;
+    if (pullable.length === 0) return;
+    setDraft((d) => {
+      const existingLabels = new Set(
+        d.items.map((i) => i.label.trim().toLowerCase())
+      );
+      const additions = pullable
+        .filter((p) => !existingLabels.has(p.label.trim().toLowerCase()))
+        .map((p) => ({
+          id: uid(),
+          category: p.category,
+          label: p.label,
+          cost: 0,
+        }));
+      if (additions.length === 0) {
+        toast.info("All itinerary items are already on the quote.");
+        return d;
+      }
+      toast.success(
+        `Added ${additions.length} item${additions.length === 1 ? "" : "s"} from itinerary`
+      );
+      return { ...d, items: [...d.items, ...additions] };
+    });
+  }
+
+  // --- group + collapse logic -------------------------------------------
+
+  const groups = useMemo(() => {
+    const byCat = new Map<LineItemCategory, PricingItem[]>();
+    for (const item of draft.items) {
+      const list = byCat.get(item.category) ?? [];
+      list.push(item);
+      byCat.set(item.category, list);
+    }
+    return CATEGORIES.filter((c) => byCat.has(c)).map((c) => ({
+      category: c,
+      items: byCat.get(c)!,
+      subtotal: byCat.get(c)!.reduce((s, i) => s + (i.cost || 0), 0),
+    }));
+  }, [draft.items]);
+
+  function toggleGroup(c: LineItemCategory) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
+      return next;
+    });
+  }
+
+  // --- discount mode ----------------------------------------------------
+
+  const discountAmount = (summary.totalCost * draft.markupPct) / 100 + summary.totalCost;
+  // Easier: discount is taken AFTER markup applied to totalCost. Use the
+  // computePricing values directly to avoid drift.
+  const subtotalWithMarkup = summary.totalCost + summary.markupAmount;
+  const discountAsAmount = Math.round(
+    (subtotalWithMarkup * draft.discountPct) / 100
+  );
+  void discountAmount;
+
+  function setDiscountFromAmount(amount: number) {
+    if (subtotalWithMarkup <= 0) {
+      patch({ discountPct: 0 });
+      return;
+    }
+    const pct = Math.max(0, Math.min(100, (amount / subtotalWithMarkup) * 100));
+    patch({ discountPct: Math.round(pct * 100) / 100 });
+  }
+
+  // --- version diff -----------------------------------------------------
+
+  const baseSellingPrice = quotes[0]?.sellingPrice ?? null;
+
   return (
-    <section className="rounded-2xl border border-line bg-white shadow-soft p-6 md:p-8">
+    <section
+      className={cn(
+        "flex flex-col rounded-2xl border border-line bg-white shadow-soft",
+        // Constrain the panel to the viewport (minus the sticky top offset)
+        // at lg+ so the action footer is always in view. Mobile uses
+        // natural height since the panel isn't sticky there anyway.
+        "lg:max-h-[calc(100vh-7rem)]"
+      )}
+    >
       <SuccessFlash
         open={flash !== null}
         onClose={() => setFlash(null)}
         title={flash?.title ?? ""}
         body={flash?.body}
       />
-      <header className="flex items-start justify-between gap-3 mb-5">
+      <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
+      <header className="flex items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-sand-600">
             Quotation
@@ -348,36 +554,59 @@ export function QuoteBuilder({
         )}
       </header>
 
+      {/* Version tabs with delta chip */}
       {quotes.length > 0 && (
         <div className="flex items-center gap-1 mb-6 flex-wrap border-b border-line pb-3">
-          {quotes.map((q) => (
-            <button
-              key={q.id}
-              onClick={() => setActiveId(q.id)}
-              className={cn(
-                "h-8 px-3 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5",
-                q.id === activeId
-                  ? "bg-navy text-ivory"
-                  : "text-muted-foreground hover:text-navy hover:bg-ivory"
-              )}
-            >
-              v{q.version}
-              <span
+          {quotes.map((q) => {
+            const isActive = q.id === activeId;
+            const delta =
+              baseSellingPrice !== null && q.version > 1
+                ? q.sellingPrice - baseSellingPrice
+                : null;
+            return (
+              <button
+                key={q.id}
+                onClick={() => setActiveId(q.id)}
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  q.status === "ACCEPTED"
-                    ? "bg-emerald-500"
-                    : q.status === "SENT"
-                      ? "bg-sand-500"
-                      : q.status === "REJECTED"
-                        ? "bg-red-400"
-                        : q.id === activeId
-                          ? "bg-ivory/60"
-                          : "bg-line"
+                  "h-8 px-3 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5",
+                  isActive
+                    ? "bg-navy text-ivory"
+                    : "text-muted-foreground hover:text-navy hover:bg-ivory"
                 )}
-              />
-            </button>
-          ))}
+              >
+                v{q.version}
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    q.status === "ACCEPTED"
+                      ? "bg-emerald-500"
+                      : q.status === "SENT"
+                        ? "bg-sand-500"
+                        : q.status === "REJECTED"
+                          ? "bg-red-400"
+                          : isActive
+                            ? "bg-ivory/60"
+                            : "bg-line"
+                  )}
+                />
+                {delta !== null && delta !== 0 && (
+                  <span
+                    className={cn(
+                      "text-[10px] tabular-nums",
+                      isActive
+                        ? "text-ivory/80"
+                        : delta > 0
+                          ? "text-emerald-700"
+                          : "text-red-600"
+                    )}
+                  >
+                    {delta > 0 ? "+" : "−"}
+                    {formatINR(Math.abs(delta))}
+                  </span>
+                )}
+              </button>
+            );
+          })}
           <button
             onClick={addVersion}
             disabled={isMutating}
@@ -389,80 +618,144 @@ export function QuoteBuilder({
         </div>
       )}
 
-      <div className="space-y-3">
+      {/* Pull-from-itinerary banner — appears when the trip has content the
+          agent hasn't pulled into this quote yet. */}
+      {editable && pullable.length > 0 && draft.items.every((i) => !i.label) && (
+        <div className="mb-4 rounded-xl border border-sand-200 bg-sand-50/40 p-3.5 flex items-start gap-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sand-100 text-sand-800">
+            <Wand2 className="h-3.5 w-3.5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-navy">
+              Pull {pullable.length} item
+              {pullable.length === 1 ? "" : "s"} from the itinerary
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Hotels, activities, and flights already on the trip. Costs stay
+              blank for you to fill in.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="accent"
+            onClick={pullFromItinerary}
+            disabled={!editable}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Pull
+          </Button>
+        </div>
+      )}
+
+      {/* Line items, grouped by category with subtotals */}
+      <div className="space-y-4">
+        {groups.length === 0 && editable && (
+          <p className="text-sm text-muted-foreground italic">
+            No line items yet — add one below or pull from the itinerary.
+          </p>
+        )}
         <AnimatePresence initial={false}>
-          {draft.items.map((item) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              transition={{ duration: 0.25 }}
-              className="grid grid-cols-[140px_1fr_140px_40px] gap-2 items-center"
-            >
-              <Select
-                value={item.category}
-                onValueChange={(v) =>
-                  updateItem(item.id, { category: v as LineItemCategory })
-                }
-                disabled={!editable}
+          {groups.map((g) => {
+            const isCollapsed = collapsed.has(g.category);
+            return (
+              <motion.div
+                key={g.category}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="rounded-2xl border border-line/70 bg-ivory/30 overflow-hidden"
               >
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Description"
-                value={item.label}
-                onChange={(e) => updateItem(item.id, { label: e.target.value })}
-                disabled={!editable}
-                className="h-10"
-              />
-              <Input
-                type="number"
-                min={0}
-                placeholder="Cost (₹)"
-                value={item.cost || ""}
-                onChange={(e) =>
-                  updateItem(item.id, { cost: Number(e.target.value || 0) })
-                }
-                disabled={!editable}
-                className="h-10 text-right"
-              />
-              <button
-                type="button"
-                onClick={() => removeItem(item.id)}
-                disabled={!editable}
-                className="h-10 w-10 rounded-2xl border border-line text-muted-foreground hover:text-red-600 hover:border-red-200 transition-colors flex items-center justify-center disabled:opacity-30"
-                aria-label="Remove line item"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </motion.div>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(g.category)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-ivory/60 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    {isCollapsed ? (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className="text-[11px] uppercase tracking-[0.22em] text-sand-700">
+                      {CATEGORY_LABEL[g.category]}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {g.items.length}
+                    </span>
+                  </span>
+                  <span className="text-sm font-medium text-navy tabular-nums">
+                    {formatINR(g.subtotal)}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="px-3 pb-3 space-y-2">
+                    {g.items.map((item) => (
+                      <LineItem
+                        key={item.id}
+                        item={item}
+                        editable={editable}
+                        onChange={updateItem}
+                        onRemove={removeItem}
+                      />
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {editable && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => addItem()}
-            className="mt-2"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add line item
-          </Button>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addItem()}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add line item
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Common items
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Add a common item</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {COMMON_ITEMS.map((c) => (
+                  <DropdownMenuItem
+                    key={c.label}
+                    onClick={() => addItem(c.category, c.label)}
+                    className="flex items-center justify-between"
+                  >
+                    <span>{c.label}</span>
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      {c.category}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {pullable.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={pullFromItinerary}
+                title="Pull hotels, activities, and segments from the trip itinerary"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Pull from itinerary
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4">
+      {/* Markup + discount, with the discount input switchable %/₹ */}
+      <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="markup">Markup %</Label>
           <Input
@@ -478,23 +771,101 @@ export function QuoteBuilder({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="discount">Discount %</Label>
-          <Input
-            id="discount"
-            type="number"
-            min={0}
-            max={100}
-            value={draft.discountPct}
-            onChange={(e) =>
-              patch({ discountPct: Number(e.target.value || 0) })
-            }
-            disabled={!editable}
-          />
+          <div className="flex items-center justify-between">
+            <Label htmlFor="discount">
+              Discount {discountMode === "PCT" ? "%" : "₹"}
+            </Label>
+            <div className="flex rounded-lg border border-line bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setDiscountMode("PCT")}
+                className={cn(
+                  "px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] rounded-md transition-colors",
+                  discountMode === "PCT"
+                    ? "bg-navy text-ivory"
+                    : "text-muted-foreground hover:text-navy"
+                )}
+              >
+                %
+              </button>
+              <button
+                type="button"
+                onClick={() => setDiscountMode("AMOUNT")}
+                className={cn(
+                  "px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] rounded-md transition-colors",
+                  discountMode === "AMOUNT"
+                    ? "bg-navy text-ivory"
+                    : "text-muted-foreground hover:text-navy"
+                )}
+              >
+                ₹
+              </button>
+            </div>
+          </div>
+          {discountMode === "PCT" ? (
+            <Input
+              id="discount"
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={draft.discountPct}
+              onChange={(e) =>
+                patch({ discountPct: Number(e.target.value || 0) })
+              }
+              disabled={!editable}
+            />
+          ) : (
+            <Input
+              id="discount"
+              type="number"
+              min={0}
+              value={discountAsAmount || ""}
+              onChange={(e) =>
+                setDiscountFromAmount(Number(e.target.value || 0))
+              }
+              disabled={!editable}
+              placeholder="0"
+            />
+          )}
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl bg-navy text-ivory px-6 py-5">
-        <Row label="Subtotal" value={formatINR(summary.totalCost)} />
+      {/* Summary */}
+      <div className="mt-4 rounded-2xl bg-navy text-ivory px-5 py-4">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-ivory/60">
+            Pricing summary
+          </span>
+          <div className="flex rounded-lg border border-ivory/15 p-0.5">
+            <button
+              type="button"
+              onClick={() => setPerPerson(false)}
+              className={cn(
+                "px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] rounded-md transition-colors",
+                !perPerson
+                  ? "bg-ivory text-navy"
+                  : "text-ivory/60 hover:text-ivory"
+              )}
+            >
+              Total
+            </button>
+            <button
+              type="button"
+              onClick={() => setPerPerson(true)}
+              disabled={travelers <= 1}
+              className={cn(
+                "px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] rounded-md transition-colors disabled:opacity-30",
+                perPerson
+                  ? "bg-ivory text-navy"
+                  : "text-ivory/60 hover:text-ivory"
+              )}
+            >
+              Per person
+            </button>
+          </div>
+        </div>
+        <Row label="Subtotal" value={formatINR(summary.totalCost)} muted />
         <Row
           label={`Markup (${draft.markupPct}%)`}
           value={`+${formatINR(summary.markupAmount)}`}
@@ -502,24 +873,59 @@ export function QuoteBuilder({
         />
         {summary.discountAmount > 0 && (
           <Row
-            label={`Discount (${draft.discountPct}%)`}
+            label={`Discount (${draft.discountPct.toFixed(1)}%)`}
             value={`−${formatINR(summary.discountAmount)}`}
             muted
           />
         )}
         <div className="my-3 h-px bg-ivory/15" />
         <Row
-          label="Selling price"
-          value={formatINR(summary.sellingPrice)}
+          label={perPerson ? "Selling — per person" : "Selling price"}
+          value={formatINR(perPerson ? perPersonSelling : summary.sellingPrice)}
           emphasis
         />
-        <Row label="Profit" value={formatINR(summary.profit)} muted />
+        {!perPerson && travelers > 1 && (
+          <p className="text-[11px] text-ivory/55 -mt-1">
+            {formatINR(perPersonSelling)} × {travelers} travellers
+          </p>
+        )}
+        <Row
+          label="Profit"
+          value={`${formatINR(summary.profit)}  ·  ${marginPct.toFixed(1)}%`}
+          muted
+        />
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xs text-muted-foreground">
-          {savedAt ? `Saved ${savedAt}` : "—"}
+      {/* Internal notes (operator-only) */}
+      <div className="mt-4 space-y-1.5">
+        <div className="flex items-center gap-1.5">
+          <Info className="h-3 w-3 text-muted-foreground" />
+          <Label htmlFor="internal-notes" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Internal notes (operator-only)
+          </Label>
         </div>
+        <Textarea
+          id="internal-notes"
+          rows={2}
+          value={draft.internalNotes}
+          onChange={(e) => patch({ internalNotes: e.target.value })}
+          disabled={!editable}
+          placeholder="Margin floor, supplier reminders, haggle limits — never reaches the customer."
+          className="text-sm"
+        />
+      </div>
+
+      </div>
+
+      {/* Sticky footer — Save / Send / Accept stay visible regardless of
+          how much content the panel holds. */}
+      <div className="border-t border-line bg-white px-4 py-3 md:px-5 md:py-3 rounded-b-2xl flex flex-wrap items-center justify-between gap-3 shadow-[0_-4px_12px_-8px_rgba(0,0,0,0.08)]">
+        <SaveIndicator
+          status={saveStatus}
+          isDirty={isDirty}
+          lastSavedAt={lastSavedAt}
+          editable={!!editable}
+        />
         <div className="flex flex-wrap items-center gap-2">
           {activeQuote && (
             <ShareDialog
@@ -528,15 +934,30 @@ export function QuoteBuilder({
               trigger={
                 <Button variant="outline" size="sm">
                   <Link2 className="h-3.5 w-3.5" />
-                  Share
+                  Share link
                 </Button>
               }
             />
           )}
 
+          {/* When a quote is SENT, the dominant action is to push it on
+              WhatsApp — that's how customers actually receive it. */}
+          {activeQuote &&
+            (activeQuote.status === "DRAFT" || activeQuote.status === "SENT") && (
+              <ShareOnWhatsappButton
+                kind="proposal"
+                tripId={tripId}
+                quoteId={activeQuote.id}
+                label={activeQuote.status === "SENT" ? "Resend on WhatsApp" : "Send on WhatsApp"}
+                variant={activeQuote.status === "SENT" ? "default" : "accent"}
+                size="sm"
+              />
+            )}
+
           {editable && (
             <Button
               size="sm"
+              variant={isDirty ? "default" : "outline"}
               onClick={save}
               disabled={isSaving || draft.items.length === 0}
             >
@@ -546,7 +967,13 @@ export function QuoteBuilder({
           )}
 
           {activeQuote?.status === "DRAFT" && (
-            <Button size="sm" variant="accent" onClick={markSent} disabled={isMutating}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={markSent}
+              disabled={isMutating}
+              title="Mark this quote as sent without sending via WhatsApp"
+            >
               <Send className="h-3.5 w-3.5" />
               Mark sent
             </Button>
@@ -609,6 +1036,214 @@ export function QuoteBuilder({
   );
 }
 
+// --- line item -----------------------------------------------------------
+
+function LineItem({
+  item,
+  editable,
+  onChange,
+  onRemove,
+}: {
+  item: PricingItem;
+  editable: boolean | undefined;
+  onChange: (id: string, p: Partial<PricingItem>) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-xl border border-line bg-white p-2.5 space-y-2"
+    >
+      <div className="flex items-center gap-2">
+        <Select
+          value={item.category}
+          onValueChange={(v) =>
+            onChange(item.id, { category: v as LineItemCategory })
+          }
+          disabled={!editable}
+        >
+          <SelectTrigger className="h-9 w-[130px] shrink-0 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          type="number"
+          min={0}
+          placeholder="Cost (₹)"
+          value={item.cost || ""}
+          onChange={(e) =>
+            onChange(item.id, { cost: Number(e.target.value || 0) })
+          }
+          disabled={!editable}
+          className="h-9 flex-1 min-w-0 text-right tabular-nums"
+        />
+        <button
+          type="button"
+          onClick={() => onRemove(item.id)}
+          disabled={!editable}
+          className="h-9 w-9 shrink-0 rounded-xl border border-line text-muted-foreground hover:text-red-600 hover:border-red-200 transition-colors flex items-center justify-center disabled:opacity-30"
+          aria-label="Remove line item"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <Input
+        placeholder="Description — e.g. Taj Mahal Palace · Sea-view deluxe"
+        value={item.label}
+        onChange={(e) => onChange(item.id, { label: e.target.value })}
+        disabled={!editable}
+        className="h-9 w-full text-sm"
+      />
+    </motion.div>
+  );
+}
+
+// --- save indicator ------------------------------------------------------
+
+function SaveIndicator({
+  status,
+  isDirty,
+  lastSavedAt,
+  editable,
+}: {
+  status: SaveStatus;
+  isDirty: boolean;
+  lastSavedAt: Date | null;
+  editable: boolean;
+}) {
+  if (!editable) {
+    return (
+      <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+        <Cloud className="h-3 w-3" />
+        Read-only
+      </span>
+    );
+  }
+  if (status === "saving") {
+    return (
+      <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Saving…
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="text-xs text-red-600 inline-flex items-center gap-1.5">
+        <CloudOff className="h-3 w-3" />
+        Save failed — retry
+      </span>
+    );
+  }
+  if (isDirty) {
+    return (
+      <span className="text-xs text-amber-700 inline-flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+        Unsaved changes
+      </span>
+    );
+  }
+  if (lastSavedAt) {
+    return (
+      <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+        <Check className="h-3 w-3 text-emerald-600" />
+        Saved {timeAgo(lastSavedAt)}
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+      <Cloud className="h-3 w-3" />
+      Idle
+    </span>
+  );
+}
+
+function timeAgo(d: Date): string {
+  const sec = Math.max(1, Math.floor((Date.now() - d.getTime()) / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
+
+// --- pull-from-itinerary suggestions -------------------------------------
+
+type PullSuggestion = { category: LineItemCategory; label: string };
+
+function buildPullSuggestions(
+  itinerary: ItineraryContent | null,
+  segments: TravelSegment[]
+): PullSuggestion[] {
+  const out: PullSuggestion[] = [];
+  const seen = new Set<string>();
+  const push = (s: PullSuggestion) => {
+    const k = s.label.trim().toLowerCase();
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push(s);
+  };
+
+  // Travel segments — flights and trains become Flights / Transport lines.
+  for (const seg of segments) {
+    const route = `${seg.from} → ${seg.to}`;
+    if (seg.type === "FLIGHT") {
+      const id =
+        [seg.airline, seg.flightNumber].filter(Boolean).join(" ") || null;
+      push({
+        category: "Flights",
+        label: `Flight: ${route}${id ? ` (${id})` : ""}`,
+      });
+    } else {
+      const id =
+        [seg.trainName, seg.trainNumber].filter(Boolean).join(" ") || null;
+      push({
+        category: "Transport",
+        label: `Train: ${route}${id ? ` (${id})` : ""}`,
+      });
+    }
+  }
+
+  if (itinerary) {
+    for (let i = 0; i < itinerary.days.length; i++) {
+      const day = itinerary.days[i];
+      if (day.hotel?.trim()) {
+        const room = day.roomType?.trim() ? ` · ${day.roomType.trim()}` : "";
+        push({
+          category: "Hotel",
+          label: `Day ${i + 1}: ${day.hotel.trim()}${room}`,
+        });
+      }
+      if (day.transferNote?.trim()) {
+        push({
+          category: "Transport",
+          label: `Day ${i + 1} transfer: ${day.transferNote.trim()}`,
+        });
+      }
+      for (const act of day.activities ?? []) {
+        const t = act.trim();
+        if (!t) continue;
+        push({ category: "Activities", label: `Day ${i + 1}: ${t}` });
+      }
+    }
+  }
+
+  return out;
+}
+
+// --- summary row --------------------------------------------------------
+
 function Row({
   label,
   value,
@@ -634,7 +1269,7 @@ function Row({
         className={cn(
           emphasis
             ? "font-display text-sand text-2xl"
-            : "font-medium text-ivory"
+            : "font-medium text-ivory tabular-nums"
         )}
       >
         {value}

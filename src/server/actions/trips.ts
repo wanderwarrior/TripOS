@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { assertCan, requireAgency } from "@/lib/session";
-import { generateItineraryAI } from "@/lib/ai";
+import { generateItineraryAI, generateTripFromBriefAI } from "@/lib/ai";
 import { logActivity } from "@/server/helpers/log-activity";
 import { recomputeContactStatus } from "@/server/helpers/contact-status";
 
@@ -97,6 +97,96 @@ export async function createTripAction(input: CreateTripInput) {
     });
   } catch (e) {
     console.error("itinerary generation failed", e);
+  }
+
+  if (trip.contactId) {
+    await recomputeContactStatus(trip.contactId);
+    revalidatePath(`/contacts/${trip.contactId}`);
+  }
+  revalidatePath("/");
+  redirect(`/trips/${trip.id}`);
+}
+
+// ---------------------------------------------------------------------------
+// "Build to spec" — create a trip + itinerary from a freeform brief in one
+// pass. Used by the "Detailed brief" tab on /trips/new.
+// ---------------------------------------------------------------------------
+
+const briefSchema = z.object({
+  brief: z
+    .string()
+    .min(20, "Add a bit more detail — at least a destination and length.")
+    .max(4000, "Keep the brief under 4,000 characters."),
+  contactId: z.string().optional().nullable(),
+});
+
+export type CreateTripFromBriefInput = z.infer<typeof briefSchema>;
+
+export async function createTripFromBriefAction(
+  input: CreateTripFromBriefInput
+) {
+  const data = briefSchema.parse(input);
+  const user = await assertCan("trip:create");
+
+  // Verify any supplied contactId belongs to this agency — same fence as
+  // createTripAction.
+  let contactId: string | null = null;
+  if (data.contactId) {
+    const contact = await prisma.contact.findFirst({
+      where: {
+        id: data.contactId,
+        agencyId: user.activeAgencyId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    contactId = contact?.id ?? null;
+  }
+
+  const result = await generateTripFromBriefAI(data.brief);
+
+  const trip = await prisma.trip.create({
+    data: {
+      agencyId: user.activeAgencyId,
+      ownerId: user.id,
+      contactId,
+      destination: result.trip.destination,
+      days: result.trip.days,
+      travelers: result.trip.travelers,
+      budget: result.trip.budget,
+      travelType: result.trip.travelType,
+      startDate: result.trip.startDate ? new Date(result.trip.startDate) : null,
+      pace: result.trip.pace,
+      hotelType: result.trip.hotelType,
+      interests: result.trip.interests,
+      // The brief itself plus any specifics the model surfaced — operators
+      // want to see what they typed and what was extracted.
+      notes: [result.trip.notes.trim(), `— Source brief —\n${data.brief.trim()}`]
+        .filter(Boolean)
+        .join("\n\n"),
+    },
+  });
+
+  await logActivity({
+    contactId: trip.contactId,
+    tripId: trip.id,
+    actorId: user.id,
+    type: "TRIP_CREATED",
+    title: `Trip created from brief — ${trip.destination}`,
+  });
+
+  // The itinerary is generated in the same AI call, so unlike the wizard
+  // flow we never miss it (no second-call failure window).
+  try {
+    await prisma.itinerary.create({
+      data: {
+        tripId: trip.id,
+        version: 1,
+        content: result.itinerary as unknown as object,
+      },
+    });
+  } catch (e) {
+    console.error("brief-to-itinerary persist failed", e);
   }
 
   if (trip.contactId) {

@@ -24,6 +24,7 @@ export const authEdgeConfig: NextAuthConfig = {
         path.startsWith("/accept-invite") ||
         path.startsWith("/share/") ||
         path.startsWith("/v/") ||
+        path.startsWith("/api/share/") ||
         path.startsWith("/api/auth") ||
         path.startsWith("/api/webhooks") ||
         path.startsWith("/api/cron") ||

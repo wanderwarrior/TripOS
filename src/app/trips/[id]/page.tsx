@@ -95,7 +95,9 @@ export default async function TripWorkspacePage({
     status: q.status,
     markupPct: q.markupPct,
     discountPct: q.discountPct,
+    sellingPrice: q.sellingPrice,
     shareToken: q.shareToken,
+    internalNotes: q.internalNotes,
     items: q.items.map((it) => ({
       id: it.id,
       category: it.category as LineItemCategory,
@@ -179,7 +181,13 @@ export default async function TripWorkspacePage({
               tripStartDate={trip.startDate?.toISOString() ?? null}
             />
             <div className="lg:sticky lg:top-24">
-              <QuoteBuilder tripId={trip.id} quotes={quotes} />
+              <QuoteBuilder
+                tripId={trip.id}
+                travelers={trip.travelers}
+                quotes={quotes}
+                itinerary={itineraryContent}
+                segments={segments}
+              />
             </div>
           </div>
         </TabsContent>

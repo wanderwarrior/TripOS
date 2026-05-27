@@ -31,7 +31,9 @@ export function NotificationBell() {
 
   const load = useCallback(() => {
     recentNotificationsAction()
-      .then(setItems)
+      // Guard against a server-action edge case where the resolved value
+      // arrives as undefined — treat it as "no change", not "empty list".
+      .then((next) => Array.isArray(next) && setItems(next))
       .catch(() => {
         /* transient — keep prior list */
       });
@@ -43,7 +45,11 @@ export function NotificationBell() {
     return () => clearInterval(t);
   }, [load]);
 
-  const unread = items.filter(
+  // Defensive: items should always be an array per the useState default,
+  // but a stale dev-time hot-reload chunk has been seen handing back
+  // undefined here. Coalesce so the bell never crashes the page.
+  const safeItems = Array.isArray(items) ? items : [];
+  const unread = safeItems.filter(
     (i) => new Date(i.createdAt).getTime() > lastSeen
   ).length;
 
@@ -79,7 +85,7 @@ export function NotificationBell() {
           ) : null}
         </div>
 
-        {items.length === 0 ? (
+        {safeItems.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <Check className="h-5 w-5 mx-auto text-muted-foreground mb-1.5" />
             <p className="text-xs text-muted-foreground">
@@ -88,7 +94,7 @@ export function NotificationBell() {
           </div>
         ) : (
           <ul className="max-h-[60vh] overflow-y-auto">
-            {items.map((n) => {
+            {safeItems.map((n) => {
               const fresh = new Date(n.createdAt).getTime() > lastSeen;
               return (
                 <li key={n.id}>

@@ -1,5 +1,5 @@
 import { PageShell } from "@/components/page-shell";
-import { TripWizard } from "@/components/trip-wizard";
+import { NewTripTabs } from "@/components/new-trip-tabs";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -58,11 +58,11 @@ export default async function NewTripPage({
           A few details, then we craft.
         </h1>
         <p className="mt-3 text-base text-muted-foreground max-w-md mx-auto">
-          Tell us the essentials. We'll generate a day-by-day plan you can
-          shape, price, and share.
+          Walk through the wizard for a fresh idea, or paste a detailed brief
+          when you already know the day-by-day.
         </p>
       </div>
-      <TripWizard prefill={prefill} />
+      <NewTripTabs prefill={prefill} />
     </PageShell>
   );
 }

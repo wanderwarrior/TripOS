@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Compass } from "lucide-react";
+import { Compass, Download } from "lucide-react";
 import { PreviewRenderer } from "@/components/preview-renderer";
 import { AcceptQuoteButton } from "@/components/quotes/accept-quote-button";
 import { prisma } from "@/lib/prisma";
@@ -141,9 +141,20 @@ export default async function PublicQuotePage({
               {agencyName}
             </span>
           </div>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Quote v{quote.version}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Quote v{quote.version}
+            </span>
+            <a
+              href={`/api/share/${params.token}/pdf`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-navy hover:border-navy/40 hover:shadow-soft transition-all"
+            >
+              <Download className="h-3 w-3" />
+              Download PDF
+            </a>
+          </div>
         </div>
       </header>
 

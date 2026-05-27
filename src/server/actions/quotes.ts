@@ -22,6 +22,8 @@ const saveSchema = z.object({
   items: z.array(itemSchema),
   markupPct: z.coerce.number().min(0).max(500),
   discountPct: z.coerce.number().min(0).max(100).default(0),
+  // Operator-only notes — never reaches the customer.
+  internalNotes: z.string().max(2000).optional().nullable(),
 });
 
 export type SaveQuoteInput = z.infer<typeof saveSchema>;
@@ -60,6 +62,7 @@ export async function saveQuoteAction(input: SaveQuoteInput) {
         totalCost: summary.totalCost,
         sellingPrice: summary.sellingPrice,
         profit: summary.profit,
+        internalNotes: data.internalNotes?.trim() || null,
       },
     });
     quoteId = created.id;
@@ -84,6 +87,7 @@ export async function saveQuoteAction(input: SaveQuoteInput) {
         totalCost: summary.totalCost,
         sellingPrice: summary.sellingPrice,
         profit: summary.profit,
+        internalNotes: data.internalNotes?.trim() || null,
       },
     }),
   ]);

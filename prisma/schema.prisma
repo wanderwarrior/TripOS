@@ -547,6 +547,9 @@ model Quote {
   profit       Float       @default(0)
 
   shareToken String?  @unique
+  // Operator-only notes — never reaches the customer, used for haggle
+  // boundaries, supplier reminders, internal context on each version.
+  internalNotes String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
