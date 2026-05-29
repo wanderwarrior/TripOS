@@ -144,23 +144,37 @@ export default async function OperationsDashboardPage() {
         </section>
       ) : null}
 
-      {/* 14-day calendar */}
+      {/* Month calendar */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="font-display text-2xl text-navy">
-              Next 14 days
-            </h2>
+            <h2 className="font-display text-2xl text-navy">{d.monthLabel}</h2>
             <p className="text-sm text-muted-foreground">
-              Departures and trip endings.
+              Departures and trip endings this month.
             </p>
           </div>
         </div>
         <div className="rounded-2xl border border-line bg-white p-4 shadow-soft">
-          <div className="grid gap-2 grid-cols-7">
-            {d.calendar.map((day) => (
-              <CalendarCell key={day.date.toISOString()} day={day} />
-            ))}
+          {/* A 7-col month grid crushes text cells on phones — let it scroll
+              horizontally below md while keeping the grid legible. */}
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <div className="min-w-[760px] md:min-w-0">
+              <div className="grid grid-cols-7 gap-2 mb-2">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((w) => (
+                  <div
+                    key={w}
+                    className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+                  >
+                    {w}
+                  </div>
+                ))}
+              </div>
+              <div className="grid gap-2 grid-cols-7">
+                {d.calendar.map((day) => (
+                  <CalendarCell key={day.date.toISOString()} day={day} />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -471,33 +485,38 @@ function CalendarCell({
   const monthShort = day.date.toLocaleDateString("en-IN", {
     month: "short",
   });
-  const weekdayShort = day.date.toLocaleDateString("en-IN", {
-    weekday: "short",
-  });
+  const outside = !day.inMonth;
 
   return (
     <div
       className={cn(
-        "rounded-xl border min-h-[110px] p-2 flex flex-col gap-1.5 text-[11px]",
+        "rounded-xl border min-h-[100px] p-2 flex flex-col gap-1.5 text-[11px]",
         day.isToday
           ? "border-sand-300 bg-sand-50/60"
-          : "border-line bg-white hover:bg-ivory/50",
-        isWeekend && !day.isToday && "bg-ivory/40"
+          : outside
+            ? "border-line/50 bg-ivory/30"
+            : "border-line bg-white hover:bg-ivory/50",
+        isWeekend && !day.isToday && !outside && "bg-ivory/40"
       )}
     >
       <div className="flex items-baseline justify-between">
         <span
           className={cn(
             "font-display text-base",
-            day.isToday ? "text-sand-800" : "text-navy"
+            day.isToday
+              ? "text-sand-800"
+              : outside
+                ? "text-muted-foreground/50"
+                : "text-navy"
           )}
         >
           {dayNum}
         </span>
-        <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-          {weekdayShort}
-          {dayNum === 1 ? ` · ${monthShort}` : ""}
-        </span>
+        {dayNum === 1 ? (
+          <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            {monthShort}
+          </span>
+        ) : null}
       </div>
       <div className="space-y-1">
         {day.departures.map((t) => (

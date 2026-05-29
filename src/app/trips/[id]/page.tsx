@@ -21,6 +21,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { getTripWorkflow } from "@/server/services/trip-workflow";
+import { isRazorpayConfigured } from "@/lib/razorpay";
 import type { ItineraryContent } from "@/lib/ai";
 import type { LineItemCategory, PricingItem } from "@/types";
 import { TRIP_STATUS_LABEL, TRIP_STATUS_TONE } from "@/lib/crm";
@@ -34,6 +35,7 @@ export default async function TripWorkspacePage({
 }) {
   const { agencyId, user } = await requireAgency();
   const canEdit = user.activeAgencyRole !== "VIEWER";
+  const paymentsConfigured = isRazorpayConfigured();
   const [trip, leadOptions] = await Promise.all([
     prisma.trip.findFirst({
     // Tenant-scoped: a trip id from another agency resolves to notFound().
@@ -53,6 +55,16 @@ export default async function TripWorkspacePage({
         include: {
           quote: { select: { version: true } },
           payments: { orderBy: { paidAt: "desc" } },
+          paymentLinks: {
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+              shortUrl: true,
+              createdAt: true,
+            },
+          },
           invoice: {
             select: {
               id: true,
@@ -151,6 +163,10 @@ export default async function TripWorkspacePage({
 
       {activeBooking && (
         <BookingPanel
+          paymentsConfigured={paymentsConfigured}
+          recipientPhone={trip.contact?.phone ?? null}
+          recipientName={trip.contact?.name ?? null}
+          destination={trip.destination}
           booking={{
             id: activeBooking.id,
             status: activeBooking.status,
@@ -158,6 +174,7 @@ export default async function TripWorkspacePage({
             paidAmount: activeBooking.paidAmount,
             createdAt: activeBooking.createdAt,
             payments: activeBooking.payments,
+            paymentLinks: activeBooking.paymentLinks,
             quoteVersion: activeBooking.quote.version,
             invoice: activeBooking.invoice,
           }}

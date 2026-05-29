@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TripCraft — Premium UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;450;500;550;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tripcraft.css" />
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" rx="20" fill="#0C1620"/>
+    <circle cx="50" cy="50" r="20" fill="none" stroke="#C8A96A" stroke-width="3"/>
+    <path d="M58 42 L52 54 L42 58 L48 46 Z" fill="#C8A96A"/>
+  </svg>
+</template>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="tc-ui.jsx"></script>
+<script type="text/babel" src="screen-dashboard.jsx"></script>
+<script type="text/babel" src="screen-trips.jsx"></script>
+<script type="text/babel" src="screen-workspace.jsx"></script>
+<script type="text/babel" src="screen-invoices.jsx"></script>
+<script type="text/babel" src="screen-crm.jsx"></script>
+<script type="text/babel" src="screen-reports.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const { useState } = React;
+  const { Sidebar, Topbar } = window.TC;
+
+  const CRUMBS = {
+    dashboard:['Home','Dashboard'],
+    reports:['Home','Reports'],
+    crm:['Pipeline','Contacts'],
+    trips:['Pipeline','Trips'],
+    workspace:['Pipeline','Trips','Maldives · Overwater Villa'],
+    invoices:['Pipeline','Invoices & bookings'],
+  };
+
+  function App(){
+    const [screen,setScreen]=useState('dashboard');
+    const ALIAS={bookings:'invoices'};
+    const nav=(id)=>setScreen(ALIAS[id]||id);
+    let view=null;
+    if(screen==='dashboard') view=<window.DashboardScreen/>;
+    else if(screen==='reports') view=<window.ReportsScreen/>;
+    else if(screen==='crm') view=<window.CrmScreen/>;
+    else if(screen==='trips') view=<window.TripsScreen onOpen={()=>setScreen('workspace')}/>;
+    else if(screen==='workspace') view=<window.WorkspaceScreen onBack={()=>setScreen('trips')}/>;
+    else if(screen==='invoices') view=<window.InvoicesScreen/>;
+
+    const activeNav = screen==='workspace' ? 'trips' : screen;
+    return (
+      <div className="app">
+        <Sidebar active={activeNav} onNav={nav}/>
+        <div className="main">
+          <Topbar crumbs={CRUMBS[screen]||['Home']}/>
+          <div className="scroll">
+            <div key={screen}>{view}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

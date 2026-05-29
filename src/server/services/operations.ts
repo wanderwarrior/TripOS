@@ -9,6 +9,7 @@ import {
   type VendorType,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export type AssignmentVoucher = {
   id: string;
@@ -117,8 +118,9 @@ export type VendorOption = {
 export async function getTripOperations(
   tripId: string
 ): Promise<TripOpsSnapshot | null> {
+  const { agencyId } = await requireAgency();
   const trip = await prisma.trip.findFirst({
-    where: { id: tripId, deletedAt: null },
+    where: { id: tripId, agencyId, deletedAt: null },
     select: {
       id: true,
       destination: true,
@@ -162,7 +164,7 @@ export async function getTripOperations(
         },
       }),
       prisma.vendor.findMany({
-        where: { deletedAt: null, isActive: true },
+        where: { agencyId, deletedAt: null, isActive: true },
         orderBy: [{ isPreferred: "desc" }, { name: "asc" }],
         select: {
           id: true,

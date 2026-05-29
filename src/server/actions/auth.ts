@@ -1,11 +1,21 @@
 "use server";
 
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { redirect } from "next/navigation";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
+import { brandedEmail, sendEmail } from "@/lib/email";
+import { TRIAL_DAYS } from "@/lib/plans";
+
+function publicBase(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.AUTH_URL ||
+    "http://localhost:3000"
+  ).replace(/\/+$/, "");
+}
 
 const signupSchema = z.object({
   name: z.string().min(2).max(120),
@@ -81,6 +91,16 @@ export async function signupAction(input: SignupInput) {
     await tx.membership.create({
       data: { userId: user.id, agencyId: agency.id, role: "OWNER" },
     });
+
+    // Every new agency starts on a 14-day full-access trial.
+    await tx.subscription.create({
+      data: {
+        agencyId: agency.id,
+        plan: "TRIAL",
+        status: "TRIALING",
+        trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+      },
+    });
   });
 
   await signIn("credentials", {
@@ -114,6 +134,101 @@ export async function loginAction(input: z.input<typeof loginSchema>) {
 
 export async function signOutAction() {
   await signOut({ redirectTo: "/login" });
+}
+
+// === Password reset =======================================================
+
+const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+/**
+ * Request a reset link. Always resolves with the same shape regardless of
+ * whether the email exists — no account enumeration. A token is only minted
+ * for accounts that actually have a password (credentials users).
+ */
+export async function requestPasswordResetAction(input: { email: string }) {
+  const parsed = z.string().email().safeParse(input.email?.trim().toLowerCase());
+  if (!parsed.success) return { ok: true as const };
+  const email = parsed.data;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, name: true, hashedPassword: true },
+  });
+
+  if (user?.hashedPassword) {
+    // Burn any outstanding tokens so only the newest link works.
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id, usedAt: null },
+    });
+    const raw = randomBytes(32).toString("base64url");
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(raw),
+        expiresAt: new Date(Date.now() + RESET_TTL_MS),
+      },
+    });
+    const url = `${publicBase()}/reset-password?token=${raw}`;
+    const firstName = user.name?.trim().split(/\s+/)[0] ?? "there";
+    await sendEmail({
+      to: email,
+      subject: "Reset your TripCraft password",
+      text: `Hi ${firstName},\n\nReset your TripCraft password using this link (valid for 1 hour):\n${url}\n\nIf you didn't request this, you can safely ignore this email.`,
+      html: brandedEmail({
+        heading: "Reset your password",
+        bodyHtml: `<p>Hi ${firstName},</p><p>Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p><p style="color:#9A9A9A;font-size:12px">If you didn't request this, you can safely ignore this email — your password won't change.</p>`,
+        cta: { label: "Reset password", url },
+      }),
+    });
+    // Dev visibility when no email provider is configured.
+    console.log(`[password-reset] link for ${email}: ${url}`);
+  }
+
+  return { ok: true as const };
+}
+
+const resetSchema = z.object({
+  token: z.string().min(10),
+  password: z.string().min(8, "Use at least 8 characters"),
+});
+
+/** Consume a reset token and set the new password. Single-use. */
+export async function resetPasswordAction(input: z.input<typeof resetSchema>) {
+  const data = resetSchema.parse(input);
+  const tokenHash = hashToken(data.token);
+
+  const record = await prisma.passwordResetToken.findUnique({
+    where: { tokenHash },
+    select: { id: true, userId: true, usedAt: true, expiresAt: true },
+  });
+  if (!record || record.usedAt || record.expiresAt < new Date()) {
+    return {
+      ok: false as const,
+      error: "This reset link is invalid or has expired. Request a new one.",
+    };
+  }
+
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: record.userId },
+      data: { hashedPassword },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() },
+    }),
+    // Invalidate any other live tokens for this user.
+    prisma.passwordResetToken.deleteMany({
+      where: { userId: record.userId, usedAt: null, id: { not: record.id } },
+    }),
+  ]);
+
+  return { ok: true as const };
 }
 
 const acceptInviteSchema = z.object({

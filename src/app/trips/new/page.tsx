@@ -1,6 +1,7 @@
 import { PageShell } from "@/components/page-shell";
 import { NewTripTabs } from "@/components/new-trip-tabs";
 import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,12 @@ export default async function NewTripPage({
 }: {
   searchParams: { contactId?: string };
 }) {
+  const { agencyId } = await requireAgency();
   let prefill = undefined;
 
   if (searchParams.contactId) {
     const contact = await prisma.contact.findFirst({
-      where: { id: searchParams.contactId, deletedAt: null },
+      where: { id: searchParams.contactId, agencyId, deletedAt: null },
       select: {
         id: true,
         name: true,

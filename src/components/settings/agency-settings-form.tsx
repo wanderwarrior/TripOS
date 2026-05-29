@@ -29,9 +29,10 @@ const TAX_SCHEMES = [
   { value: "EXEMPT", label: "Exempt (exports / SEZ)" },
 ] as const;
 
+// SERVICE_FEE_ONLY is intentionally omitted — there's no per-line fee field
+// yet, so it would silently tax the full amount. Hidden until implemented.
 const BASES = [
   { value: "FULL_AMOUNT", label: "Full invoice amount" },
-  { value: "SERVICE_FEE_ONLY", label: "Service fee only (advanced)" },
   { value: "MARGIN_ONLY", label: "Margin only (advanced)" },
 ] as const;
 

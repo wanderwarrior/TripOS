@@ -73,6 +73,13 @@ enum PaymentType {
   FINAL
 }
 
+enum PaymentLinkStatus {
+  CREATED
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
 enum ActivityType {
   NOTE
   CALL
@@ -272,6 +279,20 @@ enum InviteStatus {
   EXPIRED
 }
 
+enum PlanTier {
+  TRIAL
+  STARTER
+  PRO
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
@@ -284,8 +305,9 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  memberships Membership[]
-  sentInvites Invite[]     @relation("InviteSender")
+  memberships         Membership[]
+  sentInvites         Invite[]             @relation("InviteSender")
+  passwordResetTokens PasswordResetToken[]
 
   // Attribution / assignment relations (who in the agency did/owns this).
   // Agency tenancy itself lives on the entity via agencyId; these are
@@ -296,6 +318,21 @@ model User {
   sentMessages     WhatsappMessage[]  @relation("WhatsappSender")
   createdTemplates WhatsappTemplate[] @relation("TemplateCreator")
   activities       Activity[]         @relation("ActivityActor")
+}
+
+/// Single-use, short-lived password reset token. We store only the SHA-256
+/// hash of the token; the raw value lives only in the emailed link, so a DB
+/// leak can't be replayed. Expires in 1 hour, burned on use.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 /// The tenant. Every business-domain row in the system roots up to an
@@ -313,6 +350,7 @@ model Agency {
   memberships         Membership[]
   invites             Invite[]
   settings            AgencySettings?
+  subscription        Subscription?
   invoiceCounters     InvoiceCounter[]
   contacts            Contact[]
   trips               Trip[]
@@ -321,6 +359,7 @@ model Agency {
   whatsappMessages    WhatsappMessage[]
   whatsappTemplates   WhatsappTemplate[]
   whatsappAutomations WhatsappAutomationRule[]
+  paymentLinks        PaymentLink[]
 
   @@index([slug])
 }
@@ -362,6 +401,31 @@ model Invite {
   @@unique([agencyId, email])
   @@index([token])
   @@index([agencyId, status])
+}
+
+/// The agency's SaaS subscription to TripCraft itself (distinct from any
+/// payment the agency collects from its own customers). One per agency.
+/// A fresh agency starts on TRIAL; `trialEndsAt` drives the countdown and
+/// the soft-lock. Razorpay Subscriptions fields are populated once the
+/// agency upgrades to a paid plan.
+model Subscription {
+  id       String @id @default(cuid())
+  agencyId String @unique
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  plan   PlanTier           @default(TRIAL)
+  status SubscriptionStatus @default(TRIALING)
+
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
+  cancelAtPeriodEnd Boolean  @default(false)
+
+  // Razorpay Subscriptions linkage (null until the agency pays).
+  providerSubId      String? @unique
+  providerCustomerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// A contact — the permanent person/household the agency works with. The
@@ -586,6 +650,7 @@ model Booking {
   vendorPayments    VendorPayment[]
   invoice           Invoice?
   whatsappMessages  WhatsappMessage[]
+  paymentLinks      PaymentLink[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -603,6 +668,40 @@ model Payment {
   paidAt    DateTime    @default(now())
 
   @@index([bookingId])
+}
+
+/// An online payment-collection link (Razorpay Payment Link) sent to a
+/// customer. On capture, the provider webhook records a Payment row against
+/// the booking and flips this to PAID. Manual payments still use Payment
+/// directly — this only models the "collect online" flow.
+model PaymentLink {
+  id        String  @id @default(cuid())
+  agencyId  String
+  agency    Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  amount      Float
+  description String?
+  status      PaymentLinkStatus @default(CREATED)
+
+  // Provider details — currently Razorpay. providerLinkId is "plink_xxx";
+  // providerPaymentId is the captured "pay_xxx" (audit + idempotency).
+  provider          String    @default("razorpay")
+  providerLinkId    String?   @unique
+  shortUrl          String?
+  providerPaymentId String?
+  paidAt            DateTime?
+
+  // The Payment row created when this link was paid (links the two).
+  paymentId String?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([agencyId, status])
 }
 
 model Activity {

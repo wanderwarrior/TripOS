@@ -9,7 +9,9 @@ import {
 } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { requireAgency } from "@/lib/session";
+import { getEffectivePlan } from "@/server/services/subscription";
 import {
   getAnalytics,
   parseRange,
@@ -30,6 +32,35 @@ export default async function ReportsPage({
   searchParams: { range?: string };
 }) {
   const { agencyId } = await requireAgency();
+
+  // Reports is a Pro feature — gate it before doing the analytics work.
+  const plan = await getEffectivePlan(agencyId);
+  if (!plan.features.reports) {
+    return (
+      <PageShell>
+        <header className="mb-8">
+          <p className="text-xs uppercase tracking-[0.3em] text-sand-700">
+            Insights
+          </p>
+          <h1 className="mt-3 font-display text-4xl md:text-5xl text-navy leading-tight">
+            Reports
+          </h1>
+        </header>
+        <EmptyState
+          icon={<BarChart3 className="h-5 w-5" />}
+          title="Reports is a Pro feature"
+          body="Upgrade to Pro to unlock the conversion funnel, revenue trend, agent performance and source attribution dashboards."
+          action={
+            <Link href="/settings/billing">
+              <Button>View plans</Button>
+            </Link>
+          }
+          variant="card"
+        />
+      </PageShell>
+    );
+  }
+
   const range = parseRange(searchParams.range);
   const a = await getAnalytics(agencyId, range);
 

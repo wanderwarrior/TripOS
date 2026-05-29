@@ -3,8 +3,10 @@ import { Plus, Compass } from "lucide-react";
 import type { TripStatus } from "@prisma/client";
 import { PageShell } from "@/components/page-shell";
 import { TripCard } from "@/components/trip-card";
+import { TripsTable, type TripRow } from "@/components/trips-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { TRIP_STATUS_LABEL } from "@/lib/crm";
@@ -27,9 +29,10 @@ const STATUS_ORDER: TripStatus[] = [
 export default async function TripsIndexPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { status?: string; view?: string };
 }) {
   const { agencyId } = await requireAgency();
+  const view = searchParams.view === "table" ? "table" : "cards";
 
   const activeStatus = STATUS_ORDER.includes(searchParams.status as TripStatus)
     ? (searchParams.status as TripStatus)
@@ -68,6 +71,18 @@ export default async function TripsIndexPage({
       })),
     ];
 
+  const tripRows: TripRow[] = trips.map((t) => ({
+    id: t.id,
+    destination: t.destination,
+    contactName: t.contact?.name ?? null,
+    status: t.status,
+    travelType: t.travelType,
+    days: t.days,
+    travelers: t.travelers,
+    startDate: t.startDate,
+    createdAt: t.createdAt,
+  }));
+
   return (
     <PageShell>
       <header className="flex flex-wrap items-end justify-between gap-6 mb-8">
@@ -82,12 +97,23 @@ export default async function TripsIndexPage({
             Every itinerary you've drafted, in one place.
           </p>
         </div>
-        <Link href="/trips/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            New trip
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          {total > 0 ? (
+            <ViewToggle
+              defaultValue="cards"
+              options={[
+                { value: "cards", label: "Cards", icon: "grid" },
+                { value: "table", label: "Table", icon: "table" },
+              ]}
+            />
+          ) : null}
+          <Link href="/trips/new">
+            <Button>
+              <Plus className="h-4 w-4" />
+              New trip
+            </Button>
+          </Link>
+        </div>
       </header>
 
       {total > 0 && (
@@ -145,6 +171,8 @@ export default async function TripsIndexPage({
             </Link>
           }
         />
+      ) : view === "table" ? (
+        <TripsTable trips={tripRows} />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {trips.map((t, i) => (

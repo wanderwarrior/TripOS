@@ -23,7 +23,10 @@ import { NewLeadDialog } from "@/components/crm/contact-form-dialog";
 import { OneTimeHint } from "@/components/ui/one-time-hint";
 import { OnboardingPanel } from "@/components/onboarding-panel";
 import { prisma } from "@/lib/prisma";
-import { requireAgency } from "@/lib/session";
+import { getSessionUser, requireAgency } from "@/lib/session";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { Landing } from "@/components/marketing/landing";
+import { WelcomeWalkthrough } from "@/components/welcome-walkthrough";
 import { formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +34,19 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { scope?: string };
+  searchParams: { scope?: string; tour?: string };
 }) {
+  // Logged-out visitors get the public marketing landing; the authenticated
+  // dashboard lives at the same "/" for signed-in users.
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    return (
+      <MarketingShell>
+        <Landing />
+      </MarketingShell>
+    );
+  }
+
   const { agencyId, user } = await requireAgency();
   const canEdit = user.activeAgencyRole !== "VIEWER";
 
@@ -150,6 +164,11 @@ export default async function DashboardPage({
 
   return (
     <PageShell>
+      <WelcomeWalkthrough
+        userId={user.id}
+        firstName={user.name?.trim().split(/\s+/)[0] ?? null}
+        forceOpen={searchParams.tour === "1"}
+      />
       <OnboardingPanel />
 
       <OneTimeHint

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 
 const MODES = ["CASH", "BANK", "UPI", "CARD", "OTHER"] as const;
@@ -28,9 +29,11 @@ function trimOrNull(s: string | null | undefined) {
 
 export async function createVendorPaymentAction(input: VendorPaymentInput) {
   const data = createSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
 
   const vendor = await prisma.vendor.findFirst({
-    where: { id: data.vendorId, deletedAt: null },
+    where: { id: data.vendorId, agencyId, deletedAt: null },
     select: { id: true, name: true },
   });
   if (!vendor) throw new Error("Vendor not found");
@@ -38,7 +41,7 @@ export async function createVendorPaymentAction(input: VendorPaymentInput) {
   let trip: { id: string; contactId: string | null } | null = null;
   if (data.tripId) {
     trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, deletedAt: null },
+      where: { id: data.tripId, agencyId, deletedAt: null },
       select: { id: true, contactId: true },
     });
     if (!trip) throw new Error("Trip not found");
@@ -98,8 +101,10 @@ export type DeletedVendorPaymentSnapshot = {
 };
 
 export async function deleteVendorPaymentAction(paymentId: string) {
-  const existing = await prisma.vendorPayment.findUnique({
-    where: { id: paymentId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const existing = await prisma.vendorPayment.findFirst({
+    where: { id: paymentId, vendor: { agencyId } },
   });
   if (!existing) throw new Error("Payment not found");
 
@@ -125,6 +130,14 @@ export async function deleteVendorPaymentAction(paymentId: string) {
 export async function restoreVendorPaymentAction(
   snapshot: DeletedVendorPaymentSnapshot
 ) {
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const vendor = await prisma.vendor.findFirst({
+    where: { id: snapshot.vendorId, agencyId },
+    select: { id: true },
+  });
+  if (!vendor) throw new Error("Vendor not found");
+
   const created = await prisma.vendorPayment.create({
     data: {
       vendorId: snapshot.vendorId,

@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { LeadStatus } from "@prisma/client";
 import { LeadCard, type LeadCardData } from "@/components/crm/contact-card";
@@ -37,6 +38,7 @@ export function LeadKanban({ leads }: { leads: KanbanLead[] }) {
     current.map((l) => (l.id === change.id ? { ...l, status: change.status } : l))
   );
 
+  const router = useRouter();
   const [, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(
@@ -66,6 +68,10 @@ export function LeadKanban({ leads }: { leads: KanbanLead[] }) {
       try {
         await updateLeadStatusAction(id, targetStatus);
         toast.success(`Moved to ${LEAD_STATUS_LABEL[targetStatus]}`);
+        // Re-fetch the server component so the moved card keeps its new
+        // column. Without this, useOptimistic reverts to the stale `leads`
+        // prop when the transition ends and the card snaps back.
+        router.refresh();
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Couldn't update status";

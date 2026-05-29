@@ -2,8 +2,10 @@ import Link from "next/link";
 import { ArrowUpRight, Sparkles, Heart } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ContactStrip } from "@/components/crm/contact-strip";
+import { CustomersTable, type CustomerRow } from "@/components/crm/customers-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { InlineWhatsappBadge } from "@/components/whatsapp/inline-whatsapp-badge";
 import { getWhatsappStatsForEntities } from "@/server/services/whatsapp";
 import { prisma } from "@/lib/prisma";
@@ -12,8 +14,13 @@ import { formatDate, formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function CustomersPage() {
+export default async function CustomersPage({
+  searchParams,
+}: {
+  searchParams: { view?: string };
+}) {
   const { agencyId } = await requireAgency();
+  const view = searchParams.view === "table" ? "table" : "cards";
 
   // A "customer" is simply a contact who has converted (has a first booking).
   const customers = await prisma.contact.findMany({
@@ -50,6 +57,25 @@ export default async function CustomersPage() {
     ids: enriched.map((c) => c.id),
   });
 
+  const customerRows: CustomerRow[] = enriched.map((c) => {
+    const w = waStats.get(c.id);
+    return {
+      id: c.id,
+      name: c.name,
+      convertedAt: c.convertedAt,
+      tripCount: c.trips.length,
+      booked: c.lifetimeBooked,
+      paid: c.lifetimePaid,
+      wa: w
+        ? {
+            count: w.count,
+            unreadInbound: w.unreadInbound,
+            lastDirection: w.lastDirection,
+          }
+        : null,
+    };
+  });
+
   return (
     <PageShell>
       <header className="flex flex-wrap items-end justify-between gap-6 mb-10">
@@ -64,6 +90,15 @@ export default async function CustomersPage() {
             Contacts who've booked — your roster of repeat clients.
           </p>
         </div>
+        {enriched.length > 0 ? (
+          <ViewToggle
+            defaultValue="cards"
+            options={[
+              { value: "cards", label: "Cards", icon: "grid" },
+              { value: "table", label: "Table", icon: "table" },
+            ]}
+          />
+        ) : null}
       </header>
 
       {enriched.length === 0 ? (
@@ -82,6 +117,8 @@ export default async function CustomersPage() {
           hint="Tip: convert a contact from their profile or the kanban"
           variant="card"
         />
+      ) : view === "table" ? (
+        <CustomersTable customers={customerRows} />
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
           {enriched.map((c) => (

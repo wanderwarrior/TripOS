@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma, type VendorType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export type VendorListFilters = {
   search?: string;
@@ -28,7 +29,8 @@ export type VendorListItem = {
 export async function listVendors(
   filters: VendorListFilters = {}
 ): Promise<VendorListItem[]> {
-  const where: Prisma.VendorWhereInput = { deletedAt: null };
+  const { agencyId } = await requireAgency();
+  const where: Prisma.VendorWhereInput = { agencyId, deletedAt: null };
 
   if (filters.type && filters.type !== "ALL") {
     where.type = filters.type;
@@ -94,13 +96,17 @@ export type VendorStats = {
 };
 
 export async function getVendorStats(): Promise<VendorStats> {
+  const { agencyId } = await requireAgency();
   const [total, active, preferred, openAssignments] = await Promise.all([
-    prisma.vendor.count({ where: { deletedAt: null } }),
-    prisma.vendor.count({ where: { deletedAt: null, isActive: true } }),
-    prisma.vendor.count({ where: { deletedAt: null, isPreferred: true } }),
+    prisma.vendor.count({ where: { agencyId, deletedAt: null } }),
+    prisma.vendor.count({ where: { agencyId, deletedAt: null, isActive: true } }),
+    prisma.vendor.count({
+      where: { agencyId, deletedAt: null, isPreferred: true },
+    }),
     prisma.vendorAssignment.aggregate({
       where: {
         status: { in: ["PENDING", "REQUESTED", "CONFIRMED"] },
+        vendor: { agencyId },
       },
       _sum: { totalCost: true },
     }),
@@ -108,6 +114,7 @@ export async function getVendorStats(): Promise<VendorStats> {
 
   // pendingPayments = (sum of totalCost for non-cancelled assignments) − (sum of vendor payments)
   const paidAgg = await prisma.vendorPayment.aggregate({
+    where: { vendor: { agencyId } },
     _sum: { amount: true },
   });
   const owed = openAssignments._sum.totalCost ?? 0;
@@ -118,8 +125,9 @@ export async function getVendorStats(): Promise<VendorStats> {
 }
 
 export async function getVendorById(id: string) {
+  const { agencyId } = await requireAgency();
   return prisma.vendor.findFirst({
-    where: { id, deletedAt: null },
+    where: { id, agencyId, deletedAt: null },
     include: {
       assignments: {
         orderBy: { createdAt: "desc" },

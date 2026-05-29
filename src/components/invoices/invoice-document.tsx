@@ -267,6 +267,10 @@ export function InvoiceDocument({
   const supplier = (invoice.supplierSnapshot as Snapshot | null) ?? null;
   const recipient = (invoice.recipientSnapshot as Snapshot | null) ?? null;
   const isIntraState = invoice.cgstAmount + invoice.sgstAmount > 0;
+  // Exempt supplies are issued as a "Bill of Supply" (Rule 49), not a tax
+  // invoice, and carry no tax columns.
+  const isExempt = invoice.taxScheme === "EXEMPT";
+  const docLabel = isExempt ? "Bill of supply" : "Tax invoice";
 
   return (
     <Document
@@ -280,7 +284,7 @@ export function InvoiceDocument({
             {supplier?.logoUrl ? (
               <Image src={supplier.logoUrl} style={styles.heroLogo} />
             ) : null}
-            <Text style={styles.heroLabel}>Tax invoice</Text>
+            <Text style={styles.heroLabel}>{docLabel}</Text>
             <Text style={styles.heroTitle}>{supplier?.legalName ?? "—"}</Text>
             {supplier?.tradeName ? (
               <Text style={styles.heroSub}>Trading as {supplier.tradeName}</Text>
@@ -367,8 +371,14 @@ export function InvoiceDocument({
             <View style={styles.metaCell}>
               <Text style={styles.metaLabel}>Tax</Text>
               <Text style={styles.metaValue}>
-                {invoice.taxRatePct}% · {isIntraState ? "CGST+SGST" : "IGST"}
+                {isExempt
+                  ? "Exempt (0%)"
+                  : `${invoice.taxRatePct}% · ${isIntraState ? "CGST+SGST" : "IGST"}`}
               </Text>
+            </View>
+            <View style={styles.metaCell}>
+              <Text style={styles.metaLabel}>Reverse charge</Text>
+              <Text style={styles.metaValue}>No</Text>
             </View>
           </View>
 
@@ -378,7 +388,9 @@ export function InvoiceDocument({
             <Text style={[styles.th, styles.cellSac]}>SAC</Text>
             <Text style={[styles.th, styles.cellQty]}>Qty</Text>
             <Text style={[styles.th, styles.cellRate]}>Rate</Text>
-            <Text style={[styles.th, styles.cellAmt]}>Taxable</Text>
+            <Text style={[styles.th, styles.cellAmt]}>
+              {isExempt ? "Amount" : "Taxable"}
+            </Text>
           </View>
           {invoice.items.map((it) => (
             <View key={it.id} style={styles.tr}>

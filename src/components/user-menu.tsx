@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
+  CreditCard,
+  LifeBuoy,
   LogOut,
   Settings,
   ShieldCheck,
@@ -117,6 +119,21 @@ export function UserMenu({
             </Link>
           </DropdownMenuItem>
         ) : null}
+        {role === "OWNER" ? (
+          <DropdownMenuItem asChild>
+            <Link href="/settings/billing" className="flex items-center gap-2">
+              <CreditCard className="h-3.5 w-3.5" />
+              Billing & plan
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/help" className="flex items-center gap-2">
+            <LifeBuoy className="h-3.5 w-3.5" />
+            Help & guides
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={signOut}

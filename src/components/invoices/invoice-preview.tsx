@@ -59,6 +59,8 @@ export function InvoicePreview({
   const supplier = (invoice.supplierSnapshot as Snapshot | null) ?? null;
   const recipient = (invoice.recipientSnapshot as Snapshot | null) ?? null;
   const isIntraState = invoice.cgstAmount + invoice.sgstAmount > 0;
+  // Exempt supplies are a "Bill of Supply" (Rule 49), not a tax invoice.
+  const isExempt = invoice.taxScheme === "EXEMPT";
 
   return (
     <article className="rounded-2xl border border-line bg-white shadow-soft overflow-hidden">
@@ -67,7 +69,7 @@ export function InvoicePreview({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.22em] text-sand-200/80">
-              Tax Invoice
+              {isExempt ? "Bill of Supply" : "Tax Invoice"}
             </p>
             <h2 className="font-display text-2xl mt-1 leading-tight">
               {supplier?.legalName ?? "—"}
@@ -156,6 +158,7 @@ export function InvoicePreview({
                 : "IGST"
           }
         />
+        <Meta label="Reverse charge" value="No" />
       </div>
 
       {/* Items */}

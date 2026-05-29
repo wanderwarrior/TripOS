@@ -44,14 +44,19 @@ export function LeadCard({ contact }: { contact: LeadCardData }) {
       {...attributes}
       {...listeners}
       className={cn(
-        "rounded-2xl border border-line bg-white p-4 shadow-soft cursor-grab active:cursor-grabbing transition-all",
+        // select-none stops a press-drag from selecting the card text
+        // instead of starting the drag.
+        "rounded-2xl border border-line bg-white p-4 shadow-soft cursor-grab active:cursor-grabbing transition-all select-none",
         isDragging && "opacity-50 ring-2 ring-sand"
       )}
     >
+      {/* The whole card is draggable. The Link must NOT stop pointer-down
+          (that blocked the drag everywhere it covered) — dnd-kit's 6px
+          activation distance already tells a click apart from a drag.
+          draggable={false} kills the browser's native "drag the link". */}
       <Link
         href={`/contacts/${contact.id}`}
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
+        draggable={false}
         className="block"
       >
         <div className="flex items-start justify-between gap-2">

@@ -19,8 +19,15 @@ export const authEdgeConfig: NextAuthConfig = {
     authorized({ auth, request }) {
       const path = request.nextUrl.pathname;
       const isPublic =
+        // Public marketing surface. "/" branches in the page itself
+        // (landing for guests, dashboard for authed users).
+        path === "/" ||
+        path.startsWith("/pricing") ||
+        path.startsWith("/legal") ||
         path.startsWith("/login") ||
         path.startsWith("/signup") ||
+        path.startsWith("/forgot-password") ||
+        path.startsWith("/reset-password") ||
         path.startsWith("/accept-invite") ||
         path.startsWith("/share/") ||
         path.startsWith("/v/") ||

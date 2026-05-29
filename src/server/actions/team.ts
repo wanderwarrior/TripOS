@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { MembershipRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertCan, requireAgency } from "@/lib/session";
+import { assertSeatAvailable } from "@/server/services/subscription";
 
 const ROLES = ["OWNER", "STAFF", "VIEWER"] as const;
 
@@ -44,6 +45,16 @@ export async function inviteTeamMemberAction(input: z.input<typeof inviteSchema>
   });
   if (existingMember?.memberships.length) {
     return { ok: false as const, error: "That email is already on your team." };
+  }
+
+  // Enforce the plan's seat allowance (counts members + pending invites).
+  try {
+    await assertSeatAvailable(agencyId);
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Seat limit reached.",
+    };
   }
 
   const invite = await prisma.invite.upsert({

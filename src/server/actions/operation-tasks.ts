@@ -3,7 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
+
+/** Resolve the agency of an operation task, scoped to the caller. */
+async function ownTaskTripId(taskId: string, agencyId: string) {
+  const t = await prisma.operationTask.findFirst({
+    where: { id: taskId, trip: { agencyId } },
+    select: { tripId: true },
+  });
+  return t?.tripId ?? null;
+}
 
 const TASK_TYPES = [
   "HOTEL_CONFIRMATION",
@@ -49,9 +59,11 @@ function toDate(s: string | null | undefined): Date | null {
 
 export async function createOperationTaskAction(input: OperationTaskInput) {
   const data = createSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
 
   const trip = await prisma.trip.findFirst({
-    where: { id: data.tripId, deletedAt: null },
+    where: { id: data.tripId, agencyId, deletedAt: null },
     select: { id: true, contactId: true },
   });
   if (!trip) throw new Error("Trip not found");
@@ -89,11 +101,11 @@ export async function updateOperationTaskAction(
   patch: z.infer<typeof updateSchema>
 ) {
   const data = updateSchema.parse(patch);
-  const existing = await prisma.operationTask.findUnique({
-    where: { id: taskId },
-    select: { tripId: true },
-  });
-  if (!existing) throw new Error("Task not found");
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const tripId = await ownTaskTripId(taskId, agencyId);
+  if (!tripId) throw new Error("Task not found");
+  const existing = { tripId };
 
   await prisma.operationTask.update({
     where: { id: taskId },
@@ -121,8 +133,10 @@ export async function toggleOperationTaskAction(
   taskId: string,
   completed: boolean
 ) {
-  const existing = await prisma.operationTask.findUnique({
-    where: { id: taskId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const existing = await prisma.operationTask.findFirst({
+    where: { id: taskId, trip: { agencyId } },
     include: {
       trip: { select: { id: true, contactId: true } },
     },
@@ -163,8 +177,10 @@ export type DeletedOperationTaskSnapshot = {
 };
 
 export async function deleteOperationTaskAction(taskId: string) {
-  const existing = await prisma.operationTask.findUnique({
-    where: { id: taskId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const existing = await prisma.operationTask.findFirst({
+    where: { id: taskId, trip: { agencyId } },
   });
   if (!existing) throw new Error("Task not found");
   await prisma.operationTask.delete({ where: { id: taskId } });
@@ -186,6 +202,15 @@ export async function deleteOperationTaskAction(taskId: string) {
 export async function restoreOperationTaskAction(
   snapshot: DeletedOperationTaskSnapshot
 ) {
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  // Only allow restoring into a trip the caller's agency owns.
+  const trip = await prisma.trip.findFirst({
+    where: { id: snapshot.tripId, agencyId },
+    select: { id: true },
+  });
+  if (!trip) throw new Error("Trip not found");
+
   const restored = await prisma.operationTask.create({
     data: {
       tripId: snapshot.tripId,

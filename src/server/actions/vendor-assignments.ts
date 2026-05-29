@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 import { recomputeTripOpsStatus } from "@/server/helpers/trip-ops-status";
 import {
@@ -65,16 +66,18 @@ export async function createVendorAssignmentAction(
   input: AssignmentFormInput
 ) {
   const data = baseSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
   if (!data.vendorId) throw new Error("Pick a vendor");
   const vendorId = data.vendorId;
 
   const [trip, vendor] = await Promise.all([
     prisma.trip.findFirst({
-      where: { id: data.tripId, deletedAt: null },
+      where: { id: data.tripId, agencyId, deletedAt: null },
       select: { id: true, contactId: true, status: true },
     }),
     prisma.vendor.findFirst({
-      where: { id: vendorId, deletedAt: null },
+      where: { id: vendorId, agencyId, deletedAt: null },
       select: { id: true, name: true, isActive: true },
     }),
   ]);
@@ -145,12 +148,22 @@ export async function updateVendorAssignmentAction(
   input: AssignmentFormInput
 ) {
   const data = baseSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
 
-  const existing = await prisma.vendorAssignment.findUnique({
-    where: { id: assignmentId },
+  const existing = await prisma.vendorAssignment.findFirst({
+    where: { id: assignmentId, trip: { agencyId } },
     select: { id: true, tripId: true, vendorId: true },
   });
   if (!existing) throw new Error("Assignment not found");
+  // If the vendor is being changed, it too must belong to the agency.
+  if (data.vendorId) {
+    const v = await prisma.vendor.findFirst({
+      where: { id: data.vendorId, agencyId },
+      select: { id: true },
+    });
+    if (!v) throw new Error("Vendor not found");
+  }
 
   await prisma.vendorAssignment.update({
     where: { id: assignmentId },
@@ -185,9 +198,11 @@ export async function transitionVendorAssignmentAction(
   input: z.infer<typeof transitionSchema>
 ) {
   const data = transitionSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
 
-  const existing = await prisma.vendorAssignment.findUnique({
-    where: { id: data.assignmentId },
+  const existing = await prisma.vendorAssignment.findFirst({
+    where: { id: data.assignmentId, trip: { agencyId } },
     include: {
       vendor: { select: { id: true, name: true } },
       trip: { select: { id: true, contactId: true, status: true } },
@@ -295,8 +310,10 @@ export type DeletedVendorAssignmentSnapshot = AssignmentFormInput & {
 };
 
 export async function deleteVendorAssignmentAction(assignmentId: string) {
-  const existing = await prisma.vendorAssignment.findUnique({
-    where: { id: assignmentId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const existing = await prisma.vendorAssignment.findFirst({
+    where: { id: assignmentId, trip: { agencyId } },
     include: {
       _count: { select: { vouchers: true } },
     },
@@ -338,6 +355,14 @@ export async function deleteVendorAssignmentAction(assignmentId: string) {
 export async function restoreVendorAssignmentAction(
   snapshot: DeletedVendorAssignmentSnapshot
 ) {
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const trip = await prisma.trip.findFirst({
+    where: { id: snapshot.tripId, agencyId },
+    select: { id: true },
+  });
+  if (!trip) throw new Error("Trip not found");
+
   const restored = await prisma.vendorAssignment.create({
     data: {
       tripId: snapshot.tripId,

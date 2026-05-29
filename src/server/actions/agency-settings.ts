@@ -14,10 +14,21 @@ const optStr = (max = 200) =>
     return t.length === 0 ? null : t;
   });
 
+// 15-char GSTIN: 2-digit state code, 10-char PAN, entity digit, 'Z', checksum.
+const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+const gstinSchema = z
+  .string()
+  .optional()
+  .nullable()
+  .transform((v) => (v && v.trim() ? v.trim().toUpperCase() : null))
+  .refine((v) => v === null || GSTIN_RE.test(v), {
+    message: "Enter a valid 15-character GSTIN (e.g. 27AAACT1234A1ZS).",
+  });
+
 const schema = z.object({
   legalName: z.string().min(2, "Legal name is required").max(160),
   tradeName: optStr(160),
-  gstin: optStr(20),
+  gstin: gstinSchema,
   pan: optStr(15),
   logoUrl: optStr(500),
 
@@ -66,6 +77,10 @@ export type AgencySettingsInput = z.input<typeof schema>;
 
 export async function saveAgencySettingsAction(input: AgencySettingsInput) {
   const data = schema.parse(input);
+  // The first two digits of a GSTIN ARE the state code — derive it so the
+  // supplier state code can never drift from the GSTIN (it drives the
+  // CGST+SGST vs IGST split on every invoice).
+  const stateCode = data.gstin ? data.gstin.slice(0, 2) : data.stateCode;
   await upsertAgencySettings({
     legalName: data.legalName.trim(),
     tradeName: data.tradeName,
@@ -76,7 +91,7 @@ export async function saveAgencySettingsAction(input: AgencySettingsInput) {
     addressLine2: data.addressLine2,
     city: data.city,
     state: data.state,
-    stateCode: data.stateCode,
+    stateCode,
     pincode: data.pincode,
     country: data.country,
     phone: data.phone,

@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export type SearchResultType =
   | "contact"
@@ -25,11 +26,13 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   // Bail on a single character to keep results meaningful and queries cheap
   if (q.length < 2) return [];
 
+  const { agencyId } = await requireAgency();
   const insensitive: Prisma.QueryMode = "insensitive";
 
   const [leads, trips, vendors, vouchers] = await Promise.all([
     prisma.contact.findMany({
       where: {
+        agencyId,
         deletedAt: null,
         OR: [
           { name: { contains: q, mode: insensitive } },
@@ -51,6 +54,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
 
     prisma.trip.findMany({
       where: {
+        agencyId,
         deletedAt: null,
         OR: [
           { destination: { contains: q, mode: insensitive } },
@@ -71,6 +75,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
 
     prisma.vendor.findMany({
       where: {
+        agencyId,
         deletedAt: null,
         OR: [
           { name: { contains: q, mode: insensitive } },
@@ -92,6 +97,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
 
     prisma.voucher.findMany({
       where: {
+        assignment: { trip: { agencyId } },
         OR: [
           { voucherNumber: { contains: q, mode: insensitive } },
           { title: { contains: q, mode: insensitive } },

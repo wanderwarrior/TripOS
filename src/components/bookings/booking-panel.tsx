@@ -21,6 +21,11 @@ import type {
 } from "@prisma/client";
 import { BookingStatusPill } from "@/components/bookings/booking-status-pill";
 import { AddPaymentDialog } from "@/components/bookings/add-payment-dialog";
+import {
+  CollectPaymentDialog,
+  PaymentLinksList,
+  type PaymentLinkView,
+} from "@/components/bookings/collect-payment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cancelBookingAction } from "@/server/actions/bookings";
@@ -42,12 +47,24 @@ type Props = {
     "id" | "status" | "totalAmount" | "paidAmount" | "createdAt"
   > & {
     payments: Pick<Payment, "id" | "type" | "amount" | "method" | "reference" | "paidAt">[];
+    paymentLinks: PaymentLinkView[];
     quoteVersion: number;
     invoice?: InvoiceShortcut;
   };
+  /** Razorpay configured? Drives whether the collect-payment flow is live. */
+  paymentsConfigured: boolean;
+  recipientPhone: string | null;
+  recipientName: string | null;
+  destination: string | null;
 };
 
-export function BookingPanel({ booking }: Props) {
+export function BookingPanel({
+  booking,
+  paymentsConfigured,
+  recipientPhone,
+  recipientName,
+  destination,
+}: Props) {
   const router = useRouter();
   const [showHistory, setShowHistory] = useState(false);
   const [isCancelling, startCancel] = useTransition();
@@ -115,6 +132,16 @@ export function BookingPanel({ booking }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <BookingStatusPill bookingId={booking.id} status={booking.status as BookingStatus} />
+          {!cancelled && pending > 0 && (
+            <CollectPaymentDialog
+              bookingId={booking.id}
+              pendingAmount={pending}
+              configured={paymentsConfigured}
+              recipientPhone={recipientPhone}
+              recipientName={recipientName}
+              destination={destination}
+            />
+          )}
           {!cancelled && (
             <AddPaymentDialog bookingId={booking.id} pendingAmount={pending} />
           )}
@@ -175,6 +202,15 @@ export function BookingPanel({ booking }: Props) {
             </ul>
           )}
         </div>
+      )}
+
+      {!cancelled && (
+        <PaymentLinksList
+          links={booking.paymentLinks}
+          recipientPhone={recipientPhone}
+          recipientName={recipientName}
+          destination={destination}
+        />
       )}
 
       {pct >= 100 && !completed && !cancelled && (

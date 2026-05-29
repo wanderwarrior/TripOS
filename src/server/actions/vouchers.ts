@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 import { autoCompleteOpsTasks } from "@/server/helpers/ops-checklist";
 import {
@@ -11,8 +12,10 @@ import {
 } from "@/server/services/vouchers";
 
 export async function generateVoucherAction(assignmentId: string) {
-  const assignment = await prisma.vendorAssignment.findUnique({
-    where: { id: assignmentId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const assignment = await prisma.vendorAssignment.findFirst({
+    where: { id: assignmentId, trip: { agencyId } },
     include: {
       vendor: { select: { id: true, name: true } },
       trip: { select: { id: true, contactId: true } },
@@ -66,9 +69,11 @@ export async function markVoucherSentAction(
   input: z.infer<typeof markSentSchema>
 ) {
   const data = markSentSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
 
-  const voucher = await prisma.voucher.findUnique({
-    where: { id: data.voucherId },
+  const voucher = await prisma.voucher.findFirst({
+    where: { id: data.voucherId, assignment: { trip: { agencyId } } },
     include: {
       assignment: {
         include: {
@@ -118,8 +123,10 @@ export async function markVoucherSentAction(
 }
 
 export async function regenerateVoucherAction(voucherId: string) {
-  const voucher = await prisma.voucher.findUnique({
-    where: { id: voucherId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const voucher = await prisma.voucher.findFirst({
+    where: { id: voucherId, assignment: { trip: { agencyId } } },
     include: {
       assignment: {
         select: {
@@ -171,8 +178,10 @@ export type DeletedVoucherSnapshot = {
 };
 
 export async function deleteVoucherAction(voucherId: string) {
-  const voucher = await prisma.voucher.findUnique({
-    where: { id: voucherId },
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  const voucher = await prisma.voucher.findFirst({
+    where: { id: voucherId, assignment: { trip: { agencyId } } },
     include: {
       assignment: { select: { tripId: true } },
     },
@@ -209,6 +218,15 @@ export async function deleteVoucherAction(voucherId: string) {
 }
 
 export async function restoreVoucherAction(snapshot: DeletedVoucherSnapshot) {
+  const { agencyId } = await requireAgency();
+  await assertCan("ops:update");
+  // The assignment being restored onto must belong to the caller's agency.
+  const own = await prisma.vendorAssignment.findFirst({
+    where: { id: snapshot.assignmentId, trip: { agencyId } },
+    select: { id: true },
+  });
+  if (!own) throw new Error("Assignment not found");
+
   // If the original token/number are still free (which they are, since we
   // hard-deleted), restore them so QR codes / share links keep working.
   const restored = await prisma.voucher.create({

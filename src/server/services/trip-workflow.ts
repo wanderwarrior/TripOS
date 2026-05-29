@@ -1,6 +1,7 @@
 import "server-only";
 import type { TripStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export type WorkflowStepKey =
   | "contact"
@@ -43,8 +44,9 @@ export type TripWorkflow = {
 };
 
 export async function getTripWorkflow(tripId: string): Promise<TripWorkflow | null> {
+  const { agencyId } = await requireAgency();
   const trip = await prisma.trip.findFirst({
-    where: { id: tripId, deletedAt: null },
+    where: { id: tripId, agencyId, deletedAt: null },
     select: {
       id: true,
       status: true,

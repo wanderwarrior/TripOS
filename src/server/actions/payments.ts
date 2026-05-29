@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 import { formatINR } from "@/lib/utils";
 
@@ -21,9 +22,11 @@ export async function recordPaymentAction(
   input: z.infer<typeof recordSchema>
 ) {
   const data = recordSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("payment:create");
 
-  const booking = await prisma.booking.findUnique({
-    where: { id: data.bookingId },
+  const booking = await prisma.booking.findFirst({
+    where: { id: data.bookingId, trip: { agencyId } },
     include: { trip: { select: { id: true, contactId: true } } },
   });
   if (!booking) throw new Error("Booking not found");
@@ -76,8 +79,10 @@ export async function recordPaymentAction(
 }
 
 export async function deletePaymentAction(paymentId: string) {
-  const payment = await prisma.payment.findUnique({
-    where: { id: paymentId },
+  const { agencyId } = await requireAgency();
+  await assertCan("payment:delete");
+  const payment = await prisma.payment.findFirst({
+    where: { id: paymentId, booking: { trip: { agencyId } } },
     include: { booking: { include: { trip: { select: { id: true } } } } },
   });
   if (!payment) throw new Error("Payment not found");

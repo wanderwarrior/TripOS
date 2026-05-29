@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { computePricing, type PricingItem } from "@/types";
 import { logActivity } from "@/server/helpers/log-activity";
 import { recomputeContactStatus } from "@/server/helpers/contact-status";
@@ -30,6 +31,16 @@ export type SaveQuoteInput = z.infer<typeof saveSchema>;
 
 export async function saveQuoteAction(input: SaveQuoteInput) {
   const data = saveSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan(data.quoteId ? "quote:update" : "quote:create");
+
+  // Tenancy fence: the trip must belong to the caller's agency.
+  const ownTrip = await prisma.trip.findFirst({
+    where: { id: data.tripId, agencyId },
+    select: { id: true },
+  });
+  if (!ownTrip) throw new Error("Trip not found");
+
   const summary = computePricing({
     items: data.items as PricingItem[],
     markupPct: data.markupPct,
@@ -39,7 +50,11 @@ export async function saveQuoteAction(input: SaveQuoteInput) {
   let quoteId = data.quoteId;
 
   if (quoteId) {
-    const quote = await prisma.quote.findUnique({ where: { id: quoteId } });
+    // Scope to the trip we just authorized — a quote id from another trip
+    // (or agency) won't resolve.
+    const quote = await prisma.quote.findFirst({
+      where: { id: quoteId, tripId: data.tripId },
+    });
     if (!quote) throw new Error("Quote not found");
     if (quote.status !== "DRAFT") {
       throw new Error("Only draft quotes can be edited");
@@ -98,8 +113,10 @@ export async function saveQuoteAction(input: SaveQuoteInput) {
 }
 
 export async function duplicateQuoteAction(quoteId: string) {
-  const source = await prisma.quote.findUnique({
-    where: { id: quoteId },
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:create");
+  const source = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
     include: { items: { orderBy: { position: "asc" } } },
   });
   if (!source) throw new Error("Quote not found");
@@ -137,7 +154,11 @@ export async function duplicateQuoteAction(quoteId: string) {
 }
 
 export async function deleteQuoteAction(quoteId: string) {
-  const quote = await prisma.quote.findUnique({ where: { id: quoteId } });
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:update");
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
+  });
   if (!quote) throw new Error("Quote not found");
   if (quote.status === "ACCEPTED") {
     throw new Error("Can't delete an accepted quote — cancel its booking first");
@@ -148,8 +169,10 @@ export async function deleteQuoteAction(quoteId: string) {
 }
 
 export async function markQuoteSentAction(quoteId: string) {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:update");
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
     include: { trip: { select: { id: true, contactId: true, status: true } } },
   });
   if (!quote) throw new Error("Quote not found");
@@ -189,8 +212,10 @@ export async function markQuoteSentAction(quoteId: string) {
 }
 
 export async function rejectQuoteAction(quoteId: string) {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:update");
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
     include: { trip: { select: { id: true, contactId: true } } },
   });
   if (!quote) throw new Error("Quote not found");
@@ -214,8 +239,10 @@ export async function rejectQuoteAction(quoteId: string) {
 }
 
 export async function acceptQuoteAction(quoteId: string) {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:accept");
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
     include: { trip: { select: { id: true, contactId: true } } },
   });
   if (!quote) throw new Error("Quote not found");
@@ -280,8 +307,10 @@ export async function acceptQuoteAction(quoteId: string) {
 }
 
 export async function revertQuoteToDraftAction(quoteId: string) {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:update");
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
     include: {
       trip: { select: { id: true, contactId: true } },
       booking: { include: { payments: { take: 1 } } },
@@ -449,8 +478,10 @@ export async function acceptQuoteByTokenAction(token: string) {
 }
 
 export async function generateShareTokenAction(quoteId: string) {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
+  const { agencyId } = await requireAgency();
+  await assertCan("quote:share");
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, trip: { agencyId } },
     select: { id: true, shareToken: true, tripId: true },
   });
   if (!quote) throw new Error("Quote not found");

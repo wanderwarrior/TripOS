@@ -8,6 +8,7 @@ import type {
   VendorAssignmentCategory,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAgency } from "@/lib/session";
 
 export type DepartureRow = {
   tripId: string;
@@ -72,12 +73,15 @@ export type DashboardActivity = {
 export type CalendarDay = {
   date: Date;
   isToday: boolean;
+  /** False for the leading/trailing days that pad the grid to whole weeks. */
+  inMonth: boolean;
   departures: { tripId: string; destination: string; leadName: string | null }[];
   endsToday: { tripId: string; destination: string }[];
 };
 
 export type DashboardSnapshot = {
   today: Date;
+  monthLabel: string;
   stats: {
     departuresToday: number;
     inProgress: number;
@@ -111,12 +115,34 @@ function endOfDay(d: Date) {
 function addDays(d: Date, days: number) {
   return new Date(d.getTime() + days * DAY_MS);
 }
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
 
 export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
+  const { agencyId } = await requireAgency();
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
-  const horizonEnd = addDays(today, 14);
+
+  // Full-month calendar grid: from the 1st of this month back to the start
+  // of its week (Sunday), through the last of the month forward to the end
+  // of its week — so the grid is always complete weeks (35 or 42 cells).
+  const monthStart = startOfMonth(today);
+  const monthEnd = startOfDay(endOfMonth(today));
+  const gridStart = addDays(monthStart, -monthStart.getDay());
+  const gridEnd = addDays(monthEnd, 6 - monthEnd.getDay());
+  const gridEndExclusive = addDays(gridEnd, 1);
+  const gridDayCount =
+    Math.round((gridEnd.getTime() - gridStart.getTime()) / DAY_MS) + 1;
+  const todayKey = today.toISOString();
+  const monthLabel = today.toLocaleDateString("en-IN", {
+    month: "long",
+    year: "numeric",
+  });
 
   const [
     todayDepartures,
@@ -131,6 +157,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
   ] = await Promise.all([
     prisma.trip.findMany({
       where: {
+        agencyId,
         deletedAt: null,
         startDate: { gte: today, lt: tomorrow },
         status: { notIn: ["CANCELLED", "COMPLETED"] },
@@ -152,7 +179,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
     }),
 
     prisma.trip.findMany({
-      where: { deletedAt: null, status: "IN_PROGRESS" },
+      where: { agencyId, deletedAt: null, status: "IN_PROGRESS" },
       orderBy: { startDate: "asc" },
       select: {
         id: true,
@@ -166,8 +193,9 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
 
     prisma.trip.findMany({
       where: {
+        agencyId,
         deletedAt: null,
-        startDate: { gte: today, lt: addDays(today, 14) },
+        startDate: { gte: gridStart, lt: gridEndExclusive },
         status: { notIn: ["CANCELLED"] },
       },
       orderBy: { startDate: "asc" },
@@ -185,6 +213,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
       where: {
         status: { in: ["PENDING", "REQUESTED"] },
         trip: {
+          agencyId,
           deletedAt: null,
           status: { notIn: ["CANCELLED", "COMPLETED"] },
         },
@@ -207,6 +236,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
         status: { not: "COMPLETED" },
         dueDate: { lt: now },
         trip: {
+          agencyId,
           deletedAt: null,
           status: { notIn: ["CANCELLED", "COMPLETED"] },
         },
@@ -239,6 +269,14 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
             "TRIP_COMPLETED",
           ],
         },
+        // Activity has no agencyId of its own — scope via whichever entity
+        // it hangs off (all of which are agency-owned).
+        OR: [
+          { trip: { agencyId } },
+          { vendor: { agencyId } },
+          { contact: { agencyId } },
+          { invoice: { agencyId } },
+        ],
       },
       orderBy: { createdAt: "desc" },
       take: 14,
@@ -255,6 +293,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
     // Trips ready to be moved through the lifecycle.
     prisma.trip.findMany({
       where: {
+        agencyId,
         deletedAt: null,
         status: { in: ["READY_TO_TRAVEL", "IN_PROGRESS"] },
         startDate: { not: null },
@@ -271,12 +310,13 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
 
     prisma.vendorAssignment.groupBy({
       by: ["vendorId"],
-      where: { status: { not: "CANCELLED" } },
+      where: { status: { not: "CANCELLED" }, vendor: { agencyId } },
       _sum: { totalCost: true },
     }),
 
     prisma.vendorPayment.groupBy({
       by: ["vendorId"],
+      where: { vendor: { agencyId } },
       _sum: { amount: true },
     }),
   ]);
@@ -291,7 +331,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
     .map((r) => r.vendorId)
     .filter((id): id is string => id !== null);
   const vendors = await prisma.vendor.findMany({
-    where: { id: { in: balanceVendorIds } },
+    where: { id: { in: balanceVendorIds }, agencyId },
     select: { id: true, name: true },
   });
   const nameById = new Map(vendors.map((v) => [v.id, v.name] as const));
@@ -365,10 +405,12 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
   // For end-of-trip markers we need trips whose start+days lands within window
   const endingTrips = await prisma.trip.findMany({
     where: {
+      agencyId,
       deletedAt: null,
+      // A trip can start before the grid yet end within it, so look back.
       startDate: {
-        gte: addDays(today, -30),
-        lt: horizonEnd,
+        gte: addDays(gridStart, -60),
+        lt: gridEndExclusive,
       },
       status: { notIn: ["CANCELLED"] },
     },
@@ -378,19 +420,20 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
   for (const t of endingTrips) {
     if (!t.startDate) continue;
     const end = startOfDay(addDays(t.startDate, t.days));
-    if (end < today || end >= horizonEnd) continue;
+    if (end < gridStart || end > gridEnd) continue;
     const k = end.toISOString();
     const arr = endsByKey.get(k) ?? [];
     arr.push({ tripId: t.id, destination: t.destination });
     endsByKey.set(k, arr);
   }
 
-  for (let i = 0; i < 14; i++) {
-    const d = addDays(today, i);
+  for (let i = 0; i < gridDayCount; i++) {
+    const d = addDays(gridStart, i);
     const k = d.toISOString();
     calendar.push({
       date: d,
-      isToday: i === 0,
+      isToday: k === todayKey,
+      inMonth: d.getMonth() === today.getMonth(),
       departures: (upcomingByStartKey.get(k) ?? []).map((t) => ({
         tripId: t.id,
         destination: t.destination,
@@ -421,6 +464,7 @@ export async function getOperationsDashboard(): Promise<DashboardSnapshot> {
 
   return {
     today,
+    monthLabel,
     stats: {
       departuresToday: departuresToday.length,
       inProgress: inProgress.length,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 
 const createSchema = z.object({
   contactId: z.string().optional().nullable(),
@@ -11,8 +12,29 @@ const createSchema = z.object({
   dueAt: z.string(),
 });
 
+/** Confirms a task belongs to the caller's agency (via its contact). */
+async function requireOwnTask(taskId: string, agencyId: string) {
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, contact: { agencyId } },
+    select: { id: true, contactId: true },
+  });
+  if (!task) throw new Error("Task not found");
+  return task;
+}
+
 export async function createTaskAction(input: z.infer<typeof createSchema>) {
   const data = createSchema.parse(input);
+  const { agencyId } = await requireAgency();
+  await assertCan("contact:update");
+  // A task must hang off a contact in this agency.
+  const contact = data.contactId
+    ? await prisma.contact.findFirst({
+        where: { id: data.contactId, agencyId, deletedAt: null },
+        select: { id: true },
+      })
+    : null;
+  if (data.contactId && !contact) throw new Error("Contact not found");
+
   const task = await prisma.task.create({
     data: {
       contactId: data.contactId ?? null,
@@ -33,6 +55,9 @@ export async function createTaskAction(input: z.infer<typeof createSchema>) {
 }
 
 export async function completeTaskAction(taskId: string) {
+  const { agencyId } = await requireAgency();
+  await assertCan("contact:update");
+  await requireOwnTask(taskId, agencyId);
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { completedAt: new Date() },
@@ -44,6 +69,9 @@ export async function completeTaskAction(taskId: string) {
 }
 
 export async function uncompleteTaskAction(taskId: string) {
+  const { agencyId } = await requireAgency();
+  await assertCan("contact:update");
+  await requireOwnTask(taskId, agencyId);
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { completedAt: null },
@@ -55,6 +83,9 @@ export async function uncompleteTaskAction(taskId: string) {
 }
 
 export async function snoozeTaskAction(taskId: string, dueAt: string) {
+  const { agencyId } = await requireAgency();
+  await assertCan("contact:update");
+  await requireOwnTask(taskId, agencyId);
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { dueAt: new Date(dueAt) },
@@ -71,6 +102,9 @@ export async function snoozeTaskAction(taskId: string, dueAt: string) {
 }
 
 export async function deleteTaskAction(taskId: string) {
+  const { agencyId } = await requireAgency();
+  await assertCan("contact:update");
+  await requireOwnTask(taskId, agencyId);
   const task = await prisma.task.delete({ where: { id: taskId } });
   if (task.contactId) revalidatePath(`/contacts/${task.contactId}`);
   revalidatePath("/follow-ups");

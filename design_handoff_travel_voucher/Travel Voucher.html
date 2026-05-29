@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TripCraft · Travel Voucher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#0B1C2C; --navy-700:#06101A;
+    --ivory:#F8F6F2; --ink:#1A1A1A; --muted:#565656;
+    --line:#E8E4DB; --paper:#ffffff;
+    --accent:#C8A96A;
+    --accent-soft:color-mix(in srgb, var(--accent) 26%, #fff);
+    --accent-tint:color-mix(in srgb, var(--accent) 11%, #fff);
+    --accent-ink:color-mix(in srgb, var(--accent) 70%, #3a2c12);
+    --serif:"Playfair Display", Georgia, serif;
+    --sans:"Inter", system-ui, sans-serif;
+    --pad:20px;        /* density-controlled card padding */
+    --gap:16px;        /* density-controlled stack gap   */
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(120% 80% at 50% -10%, #fff 0%, var(--ivory) 55%, #efece5 100%);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  /* ---------- presentation backdrop ---------- */
+  .stage{max-width:1320px; margin:0 auto; padding:54px 40px 96px;}
+  .stage-head{margin-bottom:40px; max-width:760px;}
+  .stage-kicker{
+    font-size:11px; letter-spacing:.32em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:600;
+    display:flex; align-items:center; gap:10px;
+  }
+  .stage-kicker::before{content:""; width:26px; height:1px; background:var(--accent);}
+  .stage-head h1{
+    font-family:var(--serif); font-weight:600; color:var(--navy);
+    font-size:40px; line-height:1.1; margin:14px 0 10px; letter-spacing:-.01em;
+  }
+  .stage-head p{margin:0; color:var(--muted); font-size:15px; line-height:1.6; max-width:620px;}
+
+  .frames{
+    display:flex; gap:64px; align-items:flex-start;
+    flex-wrap:wrap; justify-content:center;
+  }
+  .frame{display:flex; flex-direction:column; align-items:center;}
+  .frame-label{
+    font-size:11px; letter-spacing:.26em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin-bottom:18px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .frame-label b{color:var(--navy); font-weight:700;}
+  .frame-label .dot{width:5px; height:5px; border-radius:50%; background:var(--accent);}
+
+  /* ============ shared voucher atoms ============ */
+  .eyebrow{
+    font-size:10.5px; letter-spacing:.3em; text-transform:uppercase;
+    font-weight:600;
+  }
+  .seal{
+    width:38px; height:38px; border-radius:50%;
+    border:1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; flex:none;
+  }
+  .seal::after{
+    content:""; position:absolute; inset:3px; border-radius:50%;
+    border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .seal span{
+    font-family:var(--serif); font-weight:600; font-size:15px;
+    color:var(--accent); letter-spacing:.02em;
+  }
+  .wordmark{
+    font-size:13px; letter-spacing:.34em; font-weight:700;
+    text-transform:uppercase;
+  }
+
+  /* hero */
+  .hero{position:relative; overflow:hidden; background:var(--navy);}
+  .hero-img{position:absolute; inset:0; width:100%; height:100%;}
+  .hero-scrim{
+    position:absolute; inset:0;
+    background:
+      linear-gradient(180deg, rgba(11,28,44,.62) 0%, rgba(11,28,44,.18) 34%, rgba(11,28,44,.40) 64%, rgba(11,28,44,.92) 100%);
+  }
+  .no-imagery .hero-img{display:none;}
+  .no-imagery .hero-scrim{
+    background:
+      radial-gradient(120% 120% at 85% 0%, color-mix(in srgb, var(--accent) 22%, var(--navy)) 0%, var(--navy) 60%),
+      var(--navy);
+  }
+  .hero-top{
+    position:relative; display:flex; justify-content:space-between;
+    align-items:flex-start; color:#fff; gap:12px;
+  }
+  .hero-brand{display:flex; align-items:center; gap:11px;}
+  .hero-brand .wordmark{color:#fff;}
+  .hero-brand .tagline{
+    font-size:8.5px; letter-spacing:.24em; text-transform:uppercase;
+    color:color-mix(in srgb, var(--accent) 60%, #fff); margin-top:3px; font-weight:500;
+  }
+  .vtag{text-align:right; color:#fff;}
+  .vtag .lbl{
+    font-size:8.5px; letter-spacing:.24em; text-transform:uppercase;
+    color:color-mix(in srgb, var(--accent) 55%, #fff); font-weight:600;
+  }
+  .vtag .num{font-family:var(--sans); font-weight:600; font-size:13px; letter-spacing:.04em; margin-top:3px; white-space:nowrap;}
+  .hero-title{position:relative; color:#fff;}
+  .hero-title .eyebrow{color:var(--accent);}
+  .hero-title h1{
+    font-family:var(--serif); font-weight:600; line-height:1.08;
+    margin:8px 0 0; letter-spacing:-.01em;
+  }
+  .hero-meta{
+    position:relative; display:flex; gap:18px; color:#fff;
+    border-top:1px solid rgba(255,255,255,.16); padding-top:12px; margin-top:14px;
+  }
+  .hero-meta .mi .k{
+    font-size:8.5px; letter-spacing:.2em; text-transform:uppercase;
+    color:color-mix(in srgb, var(--accent) 55%, #fff); font-weight:600;
+  }
+  .hero-meta .mi .v{font-size:12.5px; margin-top:3px; font-weight:500;}
+
+  /* gold rule */
+  .goldrule{height:3px; background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#fff));}
+
+  /* confirmation bar */
+  .confbar{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--accent-tint); border-bottom:1px solid var(--line);
+  }
+  .confbar .ci .k{
+    font-size:9px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:600;
+  }
+  .confbar .ci .v{
+    font-family:var(--sans); font-weight:700; color:var(--navy);
+    letter-spacing:.06em; margin-top:2px;
+  }
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--navy); color:#fff; border-radius:999px;
+    font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:600;
+    padding:7px 13px;
+  }
+  .pill .pdot{width:6px; height:6px; border-radius:50%; background:var(--accent);}
+
+  /* section label */
+  .slabel{
+    font-size:9.5px; letter-spacing:.24em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin:0 0 10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .slabel::after{content:""; flex:1; height:1px; background:var(--line);}
+
+  /* card */
+  .card{
+    background:var(--paper); border:1px solid var(--line);
+    border-radius:14px; padding:var(--pad);
+  }
+
+  /* field rows */
+  .field{display:flex; gap:14px; padding:9px 0; border-bottom:1px solid color-mix(in srgb,var(--line) 70%, #fff);}
+  .field:last-child{border-bottom:0; padding-bottom:0;}
+  .field:first-of-type{padding-top:0;}
+  .field .k{
+    width:84px; flex:none; font-size:9.5px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--muted); font-weight:600; padding-top:2px;
+  }
+  .field .v{flex:1; font-size:13.5px; color:var(--ink); line-height:1.45;}
+  .field .v.strong{font-weight:600; color:var(--navy);}
+
+  /* check-in stub */
+  .stub{
+    position:relative; background:var(--paper);
+    border:1px solid color-mix(in srgb,var(--accent) 45%, var(--line));
+    border-radius:14px; overflow:hidden;
+  }
+  .stub-perf{
+    height:0; border-top:2px dashed color-mix(in srgb,var(--accent) 60%, #fff);
+    margin:0 14px;
+  }
+  .stub-head{
+    background:var(--navy); color:#fff; padding:11px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .stub-head .eyebrow{color:var(--accent);}
+  .stub-head .tkt{font-family:var(--serif); font-size:13px; color:#fff;}
+  .stub-body{display:flex; gap:16px; padding:16px; align-items:center;}
+  .qr{
+    width:108px; height:108px; flex:none; background:#fff;
+    border:1px solid var(--line); border-radius:10px; padding:7px;
+  }
+  .qr svg{display:block; width:100%; height:100%;}
+  .stub-copy{flex:1;}
+  .stub-copy .h{
+    font-family:var(--serif); font-size:16px; color:var(--navy);
+    margin:0 0 5px; line-height:1.2;
+  }
+  .stub-copy p{margin:0; font-size:12px; color:var(--muted); line-height:1.5;}
+  .stub-facts{
+    display:flex; gap:18px; margin-top:11px; padding-top:11px;
+    border-top:1px solid var(--line);
+  }
+  .stub-facts .k{font-size:8.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent-ink); font-weight:600;}
+  .stub-facts .v{font-size:12.5px; color:var(--navy); font-weight:600; margin-top:2px;}
+
+  /* vendor */
+  .vname{font-family:var(--serif); font-size:19px; color:var(--navy); margin:0; line-height:1.15;}
+  .vtype{font-size:11px; color:var(--muted); margin:3px 0 0; display:flex; align-items:center; gap:6px;}
+  .vaddr{font-size:12.5px; color:var(--ink); line-height:1.5; margin:13px 0 0; display:flex; gap:8px;}
+  .vaddr .sub{color:var(--muted);}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:7px;
+    border:1px solid var(--line); background:#fff; border-radius:999px;
+    padding:8px 13px; font-size:11.5px; color:var(--navy); font-weight:500;
+    text-decoration:none;
+  }
+  .chip svg{width:13px; height:13px; color:var(--accent-ink);}
+  .chip.wa svg{color:#1f9d55;}
+
+  /* support band */
+  .support{
+    background:var(--navy); color:#fff; border-radius:14px;
+    padding:18px var(--pad); position:relative; overflow:hidden;
+  }
+  .support::before{
+    content:""; position:absolute; right:-30px; top:-30px;
+    width:130px; height:130px; border-radius:50%;
+    border:1px solid rgba(200,169,106,.18);
+  }
+  .support::after{
+    content:""; position:absolute; right:-8px; top:-8px;
+    width:86px; height:86px; border-radius:50%;
+    border:1px solid rgba(200,169,106,.14);
+  }
+  .support-row{position:relative; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;}
+  .support .k{
+    font-size:9px; letter-spacing:.2em; text-transform:uppercase; font-weight:600;
+    color:color-mix(in srgb,var(--accent) 60%, #fff);
+    display:flex; align-items:center; gap:6px;
+  }
+  .support .k svg{width:12px; height:12px;}
+  .support .phone{font-family:var(--serif); font-size:22px; margin-top:6px; letter-spacing:.01em;}
+  .support .em{font-size:12px; margin-top:6px; color:rgba(255,255,255,.86);}
+
+  /* footer */
+  .vfooter{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    font-size:10px; letter-spacing:.08em; color:var(--muted);
+    padding-top:14px; border-top:1px solid var(--line); flex-wrap:wrap;
+  }
+
+  /* =================== WEB VOUCHER =================== */
+  .web{
+    width:430px; background:var(--ivory);
+    border-radius:26px; overflow:hidden;
+    box-shadow:0 2px 6px rgba(11,28,44,.05), 0 30px 70px rgba(11,28,44,.16);
+    border:1px solid var(--line);
+  }
+  .web .hero{padding:20px 22px 22px; min-height:248px; display:flex; flex-direction:column; justify-content:space-between;}
+  .web .hero-title h1{font-size:27px;}
+  .web .body{padding:22px; display:flex; flex-direction:column; gap:var(--gap);}
+  .web .confbar{margin:0 -22px; padding:14px 22px;}
+  .web .download{
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    background:var(--navy); color:#fff; text-decoration:none;
+    border-radius:12px; padding:14px; font-size:13px; font-weight:600; letter-spacing:.02em;
+  }
+  .web .download svg{width:16px; height:16px; color:var(--accent);}
+
+  /* =================== PRINT / A4 =================== */
+  .sheet{
+    width:794px; height:1123px; background:#fff;
+    box-shadow:0 2px 6px rgba(11,28,44,.05), 0 30px 70px rgba(11,28,44,.16);
+    display:flex; flex-direction:column; position:relative; overflow:hidden;
+  }
+  .sheet .hero{padding:30px 40px 30px; min-height:300px; display:flex; flex-direction:column; justify-content:space-between;}
+  .sheet .hero-title h1{font-size:38px; max-width:560px;}
+  .sheet .hero .wordmark{font-size:15px;}
+  .sheet .seal{width:44px; height:44px;}
+  .sheet .seal span{font-size:18px;}
+  .sheet-body{flex:1; padding:30px 40px; display:flex; flex-direction:column;}
+  .sheet .confbar{margin:0 -40px 24px; padding:16px 40px;}
+  .sheet-cols{display:flex; gap:26px; flex:1;}
+  .sheet-main{flex:1.5; display:flex; flex-direction:column; gap:20px;}
+  .sheet-side{flex:1; display:flex; flex-direction:column; gap:20px;}
+  .sheet .vfooter{
+    margin:0 40px; padding:14px 0 24px;
+  }
+  .sheet .qr{width:124px; height:124px;}
+  .sheet .stub-body{flex-direction:column; align-items:stretch; text-align:left;}
+  .sheet .stub .qr{margin:0 auto;}
+  .sheet .stub-copy{text-align:center;}
+  .sheet .stub-facts{justify-content:center;}
+
+  @media (max-width:1100px){
+    .frames{gap:48px;}
+  }
+
+  /* tweaks mount */
+  #tweaks-root{position:fixed; top:0; right:0; z-index:9999;}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <header class="stage-head">
+      <div class="stage-kicker">TripCraft · Crafted Travel</div>
+      <h1>The travel voucher, elevated.</h1>
+      <p>One service voucher that flexes across hotels, transfers, activities and more — built around a prominent check-in pass, clear support, and the TripCraft mark. The shareable web version and the printable A4 PDF are kept in lockstep.</p>
+    </header>
+
+    <div class="frames">
+      <!-- ============ WEB ============ -->
+      <div class="frame">
+        <div class="frame-label"><span class="dot"></span><b>Web</b> · shared link</div>
+        <article class="web">
+          <div class="hero">
+            <image-slot id="web-hero" class="hero-img" shape="rect" placeholder="Drop a property / destination photo"></image-slot>
+            <div class="hero-scrim"></div>
+            <div class="hero-top">
+              <div class="hero-brand">
+                <div class="seal"><span>TC</span></div>
+                <div>
+                  <div class="wordmark">TripCraft</div>
+                  <div class="tagline">Crafted Travel</div>
+                </div>
+              </div>
+              <div class="vtag">
+                <div class="lbl">Voucher</div>
+                <div class="num">TC-HOT-2A4B7C</div>
+              </div>
+            </div>
+            <div class="hero-title">
+              <div class="eyebrow">Hotel Voucher</div>
+              <h1>The Leela Palace</h1>
+              <div class="hero-meta">
+                <div class="mi"><div class="k">Check-in</div><div class="v">14 Jun 2026</div></div>
+                <div class="mi"><div class="k">Check-out</div><div class="v">17 Jun 2026</div></div>
+                <div class="mi"><div class="k">Guests</div><div class="v">2 adults</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="goldrule"></div>
+
+          <div class="body">
+            <div class="confbar">
+              <div class="ci">
+                <div class="k">Confirmation</div>
+                <div class="v">LP-IN-889 204</div>
+              </div>
+              <span class="pill"><span class="pdot"></span>Confirmed</span>
+            </div>
+
+            <!-- check-in stub -->
+            <section class="stub">
+              <div class="stub-head">
+                <span class="eyebrow">Present at check-in</span>
+                <span class="tkt">Boarding pass</span>
+              </div>
+              <div class="stub-body">
+                <div class="qr" data-qr="web"></div>
+                <div class="stub-copy">
+                  <h3 class="h">Show this to check in</h3>
+                  <p>Present this voucher — printed or on your phone — on arrival. A government photo ID for the lead guest may be requested.</p>
+                  <div class="stub-facts">
+                    <div><div class="k">Dates</div><div class="v">14–17 Jun</div></div>
+                    <div><div class="k">Pax</div><div class="v">2 guests</div></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <a class="download" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF voucher
+            </a>
+
+            <!-- service details -->
+            <section>
+              <div class="slabel">Service details</div>
+              <div class="card">
+                <div class="field"><div class="k">Dates</div><div class="v strong">14 Jun 2026 → 17 Jun 2026 · 3 nights</div></div>
+                <div class="field"><div class="k">Room</div><div class="v">Deluxe Room, King · Breakfast included</div></div>
+                <div class="field"><div class="k">Quantity</div><div class="v">1 room</div></div>
+                <div class="field"><div class="k">Includes</div><div class="v">Daily breakfast, airport transfer, late checkout (subject to availability).</div></div>
+              </div>
+            </section>
+
+            <!-- vendor -->
+            <section>
+              <div class="slabel">Vendor</div>
+              <div class="card">
+                <h3 class="vname">The Leela Palace Bengaluru</h3>
+                <p class="vtype">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-ink)"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg>
+                  Luxury Hotel
+                </p>
+                <p class="vaddr">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-ink);flex:none;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span>23 Old Airport Road, Kodihalli<br><span class="sub">Bengaluru, Karnataka, India</span></span>
+                </p>
+                <div class="chips">
+                  <a class="chip" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>+91 80 2521 1234</a>
+                  <a class="chip wa" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zM6.6 20.13c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.82 9.82 0 0 0 1.515 5.26l-.999 3.648 3.973-1.605z"/></svg>WhatsApp</a>
+                  <a class="chip" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="m22 7-10 6L2 7"/></svg>Email</a>
+                  <a class="chip" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Directions</a>
+                </div>
+              </div>
+            </section>
+
+            <!-- trip -->
+            <section>
+              <div class="slabel">Your trip</div>
+              <div class="card">
+                <div class="field"><div class="k">Destination</div><div class="v strong">Bengaluru, India</div></div>
+                <div class="field"><div class="k">Duration</div><div class="v">6 days</div></div>
+                <div class="field"><div class="k">Lead guest</div><div class="v">Ananya Sharma</div></div>
+                <div class="field"><div class="k">Departs</div><div class="v">14 Jun 2026</div></div>
+              </div>
+            </section>
+
+            <!-- support -->
+            <div class="support">
+              <div class="support-row">
+                <div>
+                  <div class="k">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>
+                    24×7 Emergency
+                  </div>
+                  <div class="phone">+91 80000 00000</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="k" style="justify-content:flex-end">Concierge</div>
+                  <div class="em">concierge@tripcraft.app</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="vfooter">
+              <span>TRIPCRAFT · +91 80000 00000</span>
+              <span>Issued 29 May 2026</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- ============ PRINT / A4 ============ -->
+      <div class="frame">
+        <div class="frame-label"><span class="dot"></span><b>Print</b> · A4 PDF</div>
+        <article class="sheet">
+          <div class="hero">
+            <image-slot id="print-hero" class="hero-img" shape="rect" placeholder="Drop a property / destination photo"></image-slot>
+            <div class="hero-scrim"></div>
+            <div class="hero-top">
+              <div class="hero-brand">
+                <div class="seal"><span>TC</span></div>
+                <div>
+                  <div class="wordmark">TripCraft</div>
+                  <div class="tagline">Crafted Travel · Voucher of Service</div>
+                </div>
+              </div>
+              <div class="vtag">
+                <div class="lbl">Voucher</div>
+                <div class="num">TC-HOT-2A4B7C</div>
+                <div class="em" style="font-size:9px;color:color-mix(in srgb,var(--accent) 50%,#fff);margin-top:5px;letter-spacing:.04em">Issued 29 May 2026</div>
+              </div>
+            </div>
+            <div class="hero-title">
+              <div class="eyebrow">Hotel Voucher</div>
+              <h1>The Leela Palace</h1>
+              <div class="hero-meta">
+                <div class="mi"><div class="k">Check-in</div><div class="v">14 Jun 2026</div></div>
+                <div class="mi"><div class="k">Check-out</div><div class="v">17 Jun 2026</div></div>
+                <div class="mi"><div class="k">Guests</div><div class="v">2 adults</div></div>
+                <div class="mi"><div class="k">Nights</div><div class="v">3</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="goldrule"></div>
+
+          <div class="sheet-body">
+            <div class="confbar">
+              <div class="ci">
+                <div class="k">Confirmation</div>
+                <div class="v" style="font-size:16px">LP-IN-889 204</div>
+              </div>
+              <span class="pill"><span class="pdot"></span>Confirmed</span>
+            </div>
+
+            <div class="sheet-cols">
+              <div class="sheet-main">
+                <section>
+                  <div class="slabel">Service details</div>
+                  <div class="card">
+                    <div class="field"><div class="k">Dates</div><div class="v strong">14 Jun 2026 → 17 Jun 2026 · 3 nights</div></div>
+                    <div class="field"><div class="k">Room</div><div class="v">Deluxe Room, King · Breakfast included</div></div>
+                    <div class="field"><div class="k">Quantity</div><div class="v">1 room</div></div>
+                    <div class="field"><div class="k">Includes</div><div class="v">Daily breakfast, airport transfer, and late checkout subject to availability.</div></div>
+                  </div>
+                </section>
+
+                <section>
+                  <div class="slabel">Vendor</div>
+                  <div class="card">
+                    <h3 class="vname">The Leela Palace Bengaluru</h3>
+                    <p class="vtype">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-ink)"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg>
+                      Luxury Hotel
+                    </p>
+                    <p class="vaddr">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-ink);flex:none;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>23 Old Airport Road, Kodihalli<br><span class="sub">Bengaluru, Karnataka, India</span></span>
+                    </p>
+                    <div class="chips">
+                      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>+91 80 2521 1234</span>
+                      <span class="chip wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24z"/></svg>WhatsApp +91 98800 11223</span>
+                      <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="m22 7-10 6L2 7"/></svg>reservations@leela.com</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <div class="slabel">Your trip</div>
+                  <div class="card">
+                    <div class="field"><div class="k">Destination</div><div class="v strong">Bengaluru, India</div></div>
+                    <div class="field"><div class="k">Duration</div><div class="v">6 days</div></div>
+                    <div class="field"><div class="k">Lead guest</div><div class="v">Ananya Sharma</div></div>
+                    <div class="field"><div class="k">Departs</div><div class="v">14 Jun 2026</div></div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="sheet-side">
+                <section class="stub">
+                  <div class="stub-head">
+                    <span class="eyebrow">Present at check-in</span>
+                  </div>
+                  <div class="stub-body">
+                    <div class="qr" data-qr="print"></div>
+                    <div class="stub-copy">
+                      <h3 class="h">Scan to view online</h3>
+                      <p>Show this voucher — printed or on your phone — on arrival. Photo ID for the lead guest may be requested.</p>
+                      <div class="stub-facts">
+                        <div><div class="k">Dates</div><div class="v">14–17 Jun</div></div>
+                        <div><div class="k">Pax</div><div class="v">2 guests</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <div class="support">
+                  <div class="k">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z"/></svg>
+                    24×7 Emergency
+                  </div>
+                  <div class="phone">+91 80000 00000</div>
+                  <div style="position:relative;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.16)">
+                    <div class="k">Concierge</div>
+                    <div class="em">concierge@tripcraft.app</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="vfooter">
+            <span>TRIPCRAFT · +91 80000 00000 · concierge@tripcraft.app</span>
+            <span>VOUCHER TC-HOT-2A4B7C</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <div id="tweaks-root"></div>
+
+  <script src="image-slot.js"></script>
+  <script>
+    // ---- faux QR (deterministic, with finder patterns) ----
+    function buildQR(host){
+      const N = 25, q = 1, total = N + q*2;
+      const NS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", `0 0 ${total} ${total}`);
+      const inFinder = (r,c)=>{
+        const z=[[0,0],[0,N-7],[N-7,0]];
+        return z.some(([fr,fc])=> r>=fr&&r<fr+7&&c>=fc&&c<fc+7);
+      };
+      // pseudo-random but stable
+      let seed = 7;
+      const rnd = ()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+      for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+        if(inFinder(r,c)) continue;
+        if(rnd()>0.52){
+          const rect=document.createElementNS(NS,"rect");
+          rect.setAttribute("x",c+q); rect.setAttribute("y",r+q);
+          rect.setAttribute("width",1); rect.setAttribute("height",1);
+          rect.setAttribute("fill","#0B1C2C");
+          svg.appendChild(rect);
+        }
+      }
+      const finder=(fr,fc)=>{
+        const out=document.createElementNS(NS,"rect");
+        out.setAttribute("x",fc+q);out.setAttribute("y",fr+q);
+        out.setAttribute("width",7);out.setAttribute("height",7);
+        out.setAttribute("fill","none");out.setAttribute("stroke","#0B1C2C");out.setAttribute("stroke-width",1);
+        svg.appendChild(out);
+        const inr=document.createElementNS(NS,"rect");
+        inr.setAttribute("x",fc+q+2);inr.setAttribute("y",fr+q+2);
+        inr.setAttribute("width",3);inr.setAttribute("height",3);
+        inr.setAttribute("fill","#0B1C2C");
+        svg.appendChild(inr);
+      };
+      finder(0,0); finder(0,N-7); finder(N-7,0);
+      host.appendChild(svg);
+    }
+    document.querySelectorAll(".qr").forEach(buildQR);
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "accent": "#C8A96A",
+      "imagery": true,
+      "density": "regular"
+    }/*EDITMODE-END*/;
+
+    const DENSITY = { compact:{pad:"15px",gap:"12px"}, regular:{pad:"20px",gap:"16px"}, comfy:{pad:"26px",gap:"20px"} };
+
+    function App(){
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      React.useEffect(()=>{
+        const root = document.documentElement;
+        root.style.setProperty("--accent", t.accent);
+        const d = DENSITY[t.density] || DENSITY.regular;
+        root.style.setProperty("--pad", d.pad);
+        root.style.setProperty("--gap", d.gap);
+        document.body.classList.toggle("no-imagery", !t.imagery);
+      }, [t]);
+      return (
+        <TweaksPanel>
+          <TweakSection label="Brand accent" />
+          <TweakColor label="Accent" value={t.accent}
+            options={["#C8A96A","#B0814E","#8E9C7C","#8597A8"]}
+            onChange={(v)=>setTweak("accent", v)} />
+          <TweakSection label="Layout" />
+          <TweakToggle label="Destination imagery" value={t.imagery}
+            onChange={(v)=>setTweak("imagery", v)} />
+          <TweakRadio label="Density" value={t.density}
+            options={["compact","regular","comfy"]}
+            onChange={(v)=>setTweak("density", v)} />
+        </TweaksPanel>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById("tweaks-root")).render(<App/>);
+  </script>
+</body>
+</html>

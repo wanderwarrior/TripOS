@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { BookingStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { assertCan, requireAgency } from "@/lib/session";
 import { logActivity } from "@/server/helpers/log-activity";
 import { BOOKING_STATUS_LABEL } from "@/lib/crm";
 
@@ -24,8 +25,12 @@ export async function updateBookingStatusAction(
   input: z.infer<typeof updateSchema>
 ) {
   const data = updateSchema.parse(input);
-  const booking = await prisma.booking.findUnique({
-    where: { id: data.bookingId },
+  const { agencyId } = await requireAgency();
+  // Cancelling is a distinct, higher-bar permission than other transitions.
+  await assertCan(data.status === "CANCELLED" ? "booking:cancel" : "booking:create");
+
+  const booking = await prisma.booking.findFirst({
+    where: { id: data.bookingId, trip: { agencyId } },
     include: { trip: { select: { id: true, contactId: true } } },
   });
   if (!booking) throw new Error("Booking not found");
