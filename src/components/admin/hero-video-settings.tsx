@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { updateHeroMediaAction } from "@/server/actions/platform";
+import { parseYouTubeId, youTubeBackgroundEmbedUrl } from "@/lib/video";
 
 export function HeroVideoSettings({
   initialVideoUrl,
@@ -37,6 +38,8 @@ export function HeroVideoSettings({
       }
     });
   }
+
+  const youTubeId = parseYouTubeId(videoUrl);
 
   return (
     <div className="tc-card">
@@ -73,15 +76,16 @@ export function HeroVideoSettings({
                 id="hero-video-url"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://cdn.example.com/hero.mp4"
+                placeholder="https://youtu.be/… or https://cdn.example.com/hero.mp4"
                 spellCheck={false}
                 className="mt-2"
               />
             </details>
             <p className="text-[11.5px] leading-relaxed text-muted">
-              Upload an MP4/WebM, or point at a CDN-hosted file (more durable in
-              production). Leave empty to fall back to the bundled default +
-              animated aurora.
+              Upload an MP4/WebM, point at a CDN-hosted file, or paste a{" "}
+              <span className="mono">YouTube</span> link (plays muted &amp;
+              looping with no controls). Leave empty to fall back to the bundled
+              default + animated aurora.
             </p>
           </div>
 
@@ -103,7 +107,15 @@ export function HeroVideoSettings({
         <div className="space-y-2">
           <Label>Preview</Label>
           <div className="relative aspect-video overflow-hidden rounded-[10px] border border-line bg-inkwash">
-            {videoUrl.trim() ? (
+            {youTubeId ? (
+              <iframe
+                key={youTubeId}
+                title="Hero preview"
+                src={youTubeBackgroundEmbedUrl(youTubeId)}
+                allow="autoplay; encrypted-media"
+                className="pointer-events-none h-full w-full"
+              />
+            ) : videoUrl.trim() ? (
               <video
                 key={videoUrl}
                 className="h-full w-full object-cover"

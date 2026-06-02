@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronDown, Sparkles } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { TRIAL_DAYS } from "@/lib/plans";
+import { parseYouTubeId, youTubeBackgroundEmbedUrl } from "@/lib/video";
 import { Mark } from "@/components/brand";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -29,6 +30,9 @@ export function Hero({
   // A configured URL points at a single file; the bundled default ships in two
   // formats, so only the default gets the extra <source>.
   const isDefaultVideo = video === DEFAULT_VIDEO;
+  // A YouTube link can't play in a bare <video>; embed it as a muted, looping,
+  // chrome-free background iframe instead.
+  const youTubeId = parseYouTubeId(video);
 
   const container: Variants = {
     hidden: {},
@@ -48,24 +52,46 @@ export function Hero({
 
       {/* Background video. Configured by the platform admin in the owner
           console, falling back to the bundled /public/videos files. Muted +
-          playsInline so mobile browsers autoplay it. */}
-      {!reduce && (
-        <video
-          key={video}
-          className="absolute inset-0 -z-10 h-full w-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster={poster}
-        >
-          <source src={video} type="video/mp4" />
-          {isDefaultVideo && (
-            <source src="/videos/hero.webm" type="video/webm" />
-          )}
-        </video>
-      )}
+          playsInline so mobile browsers autoplay it. A YouTube link renders as
+          a chrome-free background iframe; anything else as a real <video>. */}
+      {!reduce &&
+        (youTubeId ? (
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10 overflow-hidden bg-inkwash"
+          >
+            <iframe
+              key={youTubeId}
+              title="Hero background"
+              src={youTubeBackgroundEmbedUrl(youTubeId)}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              // Scale a 16:9 frame to always cover the viewport.
+              style={{
+                width: "100vw",
+                height: "56.25vw",
+                minWidth: "177.78vh",
+                minHeight: "100vh",
+              }}
+            />
+          </div>
+        ) : (
+          <video
+            key={video}
+            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster={poster}
+          >
+            <source src={video} type="video/mp4" />
+            {isDefaultVideo && (
+              <source src="/videos/hero.webm" type="video/webm" />
+            )}
+          </video>
+        ))}
 
       {/* Scrim for legibility + a soft gold glow top-right. */}
       <div
