@@ -5,26 +5,36 @@ import { Image as ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Keep in sync with the hard cap enforced in /api/upload (MAX_BYTES).
+const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
+
 export function ImageUpload({
   value,
   onChange,
   className,
   height = "h-32",
   label,
+  maxBytes = DEFAULT_MAX_BYTES,
 }: {
   value: string | null | undefined;
   onChange: (url: string | null) => void;
   className?: string;
   height?: string;
   label?: string;
+  maxBytes?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const maxMb = Math.round(maxBytes / (1024 * 1024));
 
   async function upload(file: File) {
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > maxBytes) {
+      toast.error(`Image too large — max ${maxMb} MB`);
       return;
     }
     setIsUploading(true);
@@ -147,7 +157,7 @@ export function ImageUpload({
                 {label ?? "Click or drop an image"}
               </p>
               <p className="text-[10px] tracking-wide">
-                JPG · PNG · WEBP · max 8 MB
+                JPG · PNG · WEBP · max {maxMb} MB
               </p>
             </>
           )}

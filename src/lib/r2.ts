@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Object storage for user uploads (logos, proposal cover images, hero video).
 //
@@ -81,4 +82,35 @@ export async function saveUpload(
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, `${id}.${ext}`), buffer);
   return `/${prefix}/${id}.${ext}`;
+}
+
+/**
+ * Create a short-lived presigned URL the browser can PUT a file to directly,
+ * bypassing the serverless request-body limit (~4.5 MB on Vercel). Use for
+ * large uploads like the hero video. Requires R2 to be configured — callers
+ * should fall back to {@link saveUpload} (multipart through the API) when it
+ * isn't (i.e. local dev). The bucket needs a CORS policy allowing PUT from the
+ * site origin for the browser request to succeed.
+ *
+ * @returns `uploadUrl` to PUT the bytes to, and the final `publicUrl` to store.
+ */
+export async function presignUpload(
+  ext: string,
+  contentType: string,
+  prefix = "uploads"
+): Promise<{ uploadUrl: string; publicUrl: string }> {
+  if (!isR2Configured) {
+    throw new Error("R2 is not configured");
+  }
+  const id = randomBytes(12).toString("hex");
+  const key = `${prefix}/${id}.${ext}`;
+  // ContentType is part of the signature, so the browser PUT must send a
+  // matching Content-Type header (it does — set from the File's type).
+  const cmd = new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    ContentType: contentType,
+  });
+  const uploadUrl = await getSignedUrl(client(), cmd, { expiresIn: 600 });
+  return { uploadUrl, publicUrl: `${R2_PUBLIC_BASE_URL}/${key}` };
 }

@@ -4,7 +4,7 @@ import { saveUpload } from "@/lib/r2";
 
 export const runtime = "nodejs";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = new Map<string, string>([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
     if (file.size > MAX_BYTES) {
       return NextResponse.json(
-        { error: "File too large (max 8 MB)" },
+        { error: "File too large (max 5 MB)" },
         { status: 400 }
       );
     }

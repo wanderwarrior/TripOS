@@ -5,7 +5,7 @@ import { Film, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const MAX_MB = 64;
+const MAX_MB = 200;
 
 export function VideoUpload({
   value,
@@ -22,6 +22,20 @@ export function VideoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Multipart upload through our API. Works locally (no R2) but is subject to
+  // the host's request-body limit (~4.5 MB on Vercel) — used only as a fallback
+  // when direct-to-R2 isn't available.
+  async function uploadViaApi(file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload/video", { method: "POST", body: fd });
+    const data = (await res.json()) as { url?: string; error?: string };
+    if (!res.ok || !data.url) {
+      throw new Error(data.error || "Upload failed");
+    }
+    onChange(data.url);
+  }
+
   async function upload(file: File) {
     if (!file.type.startsWith("video/")) {
       toast.error("Please choose a video file (MP4 or WebM)");
@@ -33,17 +47,38 @@ export function VideoUpload({
     }
     setIsUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload/video", {
+      // Preferred path: ask for a presigned URL and PUT straight to R2. This
+      // bypasses the serverless request-body limit, so large videos work.
+      const presign = await fetch("/api/upload/video/presign", {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentType: file.type, size: file.size }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || "Upload failed");
+
+      if (presign.ok) {
+        const { uploadUrl, publicUrl } = (await presign.json()) as {
+          uploadUrl: string;
+          publicUrl: string;
+        };
+        const put = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!put.ok) {
+          throw new Error("Upload to storage failed");
+        }
+        onChange(publicUrl);
+      } else if (presign.status === 501) {
+        // R2 not configured (e.g. local dev) — fall back to the API route.
+        await uploadViaApi(file);
+      } else {
+        const err = (await presign.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(err.error || "Upload failed");
       }
-      onChange(data.url);
+
       toast.success("Video uploaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
