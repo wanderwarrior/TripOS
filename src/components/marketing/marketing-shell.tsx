@@ -15,15 +15,16 @@ export async function MarketingShell({
   const user = await getSessionUser();
 
   return (
-    <div className="min-h-screen bg-canvas text-ink flex flex-col">
-      {/* First-load brand splash — plays once per session, shared with the
-          app dashboard via the same sessionStorage gate. */}
-      <BrandIntro />
-      <MarketingNav isAuthed={!!user} />
+    // First-load brand splash — plays once per session (shared with the app
+    // dashboard via the same sessionStorage gate). It gates the page: the
+    // content stays hidden until the animation finishes, then fades in.
+    <BrandIntro>
+      <div className="min-h-screen bg-canvas text-ink flex flex-col">
+        <MarketingNav isAuthed={!!user} />
 
-      <main className="flex-1">{children}</main>
+        <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-line bg-paper">
+        <footer className="border-t border-line bg-paper">
         <div className="mx-auto max-w-6xl px-5 md:px-10 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
             <Logo size={28} wordClassName="text-xl" className="text-ink" />
@@ -71,7 +72,8 @@ export async function MarketingShell({
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </BrandIntro>
   );
 }
 
