@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Menu, Search, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { NAV_GROUPS, isNavActive } from "@/lib/nav";
+import { Logo } from "@/components/brand";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
@@ -83,19 +84,7 @@ export function MobileNav() {
                 borderBottom: "1px solid rgba(255,255,255,.07)",
               }}
             >
-              <span className="flex items-center gap-2.5">
-                <span
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-inkwash"
-                  style={{
-                    background: "linear-gradient(150deg, var(--gold), #B0863F)",
-                  }}
-                >
-                  <Compass className="h-[17px] w-[17px]" />
-                </span>
-                <span className="font-display text-lg text-white tracking-tight">
-                  Trip<b className="font-semibold text-gold">Craft</b>
-                </span>
-              </span>
+              <Logo size={30} wordClassName="text-lg text-white" className="text-white" />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -158,7 +147,7 @@ export function MobileNav() {
               className="px-4 py-3 text-[11px] text-[var(--on-dark-mut)]"
               style={{ borderTop: "1px solid rgba(255,255,255,.07)" }}
             >
-              TripCraft · Crafted for premium travel
+              tripOS · Crafted for premium travel
             </footer>
           </aside>
         </div>,

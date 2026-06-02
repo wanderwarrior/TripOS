@@ -4,6 +4,7 @@ import {
   createDecipheriv,
   randomBytes,
   scryptSync,
+  timingSafeEqual,
 } from "crypto";
 
 // Symmetric encryption for secrets stored at rest (WhatsApp access token,
@@ -77,6 +78,27 @@ export function decryptSecret(enc: string | null | undefined): string | null {
     return out.toString("utf8");
   } catch {
     return null;
+  }
+}
+
+/**
+ * Constant-time comparison for share tokens / secrets supplied by a caller.
+ * Returns false on null/length-mismatch rather than throwing, so it can guard
+ * a request directly. Use this (never `===`) when comparing a value an
+ * attacker controls against a stored token.
+ */
+export function constantTimeEquals(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  if (!a || !b) return false;
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  try {
+    return timingSafeEqual(ab, bb);
+  } catch {
+    return false;
   }
 }
 

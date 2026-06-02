@@ -11,6 +11,15 @@ import {
   type LineItemCategory,
   type ProposalPricing,
 } from "@/types";
+import {
+  PROPOSAL_SETTINGS_SELECT,
+  buildProposalAgency,
+  buildProposalBranding,
+  DEFAULT_SURFACE,
+  DEFAULT_TINT,
+  DEFAULT_ACCENT,
+  type ProposalSettings,
+} from "@/lib/proposal-branding";
 
 const PROPOSAL_INCLUDE = {
   items: { orderBy: { position: "asc" as const } },
@@ -25,25 +34,7 @@ const PROPOSAL_INCLUDE = {
       },
       agency: {
         select: {
-          settings: {
-            select: {
-              legalName: true,
-              tradeName: true,
-              logoUrl: true,
-              phone: true,
-              email: true,
-              website: true,
-              invoiceTerms: true,
-              proposalTheme: true,
-              proposalAccentColor: true,
-              proposalCoverStyle: true,
-              proposalShowAtAGlance: true,
-              proposalShowInclusions: true,
-              proposalShowTerms: true,
-              proposalSignatureNote: true,
-              proposalRepeatLogo: true,
-            },
-          },
+          settings: { select: PROPOSAL_SETTINGS_SELECT },
         },
       },
     },
@@ -63,19 +54,29 @@ export type ProposalPdfSnapshot = {
   pricing: ProposalPricing | null;
   agency: {
     name: string;
-    logoUrl: string | null;
+    // Surface-specific marks (already absolutized). logoLight reverses onto
+    // dark surfaces; logoDark sits on light pages. Either may be null.
+    logoLight: string | null;
+    logoDark: string | null;
     phone: string | null;
     email: string | null;
     website: string | null;
     terms: string | null;
+    gstin: string | null;
+    registeredAddress: string;
   };
   branding: {
     theme: "classic" | "editorial" | "minimal";
     accent: string;
+    surface: string;
+    tint: string;
     coverStyle: "photo" | "gradient" | "solid";
     showAtAGlance: boolean;
     showInclusions: boolean;
     showTerms: boolean;
+    tagline: string | null;
+    showContactStrip: boolean;
+    showRegisteredFooter: boolean;
     signatureNote: string | null;
     repeatLogo: boolean;
   };
@@ -85,8 +86,6 @@ export type ProposalPdfSnapshot = {
     validityDays: number;
   };
 };
-
-const SAND = "#C8A96A";
 
 // @react-pdf renders server-side and must *fetch* every <Image src>. Uploaded
 // images are stored relative (`/uploads/x.jpg`), which has no origin to
@@ -116,32 +115,14 @@ function buildSnapshot(
       itineraries: { content: unknown }[];
       travelSegments: TravelSegment[];
       agency: {
-        settings: {
-          legalName: string;
-          tradeName: string | null;
-          logoUrl: string | null;
-          phone: string | null;
-          email: string | null;
-          website: string | null;
-          invoiceTerms: string | null;
-          proposalTheme: string;
-          proposalAccentColor: string | null;
-          proposalCoverStyle: string;
-          proposalShowAtAGlance: boolean;
-          proposalShowInclusions: boolean;
-          proposalShowTerms: boolean;
-          proposalSignatureNote: string | null;
-          proposalRepeatLogo: boolean;
-        } | null;
+        settings: ProposalSettings | null;
       };
     };
   }
 ): ProposalPdfSnapshot {
   const settings = quote.trip.agency.settings;
-  const agencyName =
-    settings?.tradeName?.trim() ||
-    settings?.legalName?.trim() ||
-    "TripCraft";
+  const agencyData = buildProposalAgency(settings);
+  const brandingData = buildProposalBranding(settings);
 
   // Same readDay normalization the HTML renderer applies.
   const rawItin = quote.trip.itineraries[0]?.content;
@@ -175,14 +156,14 @@ function buildSnapshot(
         })
       : null;
 
-  // Branding falls back to defaults so an agency that never visited
-  // /settings/proposal still gets a well-rendered document.
-  const themeRaw = settings?.proposalTheme ?? "classic";
-  const theme: ProposalPdfSnapshot["branding"]["theme"] =
-    themeRaw === "editorial" || themeRaw === "minimal" ? themeRaw : "classic";
-  const coverRaw = settings?.proposalCoverStyle ?? "photo";
-  const coverStyle: ProposalPdfSnapshot["branding"]["coverStyle"] =
-    coverRaw === "gradient" || coverRaw === "solid" ? coverRaw : "photo";
+  // buildProposalBranding already validated theme/coverStyle and applied
+  // defaults; minimal always forces a flat cover (no photo hero).
+  const theme = brandingData.theme;
+  const coverStyle = theme === "minimal" ? "solid" : brandingData.coverStyle;
+
+  // Smart logo fallback: variant → primary → (renderer falls back to monogram).
+  const lightLogo = toAbsoluteUrl(agencyData.logoLight ?? agencyData.logoUrl);
+  const darkLogo = toAbsoluteUrl(agencyData.logoDark ?? agencyData.logoUrl);
 
   return {
     trip: {
@@ -196,23 +177,30 @@ function buildSnapshot(
     segments: quote.trip.travelSegments,
     pricing,
     agency: {
-      name: agencyName,
-      logoUrl: toAbsoluteUrl(settings?.logoUrl),
-      phone: settings?.phone ?? null,
-      email: settings?.email ?? null,
-      website: settings?.website ?? null,
-      terms: settings?.invoiceTerms ?? null,
+      name: agencyData.name,
+      logoLight: lightLogo,
+      logoDark: darkLogo,
+      phone: agencyData.phone,
+      email: agencyData.email,
+      website: agencyData.website,
+      terms: agencyData.terms,
+      gstin: agencyData.gstin,
+      registeredAddress: agencyData.registeredAddress,
     },
     branding: {
       theme,
-      // Minimal theme always forces a flat cover.
-      coverStyle: theme === "minimal" ? "solid" : coverStyle,
-      accent: settings?.proposalAccentColor?.trim() || SAND,
-      showAtAGlance: settings?.proposalShowAtAGlance ?? true,
-      showInclusions: settings?.proposalShowInclusions ?? true,
-      showTerms: settings?.proposalShowTerms ?? true,
-      signatureNote: settings?.proposalSignatureNote?.trim() || null,
-      repeatLogo: settings?.proposalRepeatLogo ?? true,
+      coverStyle,
+      accent: brandingData.accentColor?.trim() || DEFAULT_ACCENT,
+      surface: brandingData.surfaceColor?.trim() || DEFAULT_SURFACE,
+      tint: brandingData.tintColor?.trim() || DEFAULT_TINT,
+      showAtAGlance: brandingData.showAtAGlance,
+      showInclusions: brandingData.showInclusions,
+      showTerms: brandingData.showTerms,
+      tagline: brandingData.tagline?.trim() || null,
+      showContactStrip: brandingData.showContactStrip,
+      showRegisteredFooter: brandingData.showRegisteredFooter,
+      signatureNote: brandingData.signatureNote?.trim() || null,
+      repeatLogo: brandingData.repeatLogo,
     },
     meta: {
       version: quote.version,

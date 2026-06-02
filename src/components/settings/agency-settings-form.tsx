@@ -55,6 +55,8 @@ export function AgencySettingsForm({
     gstin: initial?.gstin ?? "",
     pan: initial?.pan ?? "",
     logoUrl: initial?.logoUrl ?? "",
+    logoLightUrl: initial?.logoLightUrl ?? "",
+    logoDarkUrl: initial?.logoDarkUrl ?? "",
     addressLine1: initial?.addressLine1 ?? "",
     addressLine2: initial?.addressLine2 ?? "",
     city: initial?.city ?? "",
@@ -166,29 +168,69 @@ export function AgencySettingsForm({
         title="Branding"
         hint="Your logo appears on shared proposals, invoices, vouchers and the public quote pages your customers open."
       >
-        <div className="grid gap-4 sm:grid-cols-[200px_1fr] items-start">
-          <ImageUpload
-            value={form.logoUrl}
-            onChange={(url) => update("logoUrl", url ?? "")}
-            height="h-32"
-            label="Upload logo"
-          />
-          <div className="text-xs text-muted-foreground space-y-2 pt-1">
-            <p>
-              Square or near-square images render best (we display logos in a
-              circular crop on the public proposal header).
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-[200px_1fr] items-start">
+            <ImageUpload
+              value={form.logoUrl}
+              onChange={(url) => update("logoUrl", url ?? "")}
+              height="h-32"
+              label="Primary logo"
+            />
+            <div className="text-xs text-muted-foreground space-y-2 pt-1">
+              <p>
+                Your main mark — used everywhere unless a surface-specific
+                variant below is set. Square or near-square images render best.
+              </p>
+              <p>JPG, PNG, WEBP, GIF, or AVIF — up to 8 MB.</p>
+              <p>
+                {form.logoUrl ? (
+                  <span className="text-ok">
+                    ✓ Logo set — customers will see your brand on shared
+                    proposals.
+                  </span>
+                ) : (
+                  "Without a logo, customers see the default TripCraft mark on shared pages."
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-line pt-5">
+            <p className="text-sm font-medium text-ink">
+              Logo variants <span className="text-muted-foreground font-normal">(optional)</span>
             </p>
-            <p>JPG, PNG, WEBP, GIF, or AVIF — up to 8 MB.</p>
-            <p>
-              {form.logoUrl ? (
-                <span className="text-ok">
-                  ✓ Logo set — customers will see your brand on shared
-                  proposals.
-                </span>
-              ) : (
-                "Without a logo, customers see the default TripCraft mark on shared pages."
-              )}
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Upload reversed marks so your logo always reads clearly. The light
+              logo is used on dark surfaces (proposal cover &amp; closing); the
+              dark logo on light pages. Each falls back to your primary logo.
             </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Light logo · for dark backgrounds
+                </p>
+                {/* Dark preview chip so a light/white mark is visible while picking. */}
+                <div className="rounded-[10px] bg-navy p-2">
+                  <ImageUpload
+                    value={form.logoLightUrl}
+                    onChange={(url) => update("logoLightUrl", url ?? "")}
+                    height="h-24"
+                    label="Upload light logo"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Dark logo · for light backgrounds
+                </p>
+                <ImageUpload
+                  value={form.logoDarkUrl}
+                  onChange={(url) => update("logoDarkUrl", url ?? "")}
+                  height="h-24"
+                  label="Upload dark logo"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </Card>

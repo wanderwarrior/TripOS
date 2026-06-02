@@ -63,6 +63,39 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   };
 }
 
+// === Platform settings (key/value) =========================================
+
+/** Namespaced keys for the hero video shown on the public landing page. */
+export const HERO_VIDEO_KEY = "hero.videoUrl";
+export const HERO_POSTER_KEY = "hero.posterUrl";
+
+export type HeroMedia = {
+  /** Public URL of the hero background video (mp4/webm), or null to fall back. */
+  videoUrl: string | null;
+  /** Public URL of the poster image shown before/instead of the video. */
+  posterUrl: string | null;
+};
+
+/**
+ * Reads the configured landing-page hero media. Safe to call on every public
+ * landing render — a single indexed lookup, returns nulls when unset so the
+ * hero falls back to its bundled defaults.
+ */
+export async function getHeroMedia(): Promise<HeroMedia> {
+  const rows = await prisma.platformSetting.findMany({
+    where: { key: { in: [HERO_VIDEO_KEY, HERO_POSTER_KEY] } },
+  });
+  const byKey = new Map(rows.map((r) => [r.key, r.value]));
+  const norm = (v: string | undefined) => {
+    const t = v?.trim();
+    return t ? t : null;
+  };
+  return {
+    videoUrl: norm(byKey.get(HERO_VIDEO_KEY)),
+    posterUrl: norm(byKey.get(HERO_POSTER_KEY)),
+  };
+}
+
 export type AdminAgencyRow = {
   id: string;
   name: string;

@@ -4,14 +4,7 @@ export function Skeleton({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-[10px] bg-line/60",
-        "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.6s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent",
-        className
-      )}
-      {...props}
-    />
-  );
+  // Gold-tinted shimmer from the tripOS motion system (brand-sk). Same API, so
+  // every existing loading.tsx skeleton picks up the on-brand gold sweep.
+  return <div className={cn("brand-sk rounded-[10px]", className)} {...props} />;
 }

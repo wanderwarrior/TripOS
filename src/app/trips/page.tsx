@@ -6,6 +6,7 @@ import { TripCard } from "@/components/trip-card";
 import { TripsTable, type TripRow } from "@/components/trips-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageGuide } from "@/components/ui/page-guide";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
@@ -114,6 +115,19 @@ export default async function TripsIndexPage({
           </Link>
         </div>
       </header>
+
+      <PageGuide
+        id="trips"
+        body={
+          <>
+            A <strong>trip</strong> is where you craft the itinerary, price a
+            quote, and turn it into a booking. Start one from a destination —
+            or convert a Won contact — then follow the lifecycle bar on the
+            trip to know each next step.
+          </>
+        }
+        cta={{ label: "Create a trip", href: "/trips/new" }}
+      />
 
       {total > 0 && (
         <div className="mb-8 flex flex-wrap gap-2">

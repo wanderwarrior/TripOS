@@ -31,11 +31,18 @@ type Trip = {
 export type ProposalAgency = {
   name: string;
   logoUrl?: string | null;
+  /** Surface-specific marks. Light reverses onto dark surfaces, dark sits on
+   * light pages. Each falls back to logoUrl, then the monogram. */
+  logoLight?: string | null;
+  logoDark?: string | null;
   phone?: string | null;
   email?: string | null;
   website?: string | null;
   /** Free-text terms & conditions / cancellation policy. */
   terms?: string | null;
+  /** Shown in the registered footer for legitimacy. */
+  gstin?: string | null;
+  registeredAddress?: string | null;
 };
 
 export type ProposalMeta = {
@@ -54,10 +61,18 @@ export type ProposalBranding = {
   theme?: ProposalTheme;
   /** Hex colour. Falls back to the sand token when null/undefined. */
   accentColor?: string | null;
+  /** Dark surface (cover/price/closing). Falls back to the navy token. */
+  surfaceColor?: string | null;
+  /** Light tint (content pages). Falls back to the ivory token. */
+  tintColor?: string | null;
   coverStyle?: ProposalCoverStyle;
   showAtAGlance?: boolean;
   showInclusions?: boolean;
   showTerms?: boolean;
+  /** Short brand tagline under the logo on the cover. */
+  tagline?: string | null;
+  showContactStrip?: boolean;
+  showRegisteredFooter?: boolean;
   signatureNote?: string | null;
   /** Stamp the agency logo on every major section header. */
   repeatLogo?: boolean;
@@ -66,26 +81,38 @@ export type ProposalBranding = {
 type ResolvedBranding = {
   theme: ProposalTheme;
   accent: string; // always a concrete colour, falls back to sand token
+  surface: string;
+  tint: string;
   coverStyle: ProposalCoverStyle;
   showAtAGlance: boolean;
   showInclusions: boolean;
   showTerms: boolean;
+  tagline: string;
+  showContactStrip: boolean;
+  showRegisteredFooter: boolean;
   signatureNote: string | null;
   repeatLogo: boolean;
 };
 
 const SAND_ACCENT = "#C8A96A";
+const DEFAULT_SURFACE = "#0C1620";
+const DEFAULT_TINT = "#FAF7F0";
 const DEFAULT_TAGLINE = "Crafted travel";
 
 function resolveBranding(b?: ProposalBranding | null): ResolvedBranding {
   return {
     theme: b?.theme ?? "classic",
     accent: b?.accentColor?.trim() || SAND_ACCENT,
+    surface: b?.surfaceColor?.trim() || DEFAULT_SURFACE,
+    tint: b?.tintColor?.trim() || DEFAULT_TINT,
     // Minimal forces a flat cover (no photo hero — that's the whole point).
     coverStyle: b?.theme === "minimal" ? "solid" : b?.coverStyle ?? "photo",
     showAtAGlance: b?.showAtAGlance ?? true,
     showInclusions: b?.showInclusions ?? true,
     showTerms: b?.showTerms ?? true,
+    tagline: b?.tagline?.trim() || DEFAULT_TAGLINE,
+    showContactStrip: b?.showContactStrip ?? true,
+    showRegisteredFooter: b?.showRegisteredFooter ?? true,
     signatureNote: b?.signatureNote?.trim() || null,
     repeatLogo: b?.repeatLogo ?? true,
   };
@@ -103,8 +130,17 @@ function Seal({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  // With a logo we drop the circular badge crop: let width track the logo's
+  // natural aspect (height stays fixed) so the full mark shows, uncropped.
+  const sealStyle: React.CSSProperties | undefined = logoUrl
+    ? { ...style, width: "auto", background: "transparent" }
+    : style;
   return (
-    <span className={`seal ${className}`} style={style} aria-label={agencyName}>
+    <span
+      className={`seal ${logoUrl ? "has-logo" : ""} ${className}`.trim()}
+      style={sealStyle}
+      aria-label={agencyName}
+    >
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logoUrl} alt={agencyName} />
@@ -169,22 +205,27 @@ export function PreviewRenderer({
   const startDate = trip.startDate ? new Date(trip.startDate) : null;
   const agencyName = agency?.name?.trim() || "TripCraft";
   const b = resolveBranding(branding);
-  const logoUrl = agency?.logoUrl ?? null;
+  // Smart logo fallback: variant → primary → monogram (handled by <Seal>).
+  const lightLogo = agency?.logoLight || agency?.logoUrl || null;
+  const darkLogo = agency?.logoDark || agency?.logoUrl || null;
 
   const { included, excluded } = collectInclusions(normalized);
 
-  const accentStyle = {
+  const themeStyle = {
     ["--proposal-accent" as string]: b.accent,
+    ["--proposal-surface" as string]: b.surface,
+    ["--proposal-tint" as string]: b.tint,
   } as React.CSSProperties;
 
   return (
-    <div className="pp" data-theme={b.theme} style={accentStyle}>
+    <div className="pp" data-theme={b.theme} style={themeStyle}>
       <Cover
         trip={trip}
         startDate={startDate}
         coverImageUrl={normalized?.coverImageUrl ?? null}
+        agency={agency ?? null}
         agencyName={agencyName}
-        logoUrl={logoUrl}
+        logoUrl={lightLogo}
         version={meta?.version}
         branding={b}
         recipientName={recipientName ?? null}
@@ -195,7 +236,7 @@ export function PreviewRenderer({
         summary={normalized?.summary}
         itinerary={normalized}
         agencyName={agencyName}
-        logoUrl={logoUrl}
+        logoUrl={darkLogo}
         showIndex={b.showAtAGlance}
         validityDays={meta?.validityDays ?? 14}
       />
@@ -221,8 +262,9 @@ export function PreviewRenderer({
       <Closing
         agency={agency}
         agencyName={agencyName}
-        logoUrl={logoUrl}
+        logoUrl={lightLogo}
         signatureNote={b.signatureNote}
+        showRegisteredFooter={b.showRegisteredFooter}
       />
     </div>
   );
@@ -243,6 +285,7 @@ function Cover({
   trip,
   startDate,
   coverImageUrl,
+  agency,
   agencyName,
   logoUrl,
   version,
@@ -252,6 +295,7 @@ function Cover({
   trip: Trip;
   startDate: Date | null;
   coverImageUrl: string | null;
+  agency: ProposalAgency | null;
   agencyName: string;
   logoUrl: string | null;
   version?: number;
@@ -260,6 +304,9 @@ function Cover({
 }) {
   const hasCover = !!coverImageUrl && branding.coverStyle === "photo";
   const range = dateRangeOf(startDate, trip.days);
+  const contacts = branding.showContactStrip
+    ? [agency?.phone, agency?.email, agency?.website].filter(Boolean)
+    : [];
 
   return (
     <motion.header
@@ -282,15 +329,15 @@ function Cover({
               logoUrl={logoUrl}
               agencyName={agencyName}
               style={{
-                width: 44,
-                height: 44,
+                width: 52,
+                height: 52,
                 fontSize: 16,
                 background: "rgba(255,255,255,.05)",
               }}
             />
             <div>
               <div className="cover-word">{agencyName.toUpperCase()}</div>
-              <div className="cover-tag">{DEFAULT_TAGLINE}</div>
+              <div className="cover-tag">{branding.tagline}</div>
             </div>
           </div>
           <div className="cover-vrow">
@@ -350,6 +397,14 @@ function Cover({
               <div className="v">{trip.travelType}</div>
             </div>
           </div>
+
+          {contacts.length > 0 && (
+            <div className="cover-contact">
+              {contacts.map((c, i) => (
+                <span key={i}>{c}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </motion.header>
@@ -796,16 +851,26 @@ function Closing({
   agencyName,
   logoUrl,
   signatureNote,
+  showRegisteredFooter,
 }: {
   agency?: ProposalAgency | null;
   agencyName: string;
   logoUrl: string | null;
   signatureNote: string | null;
+  showRegisteredFooter: boolean;
 }) {
   const contacts: { label: string; value: string }[] = [];
   if (agency?.phone) contacts.push({ label: "Phone", value: agency.phone });
   if (agency?.email) contacts.push({ label: "Email", value: agency.email });
   if (agency?.website) contacts.push({ label: "Web", value: agency.website });
+
+  const registeredLine = [
+    agency?.registeredAddress?.trim() || null,
+    agency?.gstin ? `GSTIN ${agency.gstin}` : null,
+  ]
+    .filter(Boolean)
+    .join("   ·   ");
+  const showRegistered = showRegisteredFooter && registeredLine.length > 0;
 
   return (
     <footer className="pp-close">
@@ -830,6 +895,7 @@ function Closing({
             ))}
           </div>
         )}
+        {showRegistered && <div className="close-registered">{registeredLine}</div>}
         <div className="close-craft">Crafted with TripCraft</div>
       </div>
     </footer>
@@ -860,9 +926,19 @@ function collectInclusions(itinerary: ItineraryContent | null): {
     }
     return out;
   };
+  // Trip-level lists win; each falls back independently to the union of
+  // per-day entries when the trip-wide field is empty.
+  const tripIncluded = dedupe([itinerary.inclusions]);
+  const tripExcluded = dedupe([itinerary.exclusions]);
   return {
-    included: dedupe(itinerary.days.map((d) => d.inclusions)),
-    excluded: dedupe(itinerary.days.map((d) => d.exclusions)),
+    included:
+      tripIncluded.length > 0
+        ? tripIncluded
+        : dedupe(itinerary.days.map((d) => d.inclusions)),
+    excluded:
+      tripExcluded.length > 0
+        ? tripExcluded
+        : dedupe(itinerary.days.map((d) => d.exclusions)),
   };
 }
 

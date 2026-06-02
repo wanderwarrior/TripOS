@@ -20,9 +20,6 @@ import type { ProposalPdfSnapshot } from "@/server/services/proposal-pdf";
 
 // --- design tokens --------------------------------------------------------
 
-const NAVY = "#0C1620";
-const IVORY = "#FAF7F0";
-const IVORY2 = "#F3EEE2";
 const PAPER = "#FFFFFF";
 const INK = "#16191D";
 const INK2 = "#3C434B";
@@ -111,9 +108,19 @@ function collectInclusions(snap: ProposalPdfSnapshot): {
     }
     return out;
   };
+  // Trip-level lists win; each falls back independently to the union of
+  // per-day entries when the agent left the trip-wide field empty.
+  const tripIncluded = dedupe([snap.itinerary.inclusions]);
+  const tripExcluded = dedupe([snap.itinerary.exclusions]);
   return {
-    included: dedupe(snap.itinerary.days.map((d) => d.inclusions)),
-    excluded: dedupe(snap.itinerary.days.map((d) => d.exclusions)),
+    included:
+      tripIncluded.length > 0
+        ? tripIncluded
+        : dedupe(snap.itinerary.days.map((d) => d.inclusions)),
+    excluded:
+      tripExcluded.length > 0
+        ? tripExcluded
+        : dedupe(snap.itinerary.days.map((d) => d.exclusions)),
   };
 }
 
@@ -127,29 +134,46 @@ function alpha(hex: string, a: number): string {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
+// Slightly deeper shade of a light tint — used for callout / terms panels that
+// need to sit a touch darker than the page. @react-pdf has no color-mix, so we
+// scale each channel toward black by `amt`.
+function darken(hex: string, amt: number): string {
+  const h = hex.replace("#", "");
+  const f = Math.max(0, 1 - amt);
+  const ch = (i: number) =>
+    Math.round(parseInt(h.slice(i, i + 2), 16) * f)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${ch(0)}${ch(2)}${ch(4)}`;
+}
+
 // --- monogram seal (two concentric circles, no ::after) -------------------
 
 function Seal({
-  agency,
+  logoUrl,
+  agencyName,
   size,
   accent,
   onDark,
 }: {
-  agency: ProposalPdfSnapshot["agency"];
+  // Caller resolves which variant (light/dark) to pass for this surface.
+  logoUrl: string | null;
+  agencyName: string;
   size: number;
   accent: string;
   onDark?: boolean;
 }) {
-  // Logo wins if present.
-  if (agency.logoUrl) {
+  // Logo wins if present. Render at its natural aspect ratio (height fixed,
+  // width derived) with objectFit "contain" so the full mark shows — never
+  // cropped into a circle the way a square cover crop would.
+  if (logoUrl) {
     return (
       <Image
-        src={agency.logoUrl}
+        src={logoUrl}
         style={{
-          width: size,
           height: size,
-          borderRadius: size / 2,
-          objectFit: "cover",
+          maxWidth: size * 3.4,
+          objectFit: "contain",
         }}
       />
     );
@@ -187,7 +211,7 @@ function Seal({
           fontSize: size * 0.42,
         }}
       >
-        {agency.name.charAt(0).toUpperCase()}
+        {agencyName.charAt(0).toUpperCase()}
       </Text>
     </View>
   );
@@ -201,7 +225,7 @@ export function ProposalDocument({
   snapshot: ProposalPdfSnapshot;
 }) {
   const accent = snapshot.branding.accent;
-  const styles = makeStyles(accent);
+  const styles = makeStyles(accent, snapshot.branding.surface, snapshot.branding.tint);
   const { included, excluded } = collectInclusions(snapshot);
   const hasInclusions =
     snapshot.branding.showInclusions &&
@@ -220,12 +244,6 @@ export function ProposalDocument({
       <Page size="A4" style={styles.contentPage}>
         <RunningHeader snapshot={snapshot} styles={styles} accent={accent} />
         <RunningFooter snapshot={snapshot} styles={styles} />
-
-        {snapshot.branding.showAtAGlance &&
-          snapshot.itinerary &&
-          snapshot.itinerary.days.length > 0 && (
-            <AtAGlance snapshot={snapshot} styles={styles} accent={accent} />
-          )}
 
         {snapshot.segments.length > 0 && (
           <TravelPlan snapshot={snapshot} styles={styles} accent={accent} />
@@ -282,23 +300,32 @@ function CoverPage({
   const showPhoto =
     branding.coverStyle === "photo" && !!snapshot.itinerary?.coverImageUrl;
 
+  const days = snapshot.itinerary?.days ?? [];
+  const showIndex = branding.showAtAGlance && days.length > 0;
+  const summary = snapshot.itinerary?.summary?.trim();
+
   return (
     <Page size="A4" style={styles.coverPage}>
       {showPhoto && (
         <Image src={snapshot.itinerary!.coverImageUrl!} style={styles.coverImage} />
       )}
       <View style={styles.coverScrim} />
-      <View style={[styles.coverGlow, { backgroundColor: alpha(accent, 0.16) }]} />
 
       <View style={styles.coverInner}>
         {/* top: brand + version */}
         <View style={styles.coverTop}>
           <View style={styles.coverBrand}>
-            <Seal agency={agency} size={40} accent={accent} onDark />
+            <Seal
+              logoUrl={agency.logoLight}
+              agencyName={agency.name}
+              size={52}
+              accent={accent}
+              onDark
+            />
             <View>
               <Text style={styles.coverWord}>{agency.name.toUpperCase()}</Text>
               <Text style={[styles.coverTag, { color: accent }]}>
-                Crafted travel
+                {branding.tagline || "Crafted travel"}
               </Text>
             </View>
           </View>
@@ -308,15 +335,15 @@ function CoverPage({
           </View>
         </View>
 
-        {/* headline */}
+        {/* headline + intro overview, over the image */}
         <View>
           <Text style={[styles.coverKicker, { color: accent }]}>
             A JOURNEY FOR {trip.travelers}
           </Text>
           <Text style={styles.coverTitle}>{trip.destination}</Text>
           <Text style={styles.coverSub}>
-            A {trip.days}-day {trip.travelType.toLowerCase()} journey, crafted
-            with care from first light to last sunset.
+            {summary ||
+              `A ${trip.days}-day ${trip.travelType.toLowerCase()} journey, crafted with care from first light to last sunset.`}
           </Text>
 
           <View style={styles.coverMetaRow}>
@@ -326,6 +353,40 @@ function CoverPage({
             <MetaItem label="Style" value={trip.travelType} accent={accent} styles={styles} />
           </View>
 
+          {showIndex && (
+            <View style={styles.heroIndexWrap}>
+              <Text style={[styles.heroIndexEyebrow, { color: accent }]}>
+                Your journey at a glance
+              </Text>
+              <View style={styles.heroIndex}>
+                {days.map((day, i) => (
+                  <View key={i} style={styles.heroIndexRow}>
+                    <Text style={[styles.heroIndexNum, { color: accent }]}>
+                      {String(i + 1).padStart(2, "0")}
+                    </Text>
+                    <View style={styles.heroIndexBody}>
+                      <Text style={styles.heroIndexTitle}>
+                        {day.city || stripDayPrefix(day.title) || "—"}
+                      </Text>
+                      {day.hotel ? (
+                        <Text style={styles.heroIndexStay}>{day.hotel}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        <View>
+          {branding.showContactStrip && (
+            <Text style={[styles.coverContactStrip, { color: accent }]}>
+              {[agency.phone, agency.email, agency.website]
+                .filter(Boolean)
+                .join("   ·   ")}
+            </Text>
+          )}
           <Text style={styles.coverFooterText}>
             Prepared {fmtDate(meta.preparedAt)} · Valid for {meta.validityDays}{" "}
             days
@@ -368,7 +429,12 @@ function RunningHeader({
 }) {
   return (
     <View style={styles.runningHeader} fixed>
-      <Seal agency={snapshot.agency} size={24} accent={accent} />
+      <Seal
+        logoUrl={snapshot.agency.logoDark}
+        agencyName={snapshot.agency.name}
+        size={30}
+        accent={accent}
+      />
       <Text style={styles.runningHeaderAgency}>{snapshot.agency.name}</Text>
       <Text style={styles.runningHeaderTrip}>
         · {snapshot.trip.destination} · v{snapshot.meta.version}
@@ -423,60 +489,6 @@ function SectionHeading({
       <Text style={[styles.sectionEyebrow, { color: accent }]}>{eyebrow}</Text>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={[styles.ruleGold, { backgroundColor: accent }]} />
-    </View>
-  );
-}
-
-// --- at a glance ----------------------------------------------------------
-
-function AtAGlance({
-  snapshot,
-  styles,
-  accent,
-}: {
-  snapshot: ProposalPdfSnapshot;
-  styles: Styles;
-  accent: string;
-}) {
-  const { itinerary, trip } = snapshot;
-  if (!itinerary) return null;
-  const startDate = trip.startDate;
-
-  return (
-    <View style={styles.section}>
-      <SectionHeading eyebrow="The Overview" title="Trip at a glance" styles={styles} accent={accent} />
-      {itinerary.summary?.trim() ? (
-        <Text style={styles.glanceSummary}>{itinerary.summary.trim()}</Text>
-      ) : null}
-      <View style={styles.gtbl} wrap>
-        <View style={styles.gtblHead} fixed>
-          <Text style={[styles.gtblHeadCell, styles.gCellDay]}>Day</Text>
-          <Text style={[styles.gtblHeadCell, styles.gCellWide]}>Where</Text>
-          <Text style={[styles.gtblHeadCell, styles.gCellWide]}>Stay</Text>
-          <Text style={[styles.gtblHeadCell, styles.gCellHi]}>Highlights</Text>
-        </View>
-        {itinerary.days.map((day, i) => (
-          <View key={i} style={styles.gtblRow} wrap={false}>
-            <View style={styles.gCellDay}>
-              <Text style={styles.gDayNum}>{String(i + 1).padStart(2, "0")}</Text>
-              {startDate && (
-                <Text style={styles.gDayDate}>
-                  {fmtDayLabel(addDays(startDate, i))}
-                </Text>
-              )}
-            </View>
-            <Text style={[styles.gCellWide, styles.gPlace]}>
-              {day.city || stripDayPrefix(day.title) || "—"}
-            </Text>
-            <Text style={[styles.gCellWide, styles.gBody]}>{day.hotel || "—"}</Text>
-            <Text style={[styles.gCellHi, styles.gBody]}>
-              {day.activities && day.activities.length > 0
-                ? day.activities.slice(0, 3).join(" · ")
-                : "—"}
-            </Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
@@ -790,11 +802,26 @@ function ClosingPage({
   if (agency.email) contacts.push({ label: "Email", value: agency.email });
   if (agency.website) contacts.push({ label: "Web", value: agency.website });
 
+  const registeredLine = [
+    agency.registeredAddress,
+    agency.gstin ? `GSTIN ${agency.gstin}` : null,
+  ]
+    .filter(Boolean)
+    .join("   ·   ");
+  const showRegistered =
+    branding.showRegisteredFooter && registeredLine.length > 0;
+
   return (
     <Page size="A4" style={styles.closingPage}>
       <View style={[styles.closingGlow, { backgroundColor: alpha(accent, 0.14) }]} />
       <View style={styles.closingInner}>
-        <Seal agency={agency} size={60} accent={accent} onDark />
+        <Seal
+          logoUrl={agency.logoLight}
+          agencyName={agency.name}
+          size={78}
+          accent={accent}
+          onDark
+        />
         <Text style={styles.closingSig}>
           {branding.signatureNote ??
             "When you're ready, we'll handle every detail — so all that's left for you is to arrive."}
@@ -815,6 +842,9 @@ function ClosingPage({
             ))}
           </View>
         )}
+        {showRegistered && (
+          <Text style={styles.closingRegistered}>{registeredLine}</Text>
+        )}
       </View>
       <Text style={styles.closingCraft}>Crafted with TripCraft</Text>
     </Page>
@@ -825,7 +855,12 @@ function ClosingPage({
 
 type Styles = ReturnType<typeof makeStyles>;
 
-function makeStyles(accent: string) {
+function makeStyles(accent: string, surface: string, tint: string) {
+  // Local aliases so the style map below reads the same as before — `surface`
+  // replaces the old hardcoded navy, `tint` the ivory, `IVORY2` a deeper paper.
+  const NAVY = surface;
+  const IVORY = tint;
+  const IVORY2 = darken(tint, 0.05);
   return StyleSheet.create({
     // cover ----------------------------------------------------------------
     coverPage: { backgroundColor: NAVY, color: ON_DARK, padding: 0 },
@@ -845,16 +880,7 @@ function makeStyles(accent: string) {
       width: "100%",
       height: "100%",
       backgroundColor: NAVY,
-      opacity: 0.62,
-    },
-    coverGlow: {
-      position: "absolute",
-      top: 0,
-      right: 0,
-      width: 300,
-      height: 300,
-      borderRadius: 150,
-      opacity: 0.7,
+      opacity: 0.72,
     },
     coverInner: {
       padding: 50,
@@ -900,25 +926,63 @@ function makeStyles(accent: string) {
     },
     coverTitle: {
       color: "#fff",
-      fontSize: 74,
+      fontSize: 60,
       fontFamily: "Times-Roman",
       lineHeight: 0.95,
     },
     coverSub: {
-      marginTop: 16,
-      color: "rgba(255,255,255,0.82)",
+      marginTop: 14,
+      color: "rgba(255,255,255,0.85)",
       fontFamily: "Times-Italic",
-      fontSize: 16,
-      lineHeight: 1.4,
-      maxWidth: 420,
+      fontSize: 14,
+      lineHeight: 1.5,
+      maxWidth: 460,
     },
     coverMetaRow: {
       flexDirection: "row",
       flexWrap: "wrap",
-      marginTop: 34,
-      paddingTop: 22,
+      marginTop: 26,
+      paddingTop: 20,
       borderTopWidth: 0.5,
       borderTopColor: "rgba(255,255,255,0.2)",
+    },
+
+    // hero "at a glance" index (over the cover image) ----------------------
+    heroIndexWrap: {
+      marginTop: 24,
+      paddingTop: 20,
+      borderTopWidth: 0.5,
+      borderTopColor: "rgba(255,255,255,0.2)",
+    },
+    heroIndexEyebrow: {
+      fontSize: 8,
+      letterSpacing: 2.4,
+      textTransform: "uppercase",
+      fontFamily: "Helvetica-Bold",
+      marginBottom: 12,
+    },
+    heroIndex: { flexDirection: "row", flexWrap: "wrap" },
+    heroIndexRow: {
+      width: "50%",
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+      paddingVertical: 4,
+      paddingRight: 16,
+    },
+    heroIndexNum: {
+      fontFamily: "Helvetica-Bold",
+      fontSize: 9,
+      letterSpacing: 0.5,
+      width: 16,
+      marginTop: 1,
+    },
+    heroIndexBody: { flex: 1 },
+    heroIndexTitle: { fontFamily: "Times-Roman", fontSize: 11.5, color: "#fff" },
+    heroIndexStay: {
+      fontSize: 7.5,
+      color: "rgba(255,255,255,0.6)",
+      marginTop: 1,
     },
     metaItem: { width: "50%", marginBottom: 18 },
     metaLabel: {
@@ -933,8 +997,14 @@ function makeStyles(accent: string) {
       fontFamily: "Times-Roman",
       fontSize: 15,
     },
-    coverFooterText: {
+    coverContactStrip: {
       marginTop: 18,
+      fontSize: 8.5,
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
+    },
+    coverFooterText: {
+      marginTop: 8,
       color: "rgba(255,255,255,0.5)",
       fontSize: 8,
       letterSpacing: 0.5,
@@ -1008,51 +1078,6 @@ function makeStyles(accent: string) {
       fontFamily: "Times-Roman",
     },
     ruleGold: { marginTop: 12, width: 64, height: 2 },
-
-    // at a glance ----------------------------------------------------------
-    glanceSummary: {
-      fontSize: 11,
-      lineHeight: 1.7,
-      color: INK2,
-      marginBottom: 18,
-      maxWidth: 480,
-    },
-    gtbl: { borderWidth: 0.5, borderColor: LINE, borderRadius: 4 },
-    gtblHead: {
-      flexDirection: "row",
-      backgroundColor: IVORY2,
-      borderBottomWidth: 1,
-      borderBottomColor: NAVY,
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-    },
-    gtblHeadCell: {
-      fontSize: 7,
-      letterSpacing: 1.4,
-      textTransform: "uppercase",
-      color: MUTED,
-      fontFamily: "Helvetica-Bold",
-    },
-    gtblRow: {
-      flexDirection: "row",
-      borderBottomWidth: 0.5,
-      borderBottomColor: LINE,
-      paddingVertical: 8,
-      paddingHorizontal: 8,
-    },
-    gCellDay: { width: 70, paddingRight: 6 },
-    gCellWide: { flex: 1.2, paddingRight: 8 },
-    gCellHi: { flex: 1.8 },
-    gDayNum: { fontSize: 11, color: accent, fontFamily: "Helvetica-Bold" },
-    gDayDate: {
-      marginTop: 2,
-      fontSize: 7,
-      color: MUTED,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-    },
-    gPlace: { fontFamily: "Times-Roman", fontSize: 12, color: NAVY },
-    gBody: { fontSize: 9, color: INK2, lineHeight: 1.4 },
 
     // card / segments ------------------------------------------------------
     card: {
@@ -1327,6 +1352,15 @@ function makeStyles(accent: string) {
       fontFamily: "Helvetica-Bold",
     },
     closingContactValue: { marginTop: 5, fontSize: 11, color: "#fff" },
+    closingRegistered: {
+      marginTop: 28,
+      maxWidth: 380,
+      textAlign: "center",
+      fontSize: 8,
+      lineHeight: 1.6,
+      letterSpacing: 0.4,
+      color: "rgba(255,255,255,0.45)",
+    },
     closingCraft: {
       position: "absolute",
       bottom: 44,

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Check, Download, Link2, Send } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { generateShareTokenAction } from "@/server/actions/quotes";
 import { SendProposalDialog } from "@/components/quotes/send-proposal-dialog";
 
 export function PreviewActions({
@@ -37,24 +39,56 @@ export function PreviewActions({
   shareToken?: string | null;
 }) {
   const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // Cache the resolved public token so repeat clicks don't re-hit the server.
+  const [resolvedToken, setResolvedToken] = useState<string | null>(
+    shareToken ?? null
+  );
 
-  function copyLink() {
-    const url = `${window.location.origin}/trips/${tripId}/preview`;
-    navigator.clipboard.writeText(url).then(() => {
+  async function copyLink() {
+    if (busy) return;
+    // The /trips/{id}/preview route is auth-gated — copying it sends the
+    // recipient to a sign-in page. Share the public /share/{token} URL.
+    let token = resolvedToken;
+    if (!token) {
+      if (!quoteId) {
+        toast.error("Save a quote first to create a shareable link.");
+        return;
+      }
+      try {
+        setBusy(true);
+        const r = await generateShareTokenAction(quoteId);
+        token = r.token;
+        setResolvedToken(token);
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Couldn't create a share link"
+        );
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/share/${token}`
+      );
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch {
+      toast.error("Couldn't copy to clipboard");
+    }
   }
 
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" onClick={copyLink}>
+      <Button variant="outline" size="sm" onClick={copyLink} disabled={busy}>
         {copied ? (
           <Check className="h-3.5 w-3.5" />
         ) : (
           <Link2 className="h-3.5 w-3.5" />
         )}
-        {copied ? "Link copied" : "Share link"}
+        {copied ? "Link copied" : busy ? "Creating…" : "Share link"}
       </Button>
       {quoteId ? (
         <a

@@ -1,12 +1,14 @@
 "use server";
 
 import { createHash, randomBytes } from "crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
 import { brandedEmail, sendEmail } from "@/lib/email";
+import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
 import { TRIAL_DAYS } from "@/lib/plans";
 
 function publicBase(): string {
@@ -106,7 +108,7 @@ export async function signupAction(input: SignupInput) {
   await signIn("credentials", {
     email,
     password: data.password,
-    redirectTo: "/",
+    redirectTo: "/dashboard",
   });
   return { ok: true as const };
 }
@@ -122,7 +124,7 @@ export async function loginAction(input: z.input<typeof loginSchema>) {
     await signIn("credentials", {
       email: data.email.trim().toLowerCase(),
       password: data.password,
-      redirectTo: "/",
+      redirectTo: "/dashboard",
     });
     return { ok: true as const };
   } catch (err) {
@@ -150,6 +152,11 @@ function hashToken(raw: string): string {
  * for accounts that actually have a password (credentials users).
  */
 export async function requestPasswordResetAction(input: { email: string }) {
+  // Throttle reset requests per IP — 5 per 15 min. Always return ok so we
+  // never leak whether an account or the throttle was hit (no enumeration).
+  const rl = rateLimit(`pwreset:${clientIpFrom(headers())}`, 5, 15 * 60_000);
+  if (!rl.ok) return { ok: true as const };
+
   const parsed = z.string().email().safeParse(input.email?.trim().toLowerCase());
   if (!parsed.success) return { ok: true as const };
   const email = parsed.data;
@@ -302,7 +309,7 @@ export async function acceptInviteAction(
   await signIn("credentials", {
     email,
     password: data.password,
-    redirectTo: "/",
+    redirectTo: "/dashboard",
   });
   return { ok: true as const };
 }

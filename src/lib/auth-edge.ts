@@ -32,11 +32,25 @@ export const authEdgeConfig: NextAuthConfig = {
         path.startsWith("/share/") ||
         path.startsWith("/v/") ||
         path.startsWith("/api/share/") ||
+        // Invoice + voucher PDFs are token-gated inside the route handler
+        // (a `?token=` matching the resource's shareToken, or an owning
+        // session). They must be reachable cookieless so Meta/customers can
+        // fetch them — auth lives in the handler, not here.
+        path.startsWith("/api/invoices/") ||
+        path.startsWith("/api/vouchers/") ||
         path.startsWith("/api/auth") ||
         path.startsWith("/api/webhooks") ||
         path.startsWith("/api/cron") ||
         path.startsWith("/_next") ||
         path === "/favicon.ico" ||
+        // Public metadata / icon routes — browsers and crawlers fetch these
+        // cookieless, so they must never redirect to /login.
+        path === "/icon" ||
+        path === "/apple-icon" ||
+        path === "/manifest.webmanifest" ||
+        path === "/sitemap.xml" ||
+        path === "/robots.txt" ||
+        path === "/opengraph-image" ||
         path.startsWith("/uploads/");
       if (isPublic) return true;
       return Boolean(auth?.user);

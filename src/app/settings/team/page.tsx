@@ -18,7 +18,7 @@ export default async function TeamPage() {
 
   // Page is OWNER-only — Staff/Viewer don't manage team.
   if (user.activeAgencyRole !== "OWNER") {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   const [members, invites, agency] = await Promise.all([

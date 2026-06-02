@@ -5,6 +5,7 @@ import { ContactStrip } from "@/components/crm/contact-strip";
 import { CustomersTable, type CustomerRow } from "@/components/crm/customers-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageGuide } from "@/components/ui/page-guide";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { InlineWhatsappBadge } from "@/components/whatsapp/inline-whatsapp-badge";
 import { getWhatsappStatsForEntities } from "@/server/services/whatsapp";
@@ -96,6 +97,18 @@ export default async function CustomersPage({
           />
         ) : null}
       </header>
+
+      <PageGuide
+        id="customers"
+        body={
+          <>
+            Customers are contacts who've <strong>booked at least one trip</strong>.
+            They land here automatically with lifetime value and trip history —
+            no manual step. Work new leads over in Contacts.
+          </>
+        }
+        cta={{ label: "Go to Contacts", href: "/contacts" }}
+      />
 
       {enriched.length === 0 ? (
         <EmptyState

@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { AnalyticsProvider } from "@/components/analytics-provider";
+import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,10 +25,56 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.APP_URL ||
+  "http://localhost:3000"
+).replace(/\/$/, "");
+
+const TITLE = "TripCraft — Run your travel agency on one platform";
+const DESCRIPTION =
+  "The all-in-one platform for travel agencies — AI itineraries, branded proposals, WhatsApp, GST invoicing, payments and operations. Start a free trial.";
+
 export const metadata: Metadata = {
-  title: "TripCraft — Curated travel proposals, in minutes",
-  description:
-    "AI-powered itinerary and quotation builder for premium travel agents.",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: TITLE,
+    template: "%s · TripCraft",
+  },
+  description: DESCRIPTION,
+  applicationName: "TripCraft",
+  keywords: [
+    "travel agency software",
+    "travel CRM",
+    "AI itinerary builder",
+    "travel proposal software",
+    "GST invoice travel agency",
+    "WhatsApp travel agency",
+    "tour operator software India",
+  ],
+  authors: [{ name: "TripCraft" }],
+  openGraph: {
+    type: "website",
+    siteName: "TripCraft",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: APP_URL,
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0c1620",
 };
 
 export default function RootLayout({
@@ -42,6 +90,8 @@ export default function RootLayout({
       <body className="font-sans">
         {children}
         <Toaster />
+        <CookieConsent />
+        <AnalyticsProvider />
       </body>
     </html>
   );

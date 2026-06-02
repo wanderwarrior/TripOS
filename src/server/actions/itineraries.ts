@@ -124,8 +124,12 @@ function mergeStructuredOntoAI(
  * (legacy fields stripped, arrays trimmed).
  */
 function normalizeContent(content: ItineraryContent): ItineraryContent {
+  const cleanList = (arr?: string[]) =>
+    (arr ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
   return {
     ...content,
+    inclusions: cleanList(content.inclusions),
+    exclusions: cleanList(content.exclusions),
     days: content.days.map((d) => writeDay(readDay(d))),
   };
 }

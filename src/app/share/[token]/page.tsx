@@ -6,6 +6,11 @@ import { AcceptQuoteButton } from "@/components/quotes/accept-quote-button";
 import { prisma } from "@/lib/prisma";
 import type { ItineraryContent } from "@/lib/ai";
 import { buildProposalPricing, type LineItemCategory } from "@/types";
+import {
+  PROPOSAL_SETTINGS_SELECT,
+  buildProposalAgency,
+  buildProposalBranding,
+} from "@/lib/proposal-branding";
 
 export const dynamic = "force-dynamic";
 
@@ -32,26 +37,7 @@ export default async function PublicQuotePage({
           },
           agency: {
             select: {
-              settings: {
-                select: {
-                  legalName: true,
-                  tradeName: true,
-                  logoUrl: true,
-                  phone: true,
-                  email: true,
-                  website: true,
-                  invoiceTerms: true,
-                  // Proposal branding — chosen template + customization.
-                  proposalTheme: true,
-                  proposalAccentColor: true,
-                  proposalCoverStyle: true,
-                  proposalShowAtAGlance: true,
-                  proposalShowInclusions: true,
-                  proposalShowTerms: true,
-                  proposalSignatureNote: true,
-                  proposalRepeatLogo: true,
-                },
-              },
+              settings: { select: PROPOSAL_SETTINGS_SELECT },
             },
           },
         },
@@ -64,8 +50,10 @@ export default async function PublicQuotePage({
     | ItineraryContent
     | null;
 
-  const agency = quote.trip.agency.settings;
-  const agencyName = agency?.tradeName || agency?.legalName || "TripCraft";
+  const settings = quote.trip.agency.settings;
+  const proposalAgency = buildProposalAgency(settings);
+  const proposalBranding = buildProposalBranding(settings);
+  const agencyName = proposalAgency.name;
 
   // Customer-safe pricing — selling amounts only, no cost / markup / profit
   // ever reaches the client.
@@ -84,34 +72,6 @@ export default async function PublicQuotePage({
         })
       : null;
 
-  const proposalAgency = {
-    name: agencyName,
-    logoUrl: agency?.logoUrl ?? null,
-    phone: agency?.phone ?? null,
-    email: agency?.email ?? null,
-    website: agency?.website ?? null,
-    terms: agency?.invoiceTerms ?? null,
-  };
-
-  // Each agency's chosen template + customization. Defaults are fine when
-  // the agency hasn't visited /settings/proposal yet.
-  const proposalBranding = {
-    theme: (agency?.proposalTheme ?? "classic") as
-      | "classic"
-      | "editorial"
-      | "minimal",
-    accentColor: agency?.proposalAccentColor ?? null,
-    coverStyle: (agency?.proposalCoverStyle ?? "photo") as
-      | "photo"
-      | "gradient"
-      | "solid",
-    showAtAGlance: agency?.proposalShowAtAGlance ?? true,
-    showInclusions: agency?.proposalShowInclusions ?? true,
-    showTerms: agency?.proposalShowTerms ?? true,
-    signatureNote: agency?.proposalSignatureNote ?? null,
-    repeatLogo: agency?.proposalRepeatLogo ?? true,
-  };
-
   const canAccept =
     quote.status === "DRAFT" ||
     quote.status === "SENT" ||
@@ -122,10 +82,10 @@ export default async function PublicQuotePage({
       <header className="sticky top-0 z-30 border-b border-line/70 bg-ivory/85 backdrop-blur-md print:hidden">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2.5">
-            {agency?.logoUrl ? (
+            {settings?.logoUrl ? (
               // The agency's branding takes priority on customer-facing pages.
               <Image
-                src={agency.logoUrl}
+                src={settings.logoUrl}
                 alt={agencyName}
                 width={32}
                 height={32}

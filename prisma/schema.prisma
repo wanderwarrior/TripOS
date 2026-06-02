@@ -5,7 +5,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // Pooled connection (e.g. Neon's PgBouncer endpoint) — used at runtime by
+  // serverless functions, which would otherwise exhaust Postgres connections.
   url      = env("DATABASE_URL")
+  // Direct (unpooled) connection — used by `prisma migrate` / `db push`, which
+  // can't run through a transaction pooler. Falls back to DATABASE_URL locally.
+  directUrl = env("DIRECT_URL")
 }
 
 enum LeadSource {
@@ -947,7 +952,15 @@ model AgencySettings {
   signatoryDesignation String?
 
   // Branding
+  // Primary logo — the universal fallback used everywhere when a
+  // surface-specific variant below isn't set.
   logoUrl String?
+  // Optional surface-specific variants. logoLightUrl is a light/reversed mark
+  // shown on dark surfaces (proposal cover, price block, closing); logoDarkUrl
+  // is a dark mark shown on light surfaces (content pages, running header).
+  // Smart fallback: variant → logoUrl → lettered monogram.
+  logoLightUrl String?
+  logoDarkUrl  String?
 
   // Invoice configuration
   invoicePrefix                 String           @default("TC")
@@ -972,10 +985,22 @@ model AgencySettings {
   // sensible defaults — the agency can ship without touching any of these.
   proposalTheme         String  @default("classic") // classic | editorial | minimal
   proposalAccentColor   String? // hex e.g. "#C8A96A" — overrides the sand accent
+  // Full palette overrides. proposalSurfaceColor replaces the default navy on
+  // dark surfaces (cover, price block, closing); proposalTintColor replaces
+  // the ivory on light content pages. Both null = ship the classic defaults.
+  proposalSurfaceColor  String? // hex e.g. "#0C1620"
+  proposalTintColor     String? // hex e.g. "#FAF7F0"
   proposalCoverStyle    String  @default("photo")   // photo | gradient | solid
   proposalShowAtAGlance Boolean @default(true)
   proposalShowInclusions Boolean @default(true)
   proposalShowTerms      Boolean @default(true)
+  // Short brand tagline under the logo on the cover (e.g. "Luxury journeys
+  // since 2014"). Falls back to "Crafted travel" when empty.
+  proposalTagline        String?
+  // Show the phone · email · website contact strip on the cover.
+  proposalShowContactStrip Boolean @default(true)
+  // Show the registered-business footer (address + GSTIN) on the closing page.
+  proposalShowRegisteredFooter Boolean @default(true)
   // Closing sign-off shown above the agency contact block.
   proposalSignatureNote  String?
   // Stamp the agency logo on every major section header.
@@ -1004,6 +1029,15 @@ model AgencySettings {
   eWayBillEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Platform-wide key/value settings, owned by the platform admin (not any
+/// agency). Used for things that configure the public marketing site — e.g.
+/// the landing-page hero video. Keys are namespaced, e.g. "hero.videoUrl".
+model PlatformSetting {
+  key       String   @id
+  value     String
   updatedAt DateTime @updatedAt
 }
 

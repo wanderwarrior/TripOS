@@ -10,7 +10,7 @@ export const metadata = { title: "Create account · TripCraft" };
 
 export default async function SignupPage() {
   const u = await getSessionUser();
-  if (u) redirect("/");
+  if (u) redirect("/dashboard");
 
   return (
     <main className="min-h-screen bg-canvas flex items-center justify-center px-4 py-12">

@@ -14,7 +14,7 @@ export default async function AgencySettingsPage() {
     <PageShell>
       <div className="mb-6">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -63,6 +63,8 @@ export default async function AgencySettingsPage() {
                 gstin: existing.gstin,
                 pan: existing.pan,
                 logoUrl: existing.logoUrl,
+                logoLightUrl: existing.logoLightUrl,
+                logoDarkUrl: existing.logoDarkUrl,
                 addressLine1: existing.addressLine1,
                 addressLine2: existing.addressLine2,
                 city: existing.city,

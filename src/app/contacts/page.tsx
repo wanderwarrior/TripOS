@@ -4,6 +4,7 @@ import { LeadKanban, type KanbanLead } from "@/components/crm/contact-kanban";
 import { LeadsTable, type LeadRow } from "@/components/crm/contacts-table";
 import { NewLeadDialog } from "@/components/crm/contact-form-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageGuide } from "@/components/ui/page-guide";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { getWhatsappStatsForEntities } from "@/server/services/whatsapp";
 import { prisma } from "@/lib/prisma";
@@ -116,6 +117,19 @@ export default async function LeadsPage({
           <NewLeadDialog />
         </div>
       </header>
+
+      <PageGuide
+        id="contacts"
+        eyebrow="Start here"
+        body={
+          <>
+            This is step one of the funnel. Capture every inquiry as a{" "}
+            <strong>contact</strong>, then move it across the pipeline:{" "}
+            New → Contacted → Quoted → Won. When a contact is Won, convert it
+            into a trip.
+          </>
+        }
+      />
 
       {leads.length === 0 ? (
         <EmptyState

@@ -9,6 +9,7 @@ import { InvoiceActions } from "@/components/invoices/invoice-actions";
 import { getInvoiceById } from "@/server/services/invoices";
 import { previewNextInvoiceNumber } from "@/server/services/invoice-numbering";
 import { getAgencySettings } from "@/server/services/agency-settings";
+import { requireAgency } from "@/lib/session";
 import { formatDate, formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export default async function InvoiceDetailPage({
   const invoice = await getInvoiceById(params.id);
   if (!invoice) notFound();
 
+  const { user } = await requireAgency();
   const settings = await getAgencySettings();
 
   // For DRAFT, compute the would-be next number so the issue dialog shows it
@@ -107,6 +109,7 @@ export default async function InvoiceDetailPage({
           status={invoice.status}
           previewedNumber={previewedNumber}
           recipientPhone={invoice.booking?.trip?.contact?.phone ?? null}
+          role={user.activeAgencyRole}
         />
       </header>
 

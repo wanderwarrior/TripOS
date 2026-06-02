@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AiGeneratingPanel } from "@/components/brand";
 import { ChipInput } from "@/components/ui/chip-input";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { PillToggle } from "@/components/ui/pill-toggle";
@@ -130,6 +131,12 @@ export function ItineraryEditor({
     setContent({ ...content, summary });
   }
 
+  function updateTripList(field: "inclusions" | "exclusions", value: string[]) {
+    if (!content) return;
+    setDirty(true);
+    setContent({ ...content, [field]: value });
+  }
+
   /** Persist current edits — returns true on success. */
   async function persist(): Promise<boolean> {
     if (!content) return true;
@@ -194,6 +201,11 @@ export function ItineraryEditor({
   }
 
   if (!content) {
+    // While the AI drafts the first itinerary, show the branded "thinking"
+    // panel instead of a bare button spinner.
+    if (isRegenerating) {
+      return <AiGeneratingPanel title={`Crafting your ${destination} itinerary`} />;
+    }
     return (
       <EmptyItinerary
         destination={destination}
@@ -237,14 +249,6 @@ export function ItineraryEditor({
               <RotateCcw className="h-3.5 w-3.5" />
             )}
             Regenerate
-          </Button>
-          <Button size="sm" onClick={save} disabled={isSaving || !dirty}>
-            {isSaving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="h-3.5 w-3.5" />
-            )}
-            {dirty ? "Save" : "Saved"}
           </Button>
         </div>
       </div>
@@ -317,6 +321,36 @@ export function ItineraryEditor({
             />
           </div>
         )}
+        {view === "detailed" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="flex items-center gap-1.5 mb-2">
+                <ListChecks className="h-3 w-3" />
+                Trip inclusions
+              </Label>
+              <ChipInput
+                value={content.inclusions ?? []}
+                onChange={(v) => updateTripList("inclusions", v)}
+                placeholder="All transfers, daily breakfast, sightseeing…"
+              />
+              <p className="mt-1.5 text-[11px] text-muted">
+                Shown under &ldquo;What&rsquo;s included&rdquo; in the proposal.
+                Leave empty to fall back to per-day inclusions.
+              </p>
+            </div>
+            <div>
+              <Label className="flex items-center gap-1.5 mb-2">
+                <ListChecks className="h-3 w-3" />
+                Trip exclusions
+              </Label>
+              <ChipInput
+                value={content.exclusions ?? []}
+                onChange={(v) => updateTripList("exclusions", v)}
+                placeholder="Flights, visa fees, personal expenses…"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Day cards */}
@@ -348,6 +382,25 @@ export function ItineraryEditor({
           </div>
         ))}
       </div>
+
+      {/* Floating save — stays reachable while scrolling a long itinerary */}
+      {(dirty || isSaving) && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            size="lg"
+            onClick={save}
+            disabled={isSaving || !dirty}
+            className="rounded-full shadow-lg shadow-black/15"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isSaving ? "Saving…" : "Save changes"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

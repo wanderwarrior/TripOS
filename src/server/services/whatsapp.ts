@@ -476,9 +476,18 @@ export async function sendPaymentReminder(args: {
   const dueDate = invoice.invoiceDate
     ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(invoice.invoiceDate)
     : "soon";
-  const invoiceLink = invoice.shareToken
-    ? `${publicBase()}/i/${invoice.shareToken}`
-    : `${publicBase()}/invoices/${invoice.id}`;
+  // Customer-facing link → the token-gated invoice PDF (the artifact). Mint a
+  // share token if one doesn't exist yet so the link resolves without a login.
+  if (!invoice.shareToken) {
+    const { randomBytes } = await import("crypto");
+    const token = randomBytes(18).toString("base64url");
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { shareToken: token },
+    });
+    invoice.shareToken = token;
+  }
+  const invoiceLink = `${publicBase()}/api/invoices/${invoice.id}/pdf?token=${invoice.shareToken}`;
 
   const idem = buildIdempotencyKey([
     args.agencyId,

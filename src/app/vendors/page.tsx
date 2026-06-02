@@ -4,6 +4,7 @@ import { VendorFormDialog } from "@/components/vendors/vendor-form-dialog";
 import { VendorList } from "@/components/vendors/vendor-list";
 import { VendorStatTile } from "@/components/vendors/vendor-stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageGuide } from "@/components/ui/page-guide";
 import { listVendors, getVendorStats } from "@/server/services/vendors";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,19 @@ export default async function VendorsPage() {
         </div>
         <VendorFormDialog />
       </header>
+
+      <PageGuide
+        id="vendors"
+        body={
+          <>
+            Your <strong>supplier directory</strong> — hotels, transport,
+            guides, DMCs. Add vendors here once, then assign them to trips in
+            the <strong>Operations</strong> tab to track confirmations,
+            vouchers and payments.
+          </>
+        }
+        cta={{ label: "Open Operations", href: "/operations" }}
+      />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <VendorStatTile label="Total" value={stats.total} />

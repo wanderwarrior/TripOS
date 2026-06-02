@@ -22,6 +22,9 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  // One-line "what this section is for" — surfaced as a hover tooltip in the
+  // sidebar so first-time users can orient without clicking around.
+  desc: string;
 };
 
 export type NavGroup = {
@@ -34,32 +37,87 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
     items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/reports", label: "Reports", icon: BarChart3 },
+      {
+        href: "/dashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        desc: "Your daily home — key numbers and your next best actions.",
+      },
+      {
+        href: "/reports",
+        label: "Reports",
+        icon: BarChart3,
+        desc: "Revenue, conversion and pipeline analytics.",
+      },
     ],
   },
   {
     label: "Pipeline",
     items: [
-      { href: "/contacts", label: "Contacts", icon: Users },
-      { href: "/customers", label: "Customers", icon: Heart },
-      { href: "/trips", label: "Trips", icon: Compass },
-      { href: "/bookings", label: "Bookings", icon: Wallet },
-      { href: "/invoices", label: "Invoices", icon: FileText },
+      {
+        href: "/contacts",
+        label: "Contacts",
+        icon: Users,
+        desc: "Every lead — capture inquiries and work them down the funnel.",
+      },
+      {
+        href: "/customers",
+        label: "Customers",
+        icon: Heart,
+        desc: "Contacts who've booked — lifetime value and trip history.",
+      },
+      {
+        href: "/trips",
+        label: "Trips",
+        icon: Compass,
+        desc: "Build itineraries, price quotes and turn them into bookings.",
+      },
+      {
+        href: "/bookings",
+        label: "Bookings",
+        icon: Wallet,
+        desc: "Confirmed trips and the payments collected against them.",
+      },
+      {
+        href: "/invoices",
+        label: "Invoices",
+        icon: FileText,
+        desc: "GST invoices — send, track and reconcile what's outstanding.",
+      },
     ],
   },
   {
     label: "Operations",
     items: [
-      { href: "/vendors", label: "Vendors", icon: Building2 },
-      { href: "/operations", label: "Operations", icon: ClipboardList },
+      {
+        href: "/vendors",
+        label: "Vendors",
+        icon: Building2,
+        desc: "Your supplier directory — hotels, transport, guides, DMCs.",
+      },
+      {
+        href: "/operations",
+        label: "Operations",
+        icon: ClipboardList,
+        desc: "Run trips in motion — confirmations, vouchers and tasks.",
+      },
     ],
   },
   {
     label: "Engage",
     items: [
-      { href: "/communications", label: "Communications", icon: MessageCircle },
-      { href: "/follow-ups", label: "Follow-ups", icon: CalendarClock },
+      {
+        href: "/communications",
+        label: "Communications",
+        icon: MessageCircle,
+        desc: "WhatsApp threads, templates and message history.",
+      },
+      {
+        href: "/follow-ups",
+        label: "Follow-ups",
+        icon: CalendarClock,
+        desc: "Scheduled nudges so no lead or customer goes cold.",
+      },
     ],
   },
 ];

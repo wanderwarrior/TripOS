@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PageShell } from "@/components/page-shell";
+import { PageGuide } from "@/components/ui/page-guide";
 import { Badge } from "@/components/ui/badge";
 import { VendorStatTile } from "@/components/vendors/vendor-stat-tile";
 import {
@@ -54,6 +55,18 @@ export default async function OperationsDashboardPage() {
           <p className="tc-page-sub">{todayLabel}</p>
         </div>
       </header>
+
+      <PageGuide
+        id="operations"
+        body={
+          <>
+            Mission control for trips in motion. Anything needing action —
+            vendors to confirm, vouchers to send, payments due, departures
+            today — surfaces in <strong>Needs attention</strong> below. Clear
+            the list each morning.
+          </>
+        }
+      />
 
       <NeedsAttention snapshot={d} />
 

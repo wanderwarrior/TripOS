@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Clock,
   Copy,
@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ShareOnWhatsappButton } from "@/components/whatsapp/share-on-whatsapp-button";
+import { generateShareTokenAction } from "@/server/actions/quotes";
 import { addDays, cn, formatINR } from "@/lib/utils";
 
 type Channel = "whatsapp" | "email" | "link";
@@ -70,14 +71,25 @@ export function SendProposalDialog({
     }Everything we discussed, in one place. Tap below to view, and tell us what you'd love to tweak.`
   );
 
-  const shareUrl = useMemo(() => {
-    if (typeof window === "undefined") {
-      return shareToken ? `/p/${shareToken}` : `/trips/${tripId}/preview`;
+  // Resolve the PUBLIC share token. The /trips/{id}/preview route is auth-
+  // gated, so it must never be the link we hand a customer. Mint the token
+  // lazily when the dialog opens (idempotent server-side).
+  const [token, setToken] = useState<string | null>(shareToken ?? null);
+  useEffect(() => {
+    if (open && !token && quoteId) {
+      generateShareTokenAction(quoteId)
+        .then((r) => setToken(r.token))
+        .catch(() => {
+          /* surfaced when the user actually tries to copy/send */
+        });
     }
-    return shareToken
-      ? `${window.location.origin}/share/${shareToken}`
-      : `${window.location.origin}/trips/${tripId}/preview`;
-  }, [shareToken, tripId]);
+  }, [open, token, quoteId]);
+
+  const shareUrl = useMemo(() => {
+    if (!token) return "";
+    const origin = typeof window === "undefined" ? "" : window.location.origin;
+    return `${origin}/share/${token}`;
+  }, [token]);
 
   const validUntil = preparedAt
     ? addDays(new Date(preparedAt), validityDays).toLocaleDateString("en-IN", {
@@ -88,6 +100,7 @@ export function SendProposalDialog({
     : null;
 
   function copyLink() {
+    if (!shareUrl) return; // token still minting — button is disabled anyway
     navigator.clipboard.writeText(shareUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -309,16 +322,21 @@ export function SendProposalDialog({
                 variant="accent"
               />
             ) : channel === "email" ? (
-              <a href={mailtoHref}>
-                <button className="tc-btn tc-btn-gold">
+              <a
+                href={mailtoHref}
+                aria-disabled={!shareUrl}
+                className={cn(!shareUrl && "pointer-events-none opacity-60")}
+              >
+                <button className="tc-btn tc-btn-gold" disabled={!shareUrl}>
                   <Mail className="h-[15px] w-[15px]" />
-                  Send proposal
+                  {shareUrl ? "Send proposal" : "Preparing link…"}
                 </button>
               </a>
             ) : (
               <button
                 type="button"
                 onClick={copyLink}
+                disabled={!shareUrl}
                 className="tc-btn tc-btn-gold"
               >
                 {copied ? (
@@ -326,7 +344,11 @@ export function SendProposalDialog({
                 ) : (
                   <Copy className="h-[15px] w-[15px]" />
                 )}
-                {copied ? "Link copied" : "Copy share link"}
+                {copied
+                  ? "Link copied"
+                  : shareUrl
+                    ? "Copy share link"
+                    : "Preparing link…"}
               </button>
             )}
           </div>

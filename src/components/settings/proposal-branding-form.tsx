@@ -18,7 +18,14 @@ import {
   saveProposalBrandingAction,
   type ProposalBrandingInput,
 } from "@/server/actions/proposal-branding";
-import { PROPOSAL_THEMES, COVER_STYLES } from "@/lib/proposal-branding";
+import {
+  PROPOSAL_THEMES,
+  COVER_STYLES,
+  PROPOSAL_PALETTES,
+  DEFAULT_ACCENT,
+  DEFAULT_SURFACE,
+  DEFAULT_TINT,
+} from "@/lib/proposal-branding";
 
 type Theme = (typeof PROPOSAL_THEMES)[number];
 type Cover = (typeof COVER_STYLES)[number];
@@ -54,15 +61,22 @@ export type ProposalBrandingFormProps = {
   initial: {
     theme: Theme;
     accentColor: string | null;
+    surfaceColor: string | null;
+    tintColor: string | null;
     coverStyle: Cover;
     showAtAGlance: boolean;
     showInclusions: boolean;
     showTerms: boolean;
+    tagline: string | null;
+    showContactStrip: boolean;
+    showRegisteredFooter: boolean;
     signatureNote: string | null;
     repeatLogo: boolean;
   };
   agencyName: string;
   logoUrl: string | null;
+  logoLightUrl: string | null;
+  logoDarkUrl: string | null;
   canEdit: boolean;
 };
 
@@ -70,6 +84,8 @@ export function ProposalBrandingForm({
   initial,
   agencyName,
   logoUrl,
+  logoLightUrl,
+  logoDarkUrl,
   canEdit,
 }: ProposalBrandingFormProps) {
   const [form, setForm] = useState<ProposalBrandingFormProps["initial"]>(initial);
@@ -90,7 +106,25 @@ export function ProposalBrandingForm({
     });
   }
 
-  const accent = form.accentColor || "#C8A96A";
+  const accent = form.accentColor || DEFAULT_ACCENT;
+  const surface = form.surfaceColor || DEFAULT_SURFACE;
+  const tint = form.tintColor || DEFAULT_TINT;
+  // A preset is "active" when all three colours match it exactly.
+  const activePresetId = PROPOSAL_PALETTES.find(
+    (p) =>
+      p.surface.toLowerCase() === surface.toLowerCase() &&
+      p.accent.toLowerCase() === accent.toLowerCase() &&
+      p.tint.toLowerCase() === tint.toLowerCase()
+  )?.id;
+
+  function applyPreset(p: (typeof PROPOSAL_PALETTES)[number]) {
+    setForm((f) => ({
+      ...f,
+      surfaceColor: p.surface,
+      accentColor: p.accent,
+      tintColor: p.tint,
+    }));
+  }
 
   return (
     <div className="space-y-8">
@@ -110,8 +144,12 @@ export function ProposalBrandingForm({
         <ThemePreview
           theme={form.theme}
           accent={accent}
+          surface={surface}
+          tint={tint}
+          tagline={form.tagline}
           agencyName={agencyName}
-          logoUrl={logoUrl}
+          lightLogo={logoLightUrl || logoUrl}
+          darkLogo={logoDarkUrl || logoUrl}
         />
       </section>
 
@@ -164,51 +202,83 @@ export function ProposalBrandingForm({
         </div>
       </section>
 
-      {/* Accent + cover ------------------------------------------------- */}
-      <section className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-3">
-          <SectionHeading
-            icon={<Palette className="h-3.5 w-3.5" />}
-            title="Accent colour"
-            hint="Used for eyebrows, dividers, and price highlights."
-          />
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={form.accentColor || "#C8A96A"}
-              onChange={(e) => update("accentColor", e.target.value)}
-              disabled={!canEdit}
-              className="h-11 w-14 cursor-pointer rounded-[10px] border border-line bg-paper p-1 disabled:opacity-60"
-              aria-label="Accent colour"
-            />
-            <Input
-              value={form.accentColor ?? ""}
-              onChange={(e) => update("accentColor", e.target.value || null)}
-              placeholder="#C8A96A"
-              disabled={!canEdit}
-              className="font-mono uppercase tabular-nums"
-              maxLength={9}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              disabled={!canEdit || form.accentColor === null}
-              onClick={() => update("accentColor", null)}
-            >
-              Reset
-            </Button>
-          </div>
+      {/* Palette -------------------------------------------------------- */}
+      <section className="space-y-4">
+        <SectionHeading
+          icon={<Palette className="h-3.5 w-3.5" />}
+          title="Colour palette"
+          hint="Pick a ready-made combination, or fine-tune each colour below."
+        />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {PROPOSAL_PALETTES.map((p) => {
+            const active = activePresetId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => applyPreset(p)}
+                className={`group rounded-[10px] border p-2.5 text-left transition-all ${
+                  active
+                    ? "border-[var(--gold-line)] ring-2 ring-[var(--gold-line)]/20 shadow-soft"
+                    : "border-line hover:border-[var(--gold-line)]/60"
+                } disabled:opacity-60`}
+              >
+                <div
+                  className="flex h-10 items-center justify-end gap-1 rounded-[7px] px-2"
+                  style={{ backgroundColor: p.surface }}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border border-white/20"
+                    style={{ backgroundColor: p.accent }}
+                  />
+                  <span
+                    className="h-4 w-4 rounded-full border border-white/20"
+                    style={{ backgroundColor: p.tint }}
+                  />
+                </div>
+                <p className="mt-2 text-xs font-medium text-ink">{p.name}</p>
+              </button>
+            );
+          })}
         </div>
-
-        <div className="space-y-3">
-          <SectionHeading
-            icon={<ImageIcon className="h-3.5 w-3.5" />}
-            title="Cover treatment"
-            hint="How the top of the proposal renders."
+        <div className="grid gap-4 sm:grid-cols-3">
+          <ColorField
+            label="Dark surface"
+            hint="Cover, price block & closing"
+            value={form.surfaceColor}
+            fallback={DEFAULT_SURFACE}
+            onChange={(v) => update("surfaceColor", v)}
+            canEdit={canEdit}
           />
-          <div className="grid gap-2">
-            {COVER_STYLES.map((c) => {
+          <ColorField
+            label="Accent"
+            hint="Eyebrows, rules & prices"
+            value={form.accentColor}
+            fallback={DEFAULT_ACCENT}
+            onChange={(v) => update("accentColor", v)}
+            canEdit={canEdit}
+          />
+          <ColorField
+            label="Light tint"
+            hint="Content page background"
+            value={form.tintColor}
+            fallback={DEFAULT_TINT}
+            onChange={(v) => update("tintColor", v)}
+            canEdit={canEdit}
+          />
+        </div>
+      </section>
+
+      {/* Cover ---------------------------------------------------------- */}
+      <section className="space-y-3">
+        <SectionHeading
+          icon={<ImageIcon className="h-3.5 w-3.5" />}
+          title="Cover treatment"
+          hint="How the top of the proposal renders."
+        />
+        <div className="grid gap-2 sm:grid-cols-3">
+          {COVER_STYLES.map((c) => {
               const info = COVER_INFO[c];
               const active = form.coverStyle === c;
               return (
@@ -236,7 +306,6 @@ export function ProposalBrandingForm({
               );
             })}
           </div>
-        </div>
       </section>
 
       {/* Sections ------------------------------------------------------- */}
@@ -268,6 +337,20 @@ export function ProposalBrandingForm({
             onChange={(v) => update("showTerms", v)}
             disabled={!canEdit}
           />
+          <ToggleRow
+            label="Contact strip on cover"
+            description="Phone · email · website on the cover"
+            checked={form.showContactStrip}
+            onChange={(v) => update("showContactStrip", v)}
+            disabled={!canEdit}
+          />
+          <ToggleRow
+            label="Registered footer"
+            description="Address + GSTIN on the closing page"
+            checked={form.showRegisteredFooter}
+            onChange={(v) => update("showRegisteredFooter", v)}
+            disabled={!canEdit}
+          />
         </div>
         <div className="rounded-[10px] border border-line bg-paper-2 px-3.5 py-2.5">
           <label className="flex items-start gap-2.5 cursor-pointer">
@@ -289,6 +372,23 @@ export function ProposalBrandingForm({
             </span>
           </label>
         </div>
+      </section>
+
+      {/* Tagline ------------------------------------------------------- */}
+      <section className="space-y-2">
+        <Label htmlFor="prop-tagline">Brand tagline</Label>
+        <Input
+          id="prop-tagline"
+          value={form.tagline ?? ""}
+          onChange={(e) => update("tagline", e.target.value || null)}
+          placeholder="Crafted travel"
+          maxLength={80}
+          disabled={!canEdit}
+        />
+        <p className="text-xs text-muted">
+          Shown under your logo on the cover. Leave blank for the default
+          “Crafted travel”.
+        </p>
       </section>
 
       {/* Signature ----------------------------------------------------- */}
@@ -379,36 +479,119 @@ function ToggleRow({
   );
 }
 
+// A single colour swatch + hex input + reset, used three times in the palette.
+function ColorField({
+  label,
+  hint,
+  value,
+  fallback,
+  onChange,
+  canEdit,
+}: {
+  label: string;
+  hint: string;
+  value: string | null;
+  fallback: string;
+  onChange: (v: string | null) => void;
+  canEdit: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div>
+        <p className="text-xs font-medium text-ink">{label}</p>
+        <p className="text-[11px] text-muted">{hint}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value || fallback}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={!canEdit}
+          className="h-10 w-12 shrink-0 cursor-pointer rounded-[10px] border border-line bg-paper p-1 disabled:opacity-60"
+          aria-label={label}
+        />
+        <Input
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value || null)}
+          placeholder={fallback}
+          disabled={!canEdit}
+          className="font-mono text-xs uppercase tabular-nums"
+          maxLength={9}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          disabled={!canEdit || value === null}
+          onClick={() => onChange(null)}
+        >
+          Reset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Logo mark for the live preview — picks the variant matching the background.
+function PreviewLogo({
+  logo,
+  agencyName,
+  onDark,
+}: {
+  logo: string | null;
+  agencyName: string;
+  onDark: boolean;
+}) {
+  if (logo) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logo}
+        alt={agencyName}
+        className={`h-8 w-8 rounded-full object-cover border ${
+          onDark ? "border-white/20" : "border-line"
+        }`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`h-8 w-8 rounded-full border ${
+        onDark ? "bg-white/10 border-white/20" : "bg-paper-2 border-line"
+      }`}
+    />
+  );
+}
+
 // Tiny inline mock of the proposal hero so the user sees their changes live.
 function ThemePreview({
   theme,
   accent,
+  surface,
+  tint,
+  tagline,
   agencyName,
-  logoUrl,
+  lightLogo,
+  darkLogo,
 }: {
   theme: Theme;
   accent: string;
+  surface: string;
+  tint: string;
+  tagline: string | null;
   agencyName: string;
-  logoUrl: string | null;
+  lightLogo: string | null;
+  darkLogo: string | null;
 }) {
+  const tag = tagline?.trim() || "Crafted travel";
+
   if (theme === "minimal") {
     return (
       <div className="rounded-[10px] border border-line bg-paper p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={agencyName}
-                className="h-7 w-7 rounded-full object-cover border border-line"
-              />
-            ) : (
-              <span className="h-7 w-7 rounded-full bg-paper-2 border border-line" />
-            )}
-            <span className="text-xs text-ink font-medium">
-              {agencyName}
-            </span>
+            <PreviewLogo logo={darkLogo} agencyName={agencyName} onDark={false} />
+            <span className="text-xs text-ink font-medium">{agencyName}</span>
           </div>
           <span className="text-[9px] uppercase tracking-[0.22em]" style={{ color: accent }}>
             Proposal
@@ -417,31 +600,21 @@ function ThemePreview({
         <p className="mt-4 font-display text-2xl text-ink leading-tight">
           Bali · 7 days
         </p>
-        <p className="mt-1 text-xs text-muted">
-          Crafted by {agencyName}
-        </p>
+        <p className="mt-1 text-xs text-muted">{tag}</p>
       </div>
     );
   }
 
   if (theme === "editorial") {
     return (
-      <div className="rounded-[10px] border border-line bg-[#FAF7F0] p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={agencyName}
-                className="h-8 w-8 rounded-full object-cover border border-line"
-              />
-            ) : (
-              <span className="h-8 w-8 rounded-full bg-paper border border-line" />
-            )}
-            <span className="text-[10px] uppercase tracking-[0.22em]" style={{ color: accent }}>
+      <div className="rounded-[10px] border border-line p-6" style={{ backgroundColor: tint }}>
+        <div className="flex items-center gap-2">
+          <PreviewLogo logo={darkLogo} agencyName={agencyName} onDark={false} />
+          <div>
+            <span className="block text-[10px] uppercase tracking-[0.22em]" style={{ color: accent }}>
               {agencyName}
             </span>
+            <span className="block text-[10px] text-muted">{tag}</span>
           </div>
         </div>
         <p className="mt-6 font-display text-3xl text-ink leading-tight">
@@ -455,33 +628,30 @@ function ThemePreview({
     );
   }
 
-  // classic (default)
+  // classic (default) — dark surface
   return (
-    <div className="rounded-[10px] bg-[#1A2238] text-[var(--on-dark)] p-6 overflow-hidden relative">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,169,106,0.18),transparent_60%)]" />
-      <div className="relative flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt={agencyName}
-              className="h-8 w-8 rounded-full object-cover border border-white/20"
-            />
-          ) : (
-            <span className="h-8 w-8 rounded-full bg-white/10 border border-white/20" />
-          )}
-          <span
-            className="text-[10px] uppercase tracking-[0.25em]"
-            style={{ color: accent }}
-          >
-            Travel proposal · {agencyName}
+    <div
+      className="rounded-[10px] text-[var(--on-dark)] p-6 overflow-hidden relative"
+      style={{ backgroundColor: surface }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(circle at top right, ${accent}2e, transparent 60%)`,
+        }}
+      />
+      <div className="relative flex items-center gap-2">
+        <PreviewLogo logo={lightLogo} agencyName={agencyName} onDark />
+        <div>
+          <span className="block text-[10px] uppercase tracking-[0.25em] text-white/90">
+            {agencyName}
+          </span>
+          <span className="block text-[10px] uppercase tracking-[0.2em]" style={{ color: accent }}>
+            {tag}
           </span>
         </div>
       </div>
-      <p className="relative mt-6 font-display text-3xl leading-tight">
-        Bali
-      </p>
+      <p className="relative mt-6 font-display text-3xl leading-tight">Bali</p>
       <p className="relative mt-2 text-xs text-[var(--on-dark)]/70">
         7 days · 2 travellers · Luxury
       </p>

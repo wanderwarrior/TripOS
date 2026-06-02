@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { AdminAgenciesTable } from "@/components/admin/agencies-table";
+import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import {
+  getHeroMedia,
   getPlatformStats,
   listAgenciesForAdmin,
 } from "@/server/services/platform";
@@ -21,9 +23,10 @@ export default async function AdminPage({
   const admin = await getPlatformAdmin();
   if (!admin) notFound();
 
-  const [stats, agencies] = await Promise.all([
+  const [stats, agencies, hero] = await Promise.all([
     getPlatformStats(),
     listAgenciesForAdmin(searchParams.q),
+    getHeroMedia(),
   ]);
 
   return (
@@ -61,6 +64,16 @@ export default async function AdminPage({
         }))}
         query={searchParams.q ?? ""}
       />
+
+      <section className="mt-8">
+        <div className="tc-sec-head">
+          <h2>Marketing site</h2>
+        </div>
+        <HeroVideoSettings
+          initialVideoUrl={hero.videoUrl ?? ""}
+          initialPosterUrl={hero.posterUrl ?? ""}
+        />
+      </section>
     </PageShell>
   );
 }

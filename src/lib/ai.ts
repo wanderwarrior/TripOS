@@ -66,6 +66,13 @@ export type ItineraryContent = {
   days: ItineraryDay[];
   coverImageUrl?: string | null;
   heroSubtitle?: string | null;
+  /**
+   * Trip-wide inclusions / exclusions the agent fills once. The proposal's
+   * "What's included" section prefers these; when empty it falls back to the
+   * union of each day's `inclusions` / `exclusions`.
+   */
+  inclusions?: string[];
+  exclusions?: string[];
 };
 
 export type DayPlan = {

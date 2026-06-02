@@ -7,6 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import type { ItineraryContent } from "@/lib/ai";
 import { buildProposalPricing, type LineItemCategory } from "@/types";
+import {
+  PROPOSAL_SETTINGS_SELECT,
+  buildProposalAgency,
+  buildProposalBranding,
+} from "@/lib/proposal-branding";
 
 export const dynamic = "force-dynamic";
 
@@ -32,25 +37,7 @@ export default async function PreviewPage({
       contact: { select: { id: true, name: true, phone: true } },
       agency: {
         select: {
-          settings: {
-            select: {
-              legalName: true,
-              tradeName: true,
-              logoUrl: true,
-              phone: true,
-              email: true,
-              website: true,
-              invoiceTerms: true,
-              proposalTheme: true,
-              proposalAccentColor: true,
-              proposalCoverStyle: true,
-              proposalShowAtAGlance: true,
-              proposalShowInclusions: true,
-              proposalShowTerms: true,
-              proposalSignatureNote: true,
-              proposalRepeatLogo: true,
-            },
-          },
+          settings: { select: PROPOSAL_SETTINGS_SELECT },
         },
       },
     },
@@ -83,32 +70,8 @@ export default async function PreviewPage({
       : null;
 
   const settings = trip.agency.settings;
-  const agencyName = settings?.tradeName || settings?.legalName || "TripCraft";
-  const proposalAgency = {
-    name: agencyName,
-    logoUrl: settings?.logoUrl ?? null,
-    phone: settings?.phone ?? null,
-    email: settings?.email ?? null,
-    website: settings?.website ?? null,
-    terms: settings?.invoiceTerms ?? null,
-  };
-
-  const proposalBranding = {
-    theme: (settings?.proposalTheme ?? "classic") as
-      | "classic"
-      | "editorial"
-      | "minimal",
-    accentColor: settings?.proposalAccentColor ?? null,
-    coverStyle: (settings?.proposalCoverStyle ?? "photo") as
-      | "photo"
-      | "gradient"
-      | "solid",
-    showAtAGlance: settings?.proposalShowAtAGlance ?? true,
-    showInclusions: settings?.proposalShowInclusions ?? true,
-    showTerms: settings?.proposalShowTerms ?? true,
-    signatureNote: settings?.proposalSignatureNote ?? null,
-    repeatLogo: settings?.proposalRepeatLogo ?? true,
-  };
+  const proposalAgency = buildProposalAgency(settings);
+  const proposalBranding = buildProposalBranding(settings);
 
   return (
     <div className="min-h-screen bg-canvas">

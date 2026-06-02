@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { assertCan } from "@/lib/session";
 import {
   createOrRefreshDraftInvoice,
   issueInvoice,
@@ -23,6 +24,7 @@ const createSchema = z.object({
 export async function createDraftInvoiceAction(
   input: z.infer<typeof createSchema>
 ) {
+  await assertCan("invoice:create");
   const data = createSchema.parse(input);
   const invoice = await createOrRefreshDraftInvoice({
     bookingId: data.bookingId,
@@ -36,6 +38,7 @@ export async function createDraftInvoiceAction(
 }
 
 export async function issueInvoiceAction(invoiceId: string) {
+  await assertCan("invoice:issue");
   const invoice = await issueInvoice(invoiceId);
   revalidatePath("/invoices");
   return {
@@ -51,6 +54,7 @@ const cancelSchema = z.object({
 });
 
 export async function cancelInvoiceAction(input: z.infer<typeof cancelSchema>) {
+  await assertCan("invoice:cancel");
   const data = cancelSchema.parse(input);
   await cancelInvoice(data.invoiceId, data.reason);
   revalidatePath("/invoices");
@@ -79,6 +83,7 @@ const updateSchema = z.object({
 export async function updateDraftInvoiceAction(
   input: z.infer<typeof updateSchema>
 ) {
+  await assertCan("invoice:update");
   const data = updateSchema.parse(input);
   const invoice = await updateDraftInvoice({
     invoiceId: data.invoiceId,

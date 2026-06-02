@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tripOS — Motion System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  :root{
+    --ease: cubic-bezier(.22,1,.36,1);
+    --ease-io: cubic-bezier(.65,0,.35,1);
+    --gold:#C8A96A; --gold-deep:#9F7C36; --navy:#0C1620;
+  }
+  body{
+    font-family:"Inter",system-ui,sans-serif;
+    background:var(--bg); color:var(--fg);
+    transition:background .5s var(--ease), color .5s var(--ease);
+    min-height:100vh;
+  }
+  body[data-theme="dark"]{
+    --bg:#0A131C; --panel:#101e29; --panel-2:#0c1923; --fg:#EFEAE0; --muted:#7e93a3;
+    --line:rgba(255,255,255,.09); --mark-fg:#EFEAE0; --accent:#C8A96A; --stage:#0C1620;
+    --skel:rgba(255,255,255,.06); --skel-hi:rgba(200,169,106,.16);
+  }
+  body[data-theme="light"]{
+    --bg:#EFEDE7; --panel:#FFFFFF; --panel-2:#F7F5F0; --fg:#16191D; --muted:#8a8378;
+    --line:#E6E2D8; --mark-fg:#0C1620; --accent:#9F7C36; --stage:#F4F1EA;
+    --skel:rgba(12,22,32,.05); --skel-hi:rgba(159,124,54,.14);
+  }
+  .mono{ font-family:"JetBrains Mono",monospace; }
+
+  /* ---------- header ---------- */
+  header{
+    max-width:1180px; margin:0 auto; padding:38px 28px 10px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:2px; }
+  .brand .word{ font-weight:700; letter-spacing:-.04em; font-size:24px; }
+  .kicker{ font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  h1{ font-size:34px; font-weight:700; letter-spacing:-.035em; margin:0; line-height:1.05; }
+  header p{ color:var(--muted); margin:10px 0 0; font-size:14px; max-width:520px; line-height:1.5; }
+  .controls{ display:flex; gap:8px; align-items:center; }
+  .ctl{
+    font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;
+    background:var(--panel); color:var(--fg); border:1px solid var(--line);
+    padding:9px 14px; border-radius:10px; display:flex; align-items:center; gap:8px;
+    transition:transform .15s var(--ease), border-color .2s, background .3s;
+  }
+  .ctl:hover{ transform:translateY(-1px); border-color:var(--accent); }
+  .ctl:active{ transform:translateY(0); }
+  .swatch{ width:12px; height:12px; border-radius:4px; background:var(--accent); }
+
+  /* ---------- grid ---------- */
+  .grid{
+    max-width:1180px; margin:0 auto; padding:26px 28px 80px;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:20px;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    overflow:hidden; display:flex; flex-direction:column;
+    transition:background .5s var(--ease), border-color .5s;
+  }
+  .card.wide{ grid-column:1 / -1; }
+  .stage{
+    background:var(--stage); position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    min-height:280px; transition:background .5s var(--ease);
+  }
+  .cardfoot{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 18px; border-top:1px solid var(--line);
+  }
+  .cardfoot .meta h3{ margin:0; font-size:14.5px; font-weight:600; letter-spacing:-.01em; }
+  .cardfoot .meta p{ margin:3px 0 0; font-size:11.5px; color:var(--muted); }
+  .replay{
+    font:inherit; font-size:12px; font-weight:500; cursor:pointer; white-space:nowrap;
+    background:transparent; color:var(--accent); border:1px solid var(--line);
+    padding:7px 13px; border-radius:9px; display:flex; align-items:center; gap:7px;
+    transition:transform .15s var(--ease), border-color .2s, background .2s;
+  }
+  .replay:hover{ border-color:var(--accent); background:color-mix(in oklab, var(--accent) 10%, transparent); }
+  .replay svg{ width:12px; height:12px; }
+
+  /* ---------- mark + wordmark ---------- */
+  .mark{ display:block; overflow:visible; }
+  .rec{ transform-box:fill-box; transform-origin:center; }
+  .rec-top{ fill:var(--accent); }
+  .rec-mid,.rec-bot{ fill:var(--mark-fg); }
+  .word{ font-weight:700; letter-spacing:-.04em; line-height:1; white-space:nowrap; }
+  .word .w1{ color:var(--mark-fg); }
+  .word .w2{ color:var(--accent); }
+
+  /* ============ 1 · INTRO SPLASH ============ */
+  .intro .lockup{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .intro .mark{ width:108px; height:108px; }
+  .intro .word{ font-size:30px; }
+  .intro .tag{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); opacity:0; margin-top:8px; }
+  .intro .glow{
+    position:absolute; width:340px; height:340px; border-radius:50%; opacity:0;
+    background:radial-gradient(circle, color-mix(in oklab,var(--accent) 30%, transparent) 0%, transparent 65%);
+    pointer-events:none;
+  }
+  .intro.run .rec-bot{ animation:recIn .8s var(--ease) both; }
+  .intro.run .rec-mid{ animation:recIn .8s .14s var(--ease) both; }
+  .intro.run .rec-top{ animation:recIn .8s .3s var(--ease) both, goldPulse 2.4s 1s ease-in-out infinite; }
+  .intro.run .word{ animation:fadeUp .9s .58s var(--ease) both; }
+  .intro.run .tag{ animation:fadeUp .9s .8s var(--ease) both; }
+  .intro.run .glow{ animation:glowPop 1.4s .3s var(--ease) both; }
+  .intro .lockup .mark{ animation:none; }
+  .intro.run .mark{ animation:markSettle 1.2s var(--ease) both; }
+  @keyframes recIn{
+    0%{ opacity:0; transform:translateX(-22px) scaleX(.45); filter:blur(2px); }
+    60%{ opacity:1; filter:blur(0); }
+    100%{ opacity:1; transform:none; }
+  }
+  @keyframes markSettle{ 0%{ transform:scale(.82) translateY(8px); } 100%{ transform:none; } }
+  @keyframes goldPulse{ 0%,100%{ filter:drop-shadow(0 0 0 transparent); } 50%{ filter:drop-shadow(0 0 7px color-mix(in oklab,var(--accent) 80%, transparent)); } }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:none; } }
+  @keyframes glowPop{ 0%{ opacity:0; transform:scale(.6); } 40%{ opacity:.9; } 100%{ opacity:.5; transform:scale(1); } }
+
+  /* ============ 2 · APP LOADER ============ */
+  .loader .lockup{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .loader .mark{ width:96px; height:96px; }
+  .loader .word{ font-size:26px; opacity:0; }
+  .loader .bar{
+    margin-top:8px; width:140px; height:3px; border-radius:3px; overflow:hidden;
+    background:var(--skel); position:relative; opacity:0;
+  }
+  .loader .bar i{ position:absolute; inset:0; width:40%; border-radius:3px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent); }
+  .loader .status{ font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); height:12px; }
+  /* loading loop: gold "live" signal travels down the stack */
+  .loader.loading .rec{ animation:liveSweep 1.5s var(--ease-io) infinite; }
+  .loader.loading .rec-top{ animation-delay:0s; }
+  .loader.loading .rec-mid{ animation-delay:.18s; }
+  .loader.loading .rec-bot{ animation-delay:.36s; }
+  .loader.loading .bar{ opacity:1; }
+  .loader.loading .bar i{ animation:barSlide 1.5s var(--ease-io) infinite; }
+  @keyframes liveSweep{
+    0%,70%,100%{ fill:var(--mark-fg); transform:scaleX(1); }
+    18%{ fill:var(--accent); transform:scaleX(1.05); }
+    35%{ fill:var(--mark-fg); }
+  }
+  @keyframes barSlide{ 0%{ left:-40%; } 100%{ left:100%; } }
+  /* resolve */
+  .loader.done .rec-top{ fill:var(--accent); }
+  .loader.done .rec-mid,.loader.done .rec-bot{ fill:var(--mark-fg); }
+  .loader.done .mark{ animation:settlePop .7s var(--ease) both; }
+  .loader.done .word{ animation:fadeUp .7s .12s var(--ease) both; }
+  .loader.done .bar{ opacity:0; transition:opacity .4s; }
+  @keyframes settlePop{ 0%{ transform:scale(1); } 35%{ transform:scale(.9); } 100%{ transform:scale(1); } }
+
+  /* ============ 3 · INLINE SPINNER ============ */
+  .spincard .stage{ flex-direction:column; gap:26px; }
+  .spinrow{ display:flex; align-items:center; gap:30px; }
+  .wave{ display:flex; align-items:center; gap:4px; height:22px; }
+  .wave i{ width:4px; height:100%; border-radius:3px; background:var(--accent); transform-origin:center;
+    animation:waveB 1s var(--ease-io) infinite; }
+  .wave i:nth-child(2){ animation-delay:.12s; } .wave i:nth-child(3){ animation-delay:.24s; }
+  .wave.sm i{ width:3px; } .wave.sm{ height:14px; }
+  @keyframes waveB{ 0%,100%{ transform:scaleY(.35); opacity:.45; } 50%{ transform:scaleY(1); opacity:1; } }
+  .btn{
+    font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border:none;
+    background:var(--accent); color:var(--navy); padding:12px 22px; border-radius:11px;
+    display:inline-flex; align-items:center; gap:10px; min-width:148px; justify-content:center;
+    transition:transform .15s var(--ease), filter .2s;
+  }
+  .btn:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+  .btn.loading{ pointer-events:none; }
+  .btn .lbl-go{ display:inline; } .btn .lbl-load{ display:none; }
+  .btn.loading .lbl-go{ display:none; } .btn.loading .lbl-load{ display:inline; }
+  .btn .wave{ display:none; } .btn.loading .wave{ display:flex; }
+  .btn .wave i{ background:var(--navy); }
+  .ring{ width:26px; height:26px; }
+  .ring circle{ fill:none; stroke-width:9; }
+  .ring .trk{ stroke:var(--skel); }
+  .ring .ind{ stroke:var(--accent); stroke-linecap:round; stroke-dasharray:90 210;
+    transform-origin:center; animation:ringSpin 1.1s linear infinite; }
+  @keyframes ringSpin{ to{ transform:rotate(360deg); } }
+
+  /* ============ 4 · SKELETON ============ */
+  .skelcard .stage{ padding:30px; }
+  .skelwrap{ width:100%; max-width:360px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:14px; }
+  .skelrow{ display:flex; align-items:center; gap:14px; }
+  .sk{ background:linear-gradient(100deg, var(--skel) 30%, var(--skel-hi) 50%, var(--skel) 70%);
+    background-size:220% 100%; border-radius:7px; animation:shimmer 1.5s linear infinite; }
+  .sk.av{ width:46px; height:46px; border-radius:12px; flex:none; }
+  .sk.l{ height:11px; } .sk.t{ height:14px; width:60%; } .sk.s{ height:10px; width:40%; }
+  .skellines{ flex:1; display:flex; flex-direction:column; gap:8px; }
+  .skelbody{ display:flex; flex-direction:column; gap:9px; }
+  .sk.w100{ width:100%; } .sk.w85{ width:85%; } .sk.w65{ width:65%; }
+  @keyframes shimmer{ from{ background-position:120% 0; } to{ background-position:-120% 0; } }
+
+  /* ============ 5 · PAGE TRANSITION ============ */
+  .transcard .stage{ padding:0; }
+  .device{ position:relative; width:100%; height:280px; overflow:hidden; background:var(--panel-2); }
+  .screen{ position:absolute; inset:0; padding:22px; display:flex; flex-direction:column; gap:14px; }
+  .screen .topbar{ display:flex; align-items:center; gap:1px; }
+  .screen .topbar .word{ font-size:15px; }
+  .screen .htitle{ font-size:19px; font-weight:700; letter-spacing:-.02em; margin:6px 0 0; }
+  .screen .htext{ font-size:12.5px; color:var(--muted); line-height:1.5; margin:0; max-width:300px; }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; }
+  .chip{ font-size:11px; padding:6px 11px; border-radius:20px; border:1px solid var(--line); color:var(--muted); }
+  .chip.on{ background:var(--accent); color:var(--navy); border-color:var(--accent); font-weight:600; }
+  .scr-b{ transform:translateX(100%); }
+  .wipe{ position:absolute; inset:0; background:var(--navy); display:flex; align-items:center; justify-content:center;
+    transform:translateX(-100%); }
+  .wipe .mark{ width:60px; height:60px; opacity:0; }
+  .transcard.run .wipe{ animation:wipeX 1.15s var(--ease-io) both; }
+  .transcard.run .wipe .mark{ animation:wipeMark 1.15s var(--ease-io) both; }
+  .transcard.run .scr-a{ animation:outLeft .9s var(--ease) both; }
+  .transcard.run .scr-b{ animation:inRight .9s .28s var(--ease) both; }
+  @keyframes wipeX{ 0%{ transform:translateX(-100%); } 42%{ transform:translateX(0); } 58%{ transform:translateX(0); } 100%{ transform:translateX(100%); } }
+  @keyframes wipeMark{ 0%,12%{ opacity:0; transform:scale(.8); } 42%,58%{ opacity:1; transform:scale(1); } 88%,100%{ opacity:0; } }
+  @keyframes outLeft{ to{ transform:translateX(-26%); opacity:0; } }
+  @keyframes inRight{ from{ transform:translateX(40%); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+
+  /* ============ 6 · EMPTY STATE ============ */
+  .emptycard .stage{ flex-direction:column; gap:20px; }
+  .empty{ display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+  .empty .frame{ position:relative; width:120px; height:120px; border-radius:24px;
+    border:2px dashed var(--line); display:flex; align-items:center; justify-content:center; }
+  .empty .mark{ width:62px; height:62px; }
+  .empty .rec-top{ animation:floatTop 2.8s ease-in-out infinite; }
+  .empty .rec-mid{ animation:floatMid 2.8s ease-in-out infinite; }
+  .empty .frame{ animation:framePulse 2.8s ease-in-out infinite; }
+  .empty h3{ margin:0; font-size:15px; font-weight:600; }
+  .empty p{ margin:0; font-size:12.5px; color:var(--muted); max-width:240px; line-height:1.5; }
+  .empty .cta{ font-size:12px; color:var(--accent); border:1px solid var(--line); padding:8px 16px; border-radius:9px; }
+  @keyframes floatTop{ 0%,100%{ transform:translateY(0) rotate(0); } 50%{ transform:translateY(-5px) rotate(-1deg); } }
+  @keyframes floatMid{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
+  @keyframes framePulse{ 0%,100%{ border-color:var(--line); } 50%{ border-color:color-mix(in oklab,var(--accent) 45%, transparent); } }
+
+  @media(max-width:760px){ .grid{ grid-template-columns:1fr; } h1{ font-size:27px; } }
+</style>
+</head>
+<body data-theme="dark">
+
+<header>
+  <div>
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 100 100" width="34" height="34">
+        <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+        <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+        <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+      </svg>
+      <span class="word"><span class="w1">trip</span><span class="w2">OS</span></span>
+    </div>
+    <p class="kicker" style="margin-top:22px;">Motion System</p>
+    <h1>Premium motion for the OS</h1>
+    <p>Intro, loading, transition and empty states — all built from the C·Stack mark. Cinematic, calm, and consistent across dark and light.</p>
+  </div>
+  <div class="controls">
+    <button class="ctl" id="themeBtn"><span class="swatch"></span><span id="themeLbl">Dark</span></button>
+    <button class="ctl" id="replayAll">↻ Replay all</button>
+  </div>
+</header>
+
+<div class="grid" id="grid">
+
+  <!-- 1 · INTRO -->
+  <div class="card wide">
+    <div class="stage intro" data-anim="intro">
+      <div class="glow"></div>
+      <div class="lockup">
+        <svg class="mark" viewBox="0 0 100 100">
+          <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+          <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+          <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+        </svg>
+        <span class="word"><span class="w1">trip</span><span class="w2">OS</span></span>
+        <span class="tag">The operating system for travel</span>
+      </div>
+    </div>
+    <div class="cardfoot">
+      <div class="meta"><h3>Brand intro · splash</h3><p>Records stack in, the live record lands gold, wordmark resolves.</p></div>
+      <button class="replay" data-target="intro">↻ Replay</button>
+    </div>
+  </div>
+
+  <!-- 2 · LOADER -->
+  <div class="card">
+    <div class="stage loader" data-anim="loader">
+      <div class="lockup">
+        <svg class="mark" viewBox="0 0 100 100">
+          <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+          <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+          <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+        </svg>
+        <span class="word"><span class="w1">trip</span><span class="w2">OS</span></span>
+        <div class="bar"><i></i></div>
+        <div class="status mono" data-status>Booting…</div>
+      </div>
+    </div>
+    <div class="cardfoot">
+      <div class="meta"><h3>App loader · first boot</h3><p>Loops while loading, then resolves into the logo.</p></div>
+      <button class="replay" data-target="loader">↻ Replay</button>
+    </div>
+  </div>
+
+  <!-- 3 · SPINNER -->
+  <div class="card spincard">
+    <div class="stage">
+      <div class="spinrow">
+        <div class="wave"><i></i><i></i><i></i></div>
+        <div class="wave sm"><i></i><i></i><i></i></div>
+        <svg class="ring" viewBox="0 0 50 50"><circle class="trk" cx="25" cy="25" r="20"/><circle class="ind" cx="25" cy="25" r="20"/></svg>
+      </div>
+      <button class="btn" id="loadBtn">
+        <span class="wave sm"><i></i><i></i><i></i></span>
+        <span class="lbl-go">Sync trips</span><span class="lbl-load">Syncing…</span>
+      </button>
+    </div>
+    <div class="cardfoot">
+      <div class="meta"><h3>Inline spinners</h3><p>On-brand wave + ring for buttons and small areas. Click the button.</p></div>
+      <button class="replay" data-target="btn">↻ Demo</button>
+    </div>
+  </div>
+
+  <!-- 4 · SKELETON -->
+  <div class="card skelcard">
+    <div class="stage">
+      <div class="skelwrap">
+        <div class="skelrow">
+          <div class="sk av"></div>
+          <div class="skellines"><div class="sk t"></div><div class="sk s"></div></div>
+        </div>
+        <div class="skelbody">
+          <div class="sk l w100"></div><div class="sk l w85"></div><div class="sk l w65"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cardfoot">
+      <div class="meta"><h3>Skeleton · content loading</h3><p>Gold-tinted shimmer sweep for lists and detail panes.</p></div>
+      <button class="replay" data-target="skel">↻ Replay</button>
+    </div>
+  </div>
+
+  <!-- 5 · PAGE TRANSITION -->
+  <div class="card transcard wide" data-anim="trans">
+    <div class="stage">
+      <div class="device">
+        <div class="screen scr-a">
+          <div class="topbar">
+            <svg class="mark" viewBox="0 0 100 100" width="22" height="22">
+              <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+              <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+              <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+            </svg>
+            <span class="word"><span class="w1">trip</span><span class="w2">OS</span></span>
+          </div>
+          <h2 class="htitle">Dashboard</h2>
+          <p class="htext">18 active trips, 4 invoices awaiting sign-off. Everything the OS is keeping in line.</p>
+          <div class="chips"><span class="chip on">Overview</span><span class="chip">Pipeline</span><span class="chip">Reports</span></div>
+        </div>
+        <div class="screen scr-b">
+          <div class="topbar">
+            <svg class="mark" viewBox="0 0 100 100" width="22" height="22">
+              <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+              <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+              <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+            </svg>
+            <span class="word"><span class="w1">trip</span><span class="w2">OS</span></span>
+          </div>
+          <h2 class="htitle">Trip · Lisbon</h2>
+          <p class="htext">7 nights · 2 travellers. Itinerary, bookings and invoice all synced and live.</p>
+          <div class="chips"><span class="chip">Overview</span><span class="chip on">Itinerary</span><span class="chip">Invoice</span></div>
+        </div>
+        <div class="wipe">
+          <svg class="mark" viewBox="0 0 100 100">
+            <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+            <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+            <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="cardfoot">
+      <div class="meta"><h3>Page / route transition</h3><p>A navy wipe carries the mark across as screens swap.</p></div>
+      <button class="replay" data-target="trans">↻ Navigate</button>
+    </div>
+  </div>
+
+  <!-- 6 · EMPTY STATE -->
+  <div class="card emptycard">
+    <div class="stage">
+      <div class="empty">
+        <div class="frame">
+          <svg class="mark" viewBox="0 0 100 100">
+            <rect class="rec rec-top" x="22" y="22" width="44" height="15" rx="7.5"/>
+            <rect class="rec rec-mid" x="30" y="43" width="52" height="15" rx="7.5"/>
+            <rect class="rec rec-bot" x="18" y="64" width="48" height="15" rx="7.5"/>
+          </svg>
+        </div>
+        <div>
+          <h3>No trips yet</h3>
+          <p>When you create your first trip, it’ll stack up right here.</p>
+        </div>
+        <span class="cta">+ New trip</span>
+      </div>
+    </div>
+    <div class="cardfoot">
+      <div class="meta"><h3>Empty state</h3><p>A gentle, always-on breathing loop — calm, never busy.</p></div>
+      <button class="replay" data-target="empty">↻ Replay</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const body = document.body;
+
+  // theme toggle
+  const themeBtn = document.getElementById('themeBtn');
+  const themeLbl = document.getElementById('themeLbl');
+  themeBtn.addEventListener('click', ()=>{
+    const dark = body.dataset.theme === 'dark';
+    body.dataset.theme = dark ? 'light' : 'dark';
+    themeLbl.textContent = dark ? 'Light' : 'Dark';
+  });
+
+  function reflow(el){ void el.offsetWidth; }
+
+  // 1 · intro
+  const intro = document.querySelector('.intro');
+  function playIntro(){ intro.classList.remove('run'); reflow(intro); intro.classList.add('run'); }
+
+  // 2 · loader (loop → resolve)
+  const loader = document.querySelector('.loader');
+  const statusEl = loader.querySelector('[data-status]');
+  let loaderTimers = [];
+  function playLoader(){
+    loaderTimers.forEach(clearTimeout); loaderTimers = [];
+    loader.classList.remove('done'); reflow(loader); loader.classList.add('loading');
+    const steps = ['Booting…','Syncing records…','Almost there…'];
+    let i = 0; statusEl.textContent = steps[0];
+    loaderTimers.push(setInterval(()=>{ i=(i+1)%steps.length; statusEl.textContent=steps[i]; }, 900));
+    loaderTimers.push(setTimeout(()=>{
+      loaderTimers.forEach(clearTimeout); loaderTimers=[];
+      loader.classList.remove('loading'); reflow(loader); loader.classList.add('done');
+      statusEl.textContent = 'Ready';
+    }, 3000));
+  }
+
+  // 3 · button
+  const loadBtn = document.getElementById('loadBtn');
+  let btnTimer;
+  function playBtn(){
+    clearTimeout(btnTimer);
+    loadBtn.classList.add('loading');
+    btnTimer = setTimeout(()=> loadBtn.classList.remove('loading'), 2400);
+  }
+  loadBtn.addEventListener('click', playBtn);
+
+  // 4 · skeleton (restart shimmer)
+  const skel = document.querySelector('.skelcard');
+  function playSkel(){
+    skel.querySelectorAll('.sk').forEach(el=>{ el.style.animation='none'; reflow(el); el.style.animation=''; });
+  }
+
+  // 5 · transition
+  const trans = document.querySelector('.transcard');
+  function playTrans(){ trans.classList.remove('run'); reflow(trans); trans.classList.add('run'); }
+
+  // 6 · empty (restart loop)
+  const empty = document.querySelector('.emptycard');
+  function playEmpty(){
+    empty.querySelectorAll('.rec-top,.rec-mid,.frame').forEach(el=>{ el.style.animation='none'; reflow(el); el.style.animation=''; });
+  }
+
+  const players = { intro:playIntro, loader:playLoader, btn:playBtn, skel:playSkel, trans:playTrans, empty:playEmpty };
+
+  document.querySelectorAll('.replay').forEach(b=>{
+    b.addEventListener('click', ()=> players[b.dataset.target] && players[b.dataset.target]());
+  });
+  document.getElementById('replayAll').addEventListener('click', ()=>{
+    playIntro(); playLoader(); playBtn(); playSkel(); playTrans(); playEmpty();
+  });
+
+  // autoplay sequence on load
+  window.addEventListener('load', ()=>{
+    setTimeout(playIntro, 250);
+    setTimeout(playLoader, 600);
+    setTimeout(playTrans, 1400);
+  });
+})();
+</script>
+</body>
+</html>

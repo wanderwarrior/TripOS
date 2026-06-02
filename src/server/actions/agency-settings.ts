@@ -31,6 +31,8 @@ const schema = z.object({
   gstin: gstinSchema,
   pan: optStr(15),
   logoUrl: optStr(500),
+  logoLightUrl: optStr(500),
+  logoDarkUrl: optStr(500),
 
   addressLine1: optStr(200),
   addressLine2: optStr(200),
@@ -87,6 +89,8 @@ export async function saveAgencySettingsAction(input: AgencySettingsInput) {
     gstin: data.gstin,
     pan: data.pan,
     logoUrl: data.logoUrl,
+    logoLightUrl: data.logoLightUrl,
+    logoDarkUrl: data.logoDarkUrl,
     addressLine1: data.addressLine1,
     addressLine2: data.addressLine2,
     city: data.city,

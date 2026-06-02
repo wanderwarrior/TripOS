@@ -1,16 +1,21 @@
-// Public-fetchable PDF endpoint for tax invoices. Meta's WhatsApp Cloud API
-// downloads the URL server-side to re-host the document on its CDN — that
-// fetch carries no cookies, so we authenticate with a `?token=` query param
-// that must match the invoice's shareToken.
+// PDF endpoint for tax invoices. Two access paths, both authenticated:
 //
-// Internal callers (operator opens "Download PDF" from the invoice page)
-// don't need a token — auth is per-session there. The token check is only
-// enforced when one is present in the URL OR when the invoice has been
-// flagged with a shareToken (meaning it was shared externally).
+//   • Public  — Meta's WhatsApp Cloud API and customer browsers fetch this
+//     URL with NO cookies, so they authenticate with a `?token=` query param
+//     that must match the invoice's shareToken.
+//   • Internal — an operator clicking "Download PDF" carries their session
+//     cookie and no token; we require a signed-in user whose active agency
+//     owns the invoice.
+//
+// A request with neither a valid token nor a matching session is rejected —
+// being logged in is NOT sufficient, or any user could read any agency's
+// invoices by id (cross-tenant IDOR).
 
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
+import { constantTimeEquals } from "@/lib/crypto";
+import { getSessionUser } from "@/lib/session";
 import { InvoiceDocument } from "@/components/invoices/invoice-document";
 
 export const runtime = "nodejs";
@@ -28,12 +33,18 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // When the URL carries a token, it must match. This is the public path
-  // (WhatsApp/customer browser). Without a token we permit (internal).
   const provided = req.nextUrl.searchParams.get("token");
   if (provided) {
-    if (!invoice.shareToken || invoice.shareToken !== provided) {
+    // Public path — the token must match this invoice's share token.
+    if (!constantTimeEquals(provided, invoice.shareToken)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    // Internal path — must be signed in AND own this invoice's agency.
+    // 404 (not 403) so we don't confirm the invoice exists to outsiders.
+    const user = await getSessionUser();
+    if (!user || user.activeAgencyId !== invoice.agencyId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
   }
 

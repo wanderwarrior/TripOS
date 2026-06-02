@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCircle2, Download, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import type { InvoiceStatus } from "@prisma/client";
+import type { InvoiceStatus, MembershipRole } from "@prisma/client";
+import { can } from "@/lib/can-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ export function InvoiceActions({
   previewedNumber,
   recipientPhone,
   documentUrl,
+  role,
 }: {
   invoiceId: string;
   status: InvoiceStatus;
@@ -36,8 +38,11 @@ export function InvoiceActions({
   previewedNumber: string | null;
   recipientPhone?: string | null;
   documentUrl?: string | null;
+  role: MembershipRole;
 }) {
   const router = useRouter();
+  const canIssue = can(role, "invoice:issue");
+  const canCancel = can(role, "invoice:cancel");
   const [isPending, startTransition] = useTransition();
   const [issueOpen, setIssueOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -93,18 +98,22 @@ export function InvoiceActions({
         </a>
         {status === "DRAFT" ? (
           <>
-            <Button onClick={() => setIssueOpen(true)} disabled={isPending}>
-              <CheckCircle2 className="h-4 w-4" />
-              Issue invoice
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setCancelOpen(true)}
-              disabled={isPending}
-            >
-              <XCircle className="h-4 w-4" />
-              Discard draft
-            </Button>
+            {canIssue ? (
+              <Button onClick={() => setIssueOpen(true)} disabled={isPending}>
+                <CheckCircle2 className="h-4 w-4" />
+                Issue invoice
+              </Button>
+            ) : null}
+            {canCancel ? (
+              <Button
+                variant="outline"
+                onClick={() => setCancelOpen(true)}
+                disabled={isPending}
+              >
+                <XCircle className="h-4 w-4" />
+                Discard draft
+              </Button>
+            ) : null}
           </>
         ) : null}
         {status === "ISSUED" ? (
@@ -119,14 +128,16 @@ export function InvoiceActions({
               size="default"
             />
             <ReminderMenu invoiceId={invoiceId} />
-            <Button
-              variant="outline"
-              onClick={() => setCancelOpen(true)}
-              disabled={isPending}
-            >
-              <XCircle className="h-4 w-4" />
-              Cancel invoice
-            </Button>
+            {canCancel ? (
+              <Button
+                variant="outline"
+                onClick={() => setCancelOpen(true)}
+                disabled={isPending}
+              >
+                <XCircle className="h-4 w-4" />
+                Cancel invoice
+              </Button>
+            ) : null}
           </>
         ) : null}
       </div>

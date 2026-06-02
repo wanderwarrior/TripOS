@@ -139,7 +139,7 @@ export default function HelpPage() {
           </div>
         </div>
         <Link
-          href="/?tour=1"
+          href="/dashboard?tour=1"
           className="inline-flex items-center gap-2 rounded-[8px] border border-line bg-paper px-4 py-2 text-sm font-medium text-ink hover:border-line-2 transition-colors"
         >
           Replay the tour

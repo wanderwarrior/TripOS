@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass } from "lucide-react";
 import { NAV_GROUPS, isNavActive } from "@/lib/nav";
+import { Logo } from "@/components/brand";
 import { cn } from "@/lib/utils";
 
 // Desktop left rail — "Atelier Pro": full-height inkwash panel with a warm
@@ -41,25 +41,14 @@ export function AppSidebar({
       />
 
       <Link
-        href="/"
+        href="/dashboard"
         className="flex items-center gap-3 px-[18px]"
         style={{
           height: "var(--top-h)",
           borderBottom: "1px solid rgba(255,255,255,.07)",
         }}
       >
-        <span
-          className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] text-inkwash"
-          style={{
-            background: "linear-gradient(150deg, var(--gold), #B0863F)",
-            boxShadow: "0 2px 8px rgba(200,169,106,.35)",
-          }}
-        >
-          <Compass className="h-[17px] w-[17px]" />
-        </span>
-        <span className="font-display text-[19px] leading-none tracking-[0.01em] text-white">
-          Trip<b className="font-semibold text-gold">Craft</b>
-        </span>
+        <Logo size={30} wordClassName="text-[19px] text-white" />
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-3 py-3.5 space-y-4">
@@ -78,6 +67,7 @@ export function AppSidebar({
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      title={item.desc}
                       className={cn(
                         "group relative flex items-center gap-[11px] rounded-[9px] px-2.5 py-2 text-[13px] transition-colors",
                         active

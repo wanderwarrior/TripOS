@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { randomBytes } from "crypto";
+import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
+import { saveUpload } from "@/lib/r2";
 
 export const runtime = "nodejs";
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = new Map<string, string>([
   ["image/jpeg", "jpg"],
@@ -16,6 +14,15 @@ const ALLOWED = new Map<string, string>([
 ]);
 
 export async function POST(req: NextRequest) {
+  // Throttle: 30 uploads per minute per IP.
+  const rl = rateLimit(`upload:${clientIpFrom(req.headers)}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many uploads. Try again in ${rl.retryAfter}s.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file");
@@ -37,14 +44,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true });
-
-    const id = randomBytes(12).toString("hex");
-    const filename = `${id}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(join(UPLOAD_DIR, filename), buffer);
+    const url = await saveUpload(buffer, ext, file.type, "uploads");
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    return NextResponse.json({ url });
   } catch (err) {
     console.error("[upload] failed:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

@@ -137,7 +137,7 @@ function SiteFooter() {
   return (
     <footer className="border-t border-line bg-canvas print:hidden">
       <div className="px-5 md:px-8 flex h-14 items-center justify-between text-xs text-muted-foreground">
-        <span>© {new Date().getFullYear()} TripCraft</span>
+        <span>© {new Date().getFullYear()} tripOS</span>
         <span className="tracking-widest uppercase hidden sm:inline">
           Crafted for premium travel
         </span>

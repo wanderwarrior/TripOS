@@ -1,7 +1,20 @@
+// PDF endpoint for travel vouchers. Two access paths, both authenticated:
+//
+//   • Public  — the customer's voucher page (/v/[token]) and any external
+//     fetch authenticate with a `?token=` query param matching shareToken.
+//   • Internal — an operator downloading from the assignment card carries a
+//     session cookie; we require a signed-in user whose active agency owns
+//     the voucher (resolved via assignment → trip).
+//
+// Being logged in alone is NOT sufficient — otherwise any user could read any
+// agency's vouchers (and traveller PII) by id.
+
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
+import { constantTimeEquals } from "@/lib/crypto";
+import { getSessionUser } from "@/lib/session";
 import { VoucherDocument } from "@/components/vouchers/voucher-document";
 import {
   publicShareUrl,
@@ -12,14 +25,31 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const voucher = await prisma.voucher.findUnique({
     where: { id: params.id },
+    include: {
+      assignment: { select: { trip: { select: { agencyId: true } } } },
+    },
   });
   if (!voucher) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const provided = req.nextUrl.searchParams.get("token");
+  if (provided) {
+    // Public path — the token must match this voucher's share token.
+    if (!constantTimeEquals(provided, voucher.shareToken)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    // Internal path — must be signed in AND own this voucher's agency.
+    const user = await getSessionUser();
+    if (!user || user.activeAgencyId !== voucher.assignment.trip.agencyId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
   }
 
   const snapshot = voucher.content as unknown as VoucherSnapshot;

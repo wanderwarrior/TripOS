@@ -28,7 +28,7 @@ export default async function ProposalBrandingPage() {
     <PageShell>
       <div className="mb-6">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -71,18 +71,25 @@ export default async function ProposalBrandingPage() {
         <ProposalBrandingForm
           agencyName={settings.tradeName || settings.legalName}
           logoUrl={settings.logoUrl}
+          logoLightUrl={settings.logoLightUrl}
+          logoDarkUrl={settings.logoDarkUrl}
           canEdit={canEdit}
           initial={{
             theme: isTheme(settings.proposalTheme)
               ? settings.proposalTheme
               : "classic",
             accentColor: settings.proposalAccentColor,
+            surfaceColor: settings.proposalSurfaceColor,
+            tintColor: settings.proposalTintColor,
             coverStyle: isCover(settings.proposalCoverStyle)
               ? settings.proposalCoverStyle
               : "photo",
             showAtAGlance: settings.proposalShowAtAGlance,
             showInclusions: settings.proposalShowInclusions,
             showTerms: settings.proposalShowTerms,
+            tagline: settings.proposalTagline,
+            showContactStrip: settings.proposalShowContactStrip,
+            showRegisteredFooter: settings.proposalShowRegisteredFooter,
             signatureNote: settings.proposalSignatureNote,
             repeatLogo: settings.proposalRepeatLogo,
           }}

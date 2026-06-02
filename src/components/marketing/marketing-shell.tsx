@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Compass } from "lucide-react";
 import { getSessionUser } from "@/lib/session";
+import { MarketingNav } from "@/components/marketing/marketing-nav";
+import { Logo, BrandIntro } from "@/components/brand";
 
 // Public, logged-out chrome for the marketing surface (landing, pricing,
 // legal). Distinct from PageShell (the authenticated app frame with the
@@ -15,67 +16,17 @@ export async function MarketingShell({
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-5 md:px-10 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-inkwash text-[var(--on-dark)]">
-              <Compass className="h-4 w-4" />
-            </span>
-            <span className="font-display text-xl tracking-tight text-ink">
-              TripCraft
-            </span>
-          </Link>
-
-          <nav className="hidden sm:flex items-center gap-7 text-sm text-ink/70">
-            <Link href="/#features" className="hover:text-ink transition-colors">
-              Features
-            </Link>
-            <Link href="/pricing" className="hover:text-ink transition-colors">
-              Pricing
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2.5">
-            {user ? (
-              <Link
-                href="/"
-                className="rounded-[8px] bg-inkwash px-4 py-2 text-sm font-medium text-[var(--on-dark)] hover:bg-inkwash/90 transition-colors"
-              >
-                Go to dashboard
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="hidden sm:inline text-sm text-ink/70 hover:text-ink transition-colors"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="rounded-[8px] bg-inkwash px-4 py-2 text-sm font-medium text-[var(--on-dark)] hover:bg-inkwash/90 transition-colors"
-                >
-                  Start free trial
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* First-load brand splash — plays once per session, shared with the
+          app dashboard via the same sessionStorage gate. */}
+      <BrandIntro />
+      <MarketingNav isAuthed={!!user} />
 
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-line bg-paper">
         <div className="mx-auto max-w-6xl px-5 md:px-10 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-inkwash text-[var(--on-dark)]">
-                <Compass className="h-4 w-4" />
-              </span>
-              <span className="font-display text-xl tracking-tight text-ink">
-                TripCraft
-              </span>
-            </div>
+            <Logo size={28} wordClassName="text-xl" className="text-ink" />
             <p className="mt-3 text-sm text-muted max-w-xs">
               The all-in-one platform for modern travel agencies — itineraries,
               proposals, payments and operations.
@@ -87,8 +38,18 @@ export async function MarketingShell({
             links={[
               { label: "Features", href: "/#features" },
               { label: "Pricing", href: "/pricing" },
-              { label: "Sign in", href: "/login" },
+              { label: "Changelog", href: "/changelog" },
+              { label: "Security", href: "/security" },
               { label: "Start free trial", href: "/signup" },
+            ]}
+          />
+          <FooterCol
+            title="Company"
+            links={[
+              { label: "About", href: "/about" },
+              { label: "Contact", href: "/contact" },
+              { label: "Help centre", href: "/help" },
+              { label: "Sign in", href: "/login" },
             ]}
           />
           <FooterCol
@@ -97,19 +58,13 @@ export async function MarketingShell({
               { label: "Terms of Service", href: "/legal/terms" },
               { label: "Privacy Policy", href: "/legal/privacy" },
               { label: "Refund Policy", href: "/legal/refund" },
-            ]}
-          />
-          <FooterCol
-            title="Company"
-            links={[
-              { label: "hello@tripcraft.app", href: "mailto:hello@tripcraft.app" },
-              { label: "Support", href: "mailto:support@tripcraft.app" },
+              { label: "Security", href: "/security" },
             ]}
           />
         </div>
         <div className="border-t border-line/60">
           <div className="mx-auto max-w-6xl px-5 md:px-10 h-14 flex items-center justify-between text-xs text-muted">
-            <span>© {new Date().getFullYear()} TripCraft</span>
+            <span>© {new Date().getFullYear()} tripOS</span>
             <span className="uppercase tracking-[0.2em] hidden sm:inline">
               Crafted for premium travel
             </span>

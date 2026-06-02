@@ -11,6 +11,7 @@ import { TripWorkflowStepper } from "@/components/operations/trip-workflow-stepp
 import { LinkLeadControl } from "@/components/crm/link-contact-control";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { OneTimeHint } from "@/components/ui/one-time-hint";
 import { WhatsappBadge } from "@/components/whatsapp/whatsapp-badge";
 import { WhatsappComposer } from "@/components/whatsapp/whatsapp-composer";
 import {
@@ -184,7 +185,16 @@ export default async function TripWorkspacePage({
       </div>
 
       {workflow ? (
-        <div className="mb-6">
+        <div className="mb-6 space-y-3">
+          <OneTimeHint
+            id="trip-lifecycle-bar"
+            title="This bar is your guide for the whole trip"
+            variant="accent"
+          >
+            It tracks the trip end to end — the gold step is where you are, and
+            the button on the right always tells you the single next thing to
+            do.
+          </OneTimeHint>
           <TripWorkflowStepper workflow={workflow} />
         </div>
       ) : null}
@@ -210,9 +220,13 @@ export default async function TripWorkspacePage({
       )}
 
       <Tabs defaultValue="plan">
-        <TabsList className="mb-6">
-          <TabsTrigger value="plan">Plan & Quote</TabsTrigger>
-          <TabsTrigger value="operations">Operations</TabsTrigger>
+        <TabsList className="mb-6" id="trip-tabs">
+          <TabsTrigger value="plan" id="tab-plan">
+            Plan & Quote
+          </TabsTrigger>
+          <TabsTrigger value="operations" id="tab-operations">
+            Operations
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="plan">

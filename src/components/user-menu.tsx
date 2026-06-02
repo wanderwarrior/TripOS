@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   CreditCard,
+  Globe,
   LifeBuoy,
   LogOut,
   Plug,
@@ -154,6 +155,12 @@ export function UserMenu({
           <Link href="/help" className="flex items-center gap-2">
             <LifeBuoy className="h-3.5 w-3.5" />
             Help & guides
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/" className="flex items-center gap-2">
+            <Globe className="h-3.5 w-3.5" />
+            View landing page
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

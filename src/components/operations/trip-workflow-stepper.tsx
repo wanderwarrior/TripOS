@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TripWorkflow } from "@/server/services/trip-workflow";
+import { WorkflowNextAction } from "@/components/operations/workflow-next-action";
 
 export function TripWorkflowStepper({
   workflow,
@@ -12,13 +13,19 @@ export function TripWorkflowStepper({
   return (
     <section className="rounded-lg border border-line bg-paper p-5 shadow-soft">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <p className="tc-eyebrow">Trip lifecycle</p>
-        {nextAction ? (
-          <div className="text-right max-w-md">
-            <p className="text-sm font-medium text-ink">{nextAction.label}</p>
-            <p className="text-xs text-muted">{nextAction.description}</p>
-          </div>
-        ) : null}
+        <div>
+          <p className="tc-eyebrow">Trip lifecycle</p>
+          {nextAction ? (
+            <p className="mt-1 text-xs text-muted">
+              Here's what to do next on this trip.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-muted">
+              Every step is done — this trip is fully wrapped. 🎉
+            </p>
+          )}
+        </div>
+        <WorkflowNextAction action={nextAction} />
       </div>
 
       <ol className="mt-4 grid grid-cols-4 sm:grid-cols-8 gap-1.5">

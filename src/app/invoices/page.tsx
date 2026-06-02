@@ -4,6 +4,7 @@ import type { InvoiceStatus, Prisma } from "@prisma/client";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageGuide } from "@/components/ui/page-guide";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { FyFilter } from "@/components/invoices/fy-filter";
 import { InvoicesTable, type InvoiceRow } from "@/components/invoices/invoices-table";
@@ -115,6 +116,18 @@ export default async function InvoicesPage({
           </p>
         </div>
       </header>
+
+      <PageGuide
+        id="invoices"
+        body={
+          <>
+            Bookings and their <strong>GST invoices</strong> live here. An
+            invoice is created when you accept a quote on a trip — then collect
+            payment, send it on WhatsApp, and track what's still outstanding.
+          </>
+        }
+        cta={{ label: "See your trips", href: "/trips" }}
+      />
 
       <div className="flex flex-wrap items-center gap-2 mb-7">
         {FILTERS.map((f) => (

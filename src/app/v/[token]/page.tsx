@@ -270,7 +270,7 @@ export default async function PublicVoucherPage({
 
           {/* Download CTA */}
           <a
-            href={`/api/vouchers/${voucher.id}/pdf`}
+            href={`/api/vouchers/${voucher.id}/pdf?token=${voucher.shareToken}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center gap-2.5 rounded-xl bg-navy px-4 py-3.5 text-[13px] font-semibold tracking-[0.02em] text-white transition-colors hover:bg-navy/90"

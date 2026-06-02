@@ -14,7 +14,7 @@ export default async function ResetPasswordPage({
   searchParams: { token?: string };
 }) {
   const u = await getSessionUser();
-  if (u) redirect("/");
+  if (u) redirect("/dashboard");
 
   const token = searchParams.token ?? "";
 

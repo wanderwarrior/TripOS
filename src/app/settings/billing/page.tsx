@@ -37,7 +37,7 @@ export default async function BillingPage() {
     <PageShell>
       <div className="mb-6">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
