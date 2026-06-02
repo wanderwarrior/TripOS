@@ -23,6 +23,8 @@ export type PlanDef = {
   priceAnnual: number;
   /** Max active team members (seats). */
   seats: number;
+  /** AI itinerary generations allowed per month. null = unlimited. */
+  aiItinerariesPerMonth: number | null;
   features: PlanFeatures;
   highlights: string[];
 };
@@ -35,6 +37,7 @@ export const PLANS: Record<PlanTier, PlanDef> = {
     priceMonthly: 0,
     priceAnnual: 0,
     seats: 15,
+    aiItinerariesPerMonth: null,
     features: { reports: true, automations: true },
     highlights: [
       "Everything in Pro",
@@ -45,13 +48,15 @@ export const PLANS: Record<PlanTier, PlanDef> = {
     tier: "STARTER",
     name: "Starter",
     tagline: "For solo agents and small teams.",
-    priceMonthly: 1499,
-    priceAnnual: 14990,
+    priceMonthly: 2499,
+    priceAnnual: 24990,
     seats: 3,
+    aiItinerariesPerMonth: 100,
     features: { reports: false, automations: false },
     highlights: [
       "Up to 3 team members",
-      "AI itineraries & proposals",
+      "100 AI itineraries / month",
+      "Branded proposals & PDFs",
       "Quotes, bookings & GST invoices",
       "WhatsApp messaging",
       "Online payment collection",
@@ -61,13 +66,15 @@ export const PLANS: Record<PlanTier, PlanDef> = {
     tier: "PRO",
     name: "Pro",
     tagline: "For growing agencies that run on data.",
-    priceMonthly: 3999,
-    priceAnnual: 39990,
+    priceMonthly: 4999,
+    priceAnnual: 49990,
     seats: 15,
+    aiItinerariesPerMonth: null,
     features: { reports: true, automations: true },
     highlights: [
       "Up to 15 team members",
       "Everything in Starter, plus:",
+      "Unlimited AI itineraries",
       "Reports & analytics dashboard",
       "WhatsApp automations",
       "Priority support",
