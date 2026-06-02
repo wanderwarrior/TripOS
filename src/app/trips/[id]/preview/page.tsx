@@ -76,14 +76,16 @@ export default async function PreviewPage({
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-30 border-b border-line bg-[rgba(244,242,236,.85)] backdrop-blur-md print:hidden">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="mx-auto flex min-h-14 max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2 md:h-16 md:flex-nowrap md:py-0 md:px-6">
           <Link
             href={`/trips/${trip.id}`}
-            className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors"
+            className="inline-flex shrink-0 items-center gap-2 text-sm text-muted hover:text-ink transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to workspace
+            <span className="hidden sm:inline">Back to workspace</span>
+            <span className="sm:hidden">Back</span>
           </Link>
+          <div className="min-w-0 max-w-full overflow-x-auto">
           <PreviewActions
             tripId={trip.id}
             quoteId={quote?.id ?? null}
@@ -112,6 +114,7 @@ export default async function PreviewPage({
                 : null
             }
           />
+          </div>
         </div>
       </header>
 

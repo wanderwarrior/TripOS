@@ -80,8 +80,8 @@ export default async function PublicQuotePage({
   return (
     <div className="min-h-screen bg-ivory">
       <header className="sticky top-0 z-30 border-b border-line/70 bg-ivory/85 backdrop-blur-md print:hidden">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 md:h-16 md:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
             {settings?.logoUrl ? (
               // The agency's branding takes priority on customer-facing pages.
               <Image
@@ -89,30 +89,31 @@ export default async function PublicQuotePage({
                 alt={agencyName}
                 width={32}
                 height={32}
-                className="h-8 w-8 rounded-full object-cover border border-line"
+                className="h-8 w-8 shrink-0 rounded-full object-cover border border-line"
                 unoptimized
               />
             ) : (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-ivory">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy text-ivory">
                 <Compass className="h-4 w-4" />
               </span>
             )}
-            <span className="font-display text-xl tracking-tight text-navy">
+            <span className="truncate font-display text-base tracking-tight text-navy md:text-xl">
               {agencyName}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="flex shrink-0 items-center gap-2 md:gap-3">
+            <span className="hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:inline">
               Quote v{quote.version}
             </span>
             <a
               href={`/api/share/${params.token}/pdf`}
               target="_blank"
               rel="noopener"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-navy hover:border-navy/40 hover:shadow-soft transition-all"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-navy hover:border-navy/40 hover:shadow-soft transition-all"
             >
               <Download className="h-3 w-3" />
-              Download PDF
+              <span className="hidden sm:inline">Download PDF</span>
+              <span className="sm:hidden">PDF</span>
             </a>
           </div>
         </div>

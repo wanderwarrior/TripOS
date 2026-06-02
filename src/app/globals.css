@@ -102,6 +102,18 @@
   }
 }
 
+/* Scale the whole UI down on phones — the design reads ~20% large on small
+   screens. `zoom` scales text AND spacing uniformly, covering both the rem-based
+   Tailwind sizes and the many absolute-px sizes in this design system (which a
+   root font-size change would miss). Modern browsers evaluate media queries
+   against the real viewport, so responsive breakpoints are unaffected.
+   Tune the value (smaller = more shrink): 0.8 ≈ 20% smaller, 0.75 ≈ 25%. */
+@media (max-width: 640px) {
+  html {
+    zoom: 0.8;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -1626,6 +1638,80 @@
   }
   .pp .terms-body {
     columns: 1;
+  }
+}
+
+/* Phones — tighten the proposal further: shorter cover, less vertical padding,
+   smaller headings/figures. (Column stacking + side padding are handled in the
+   860px block above; this layers on top for small screens.) */
+@media (max-width: 640px) {
+  .pp-cover {
+    min-height: 540px;
+  }
+  .pp-cover-inner {
+    padding-top: 30px;
+    padding-bottom: 32px;
+  }
+  .pp-sec,
+  .pp-sec.tight {
+    padding-top: 34px;
+    padding-bottom: 34px;
+  }
+  .pp-close {
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+  .pp .day {
+    padding: 30px 0;
+  }
+  .pp .terms-box {
+    padding: 20px 18px;
+  }
+
+  /* cover header can overflow on narrow screens — let it wrap */
+  .pp .cover-top {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .pp .cover-vrow {
+    text-align: left;
+  }
+
+  /* headings + display figures */
+  .pp .cover-title {
+    font-size: clamp(34px, 12vw, 52px);
+    overflow-wrap: break-word;
+  }
+  .pp .cover-sub {
+    font-size: 16px;
+    margin-top: 14px;
+  }
+  .pp .cover-meta {
+    gap: 22px;
+    margin-top: 26px;
+    padding-top: 20px;
+  }
+  .pp .cmeta .v {
+    font-size: 17px;
+  }
+  .pp .sec-h {
+    font-size: 27px;
+  }
+  .pp .ov-lead {
+    font-size: 18px;
+  }
+  .pp .ov-lead::first-letter {
+    font-size: 52px;
+    margin: 6px 10px 0 0;
+  }
+  .pp .ov-note {
+    font-size: 13.5px;
+  }
+  .pp .invest-total {
+    font-size: 46px;
+  }
+  .pp .brk-total .a {
+    font-size: 21px;
   }
 }
 
