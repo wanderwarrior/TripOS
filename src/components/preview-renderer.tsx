@@ -19,6 +19,10 @@ import type { TravelSegment } from "@prisma/client";
 import { readDay, type ItineraryContent, type ItineraryDay } from "@/lib/ai";
 import type { ProposalPricing } from "@/types";
 import { addDays, formatINR } from "@/lib/utils";
+import {
+  formatJourneyDuration,
+  formatStopSummary,
+} from "@/lib/segment-format";
 
 type Trip = {
   destination: string;
@@ -542,6 +546,12 @@ function SegmentGroup({
             : [s.trainName, s.trainNumber].filter(Boolean).join(" · ");
           const dep = new Date(s.departureTime);
           const arr = new Date(s.arrivalTime);
+          const duration = formatJourneyDuration(dep, arr);
+          const stopSummary = formatStopSummary(
+            s.stops,
+            s.type,
+            s.flightNumber
+          );
           return (
             <div key={s.id} style={{ paddingBottom: 8 }}>
               <div className="day-title" style={{ fontSize: 18 }}>
@@ -564,6 +574,25 @@ function SegmentGroup({
                 })}{" "}
                 · {time(dep)} → {time(arr)}
               </div>
+              {duration && (
+                <div
+                  className="ppmono"
+                  style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}
+                >
+                  {duration}
+                </div>
+              )}
+              {stopSummary && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--gold-deep)",
+                    marginTop: 2,
+                  }}
+                >
+                  {stopSummary}
+                </div>
+              )}
             </div>
           );
         })}

@@ -4,13 +4,8 @@
 // share link.
 
 import { NextRequest, NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { ProposalDocument } from "@/components/proposals/proposal-document";
 import { requireAgency } from "@/lib/session";
-import {
-  getProposalSnapshotByQuoteId,
-  proposalPdfFilename,
-} from "@/server/services/proposal-pdf";
+import { renderProposalPdf } from "@/server/services/proposal-pdf-render";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,21 +15,16 @@ export async function GET(
   { params }: { params: { quoteId: string } }
 ) {
   const { agencyId } = await requireAgency();
-  const snapshot = await getProposalSnapshotByQuoteId(
-    params.quoteId,
-    agencyId
-  );
-  if (!snapshot) {
+  const rendered = await renderProposalPdf(params.quoteId, agencyId);
+  if (!rendered) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const buffer = await renderToBuffer(<ProposalDocument snapshot={snapshot} />);
-
-  return new NextResponse(buffer as unknown as BodyInit, {
+  return new NextResponse(rendered.buffer as unknown as BodyInit, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${proposalPdfFilename(snapshot)}"`,
+      "Content-Disposition": `inline; filename="${rendered.filename}"`,
       "Cache-Control": "private, no-store",
     },
   });

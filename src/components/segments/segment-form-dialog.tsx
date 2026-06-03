@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { AlertTriangle, CalendarClock, Loader2, Plane, Train } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  Loader2,
+  Plane,
+  Sparkles,
+  Train,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { TravelSegment, TravelSegmentType } from "@prisma/client";
 import {
@@ -21,6 +28,11 @@ import {
   updateTravelSegmentAction,
   type CreateSegmentInput,
 } from "@/server/actions/segments";
+import {
+  enrichFlightAction,
+  enrichTrainAction,
+} from "@/server/actions/enrichment";
+import type { FlightEnrichment } from "@/lib/enrichment/types";
 import { cn, dayNumberForDate } from "@/lib/utils";
 
 function isoLocal(d: Date | string | null | undefined) {
@@ -39,6 +51,23 @@ function defaultDeparture(tripStartDate: string | null): string {
   if (Number.isNaN(d.getTime())) return "";
   d.setHours(9, 0, 0, 0);
   return isoLocal(d);
+}
+
+/** Pull the airport/station code out of a "Place (CODE)" label. */
+function codeOf(label: string): string {
+  const m = label.match(/\(([^)]+)\)\s*$/);
+  return m ? m[1].toUpperCase() : "";
+}
+
+/** Human layover/duration between two datetime-local strings, e.g. "1h 35m". */
+function durationBetween(aLocal: string, bLocal: string): string | null {
+  const a = new Date(aLocal).getTime();
+  const b = new Date(bLocal).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b) || b < a) return null;
+  const mins = Math.round((b - a) / 60000);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h ? `${h}h ` : ""}${m}m`.trim();
 }
 
 function fmtDayDate(tripStartDate: string, dayNumber: number): string {
@@ -93,11 +122,194 @@ export function SegmentFormDialog({
     trainNumber: segment?.trainNumber ?? "",
     coach: segment?.coach ?? "",
     seat: segment?.seat ?? "",
+    // Intermediate stop labels for a connecting / through journey.
+    stops: segment?.stops ?? ([] as string[]),
     notes: segment?.notes ?? "",
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  // Changing the departure shifts the arrival by the same amount, preserving
+  // the journey duration — so the arrival date stays correct automatically
+  // (a train departing late evening still arrives the next morning, etc.).
+  function onDepartureChange(value: string) {
+    setForm((f) => {
+      let arrivalTime = f.arrivalTime;
+      const oldDep = new Date(f.departureTime).getTime();
+      const oldArr = new Date(f.arrivalTime).getTime();
+      const newDep = new Date(value).getTime();
+      if (
+        value &&
+        Number.isFinite(oldDep) &&
+        Number.isFinite(oldArr) &&
+        Number.isFinite(newDep) &&
+        oldArr > oldDep
+      ) {
+        arrivalTime = isoLocal(new Date(newDep + (oldArr - oldDep)));
+      }
+      return { ...f, departureTime: value, arrivalTime };
+    });
+  }
+
+  const [enriching, startEnrich] = useTransition();
+
+  // The journey date that anchors a looked-up schedule: the chosen departure
+  // date if set, else the trip start date. Returns "YYYY-MM-DD" or null.
+  function journeyDate(): string | null {
+    if (form.departureTime) return form.departureTime.slice(0, 10);
+    if (tripStartDate) {
+      const d = new Date(tripStartDate);
+      if (!Number.isNaN(d.getTime())) return isoLocal(d).slice(0, 10);
+    }
+    return null;
+  }
+
+  function fetchFlight() {
+    // Accept one number, or several connecting legs typed together:
+    // "6E 324, 6E 5177" / "6E324 / 6E5177".
+    const numbers = form.flightNumber
+      .split(/[,/+]| and /i)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (numbers.length === 0) {
+      toast.error("Enter a flight number to look up.");
+      return;
+    }
+    if (numbers.length > 3) {
+      toast.error("Enter up to 3 connecting flight numbers.");
+      return;
+    }
+
+    startEnrich(async () => {
+      const date = journeyDate();
+      // Look each leg up in the order typed (= travel order). Space multi-leg
+      // calls out — the AeroDataBox free plan enforces a per-second rate limit,
+      // so back-to-back lookups for a connection would otherwise 429.
+      const legs: FlightEnrichment[] = [];
+      for (let i = 0; i < numbers.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 1200));
+        const res = await enrichFlightAction({ flightNumber: numbers[i], date });
+        if (!res.ok) {
+          toast.error(`${numbers[i]}: ${res.error}`);
+          return;
+        }
+        legs.push(res.data);
+      }
+
+      const first = legs[0];
+      const last = legs[legs.length - 1];
+
+      // --- Single flight (possibly a same-number through-flight) ---
+      if (legs.length === 1) {
+        const viaNote = first.stops.length > 0 ? `Via ${first.stops.join(", ")}` : "";
+        setForm((f) => ({
+          ...f,
+          airline: first.airline || f.airline,
+          flightNumber: first.flightNumber || f.flightNumber,
+          from: first.from || f.from,
+          to: first.to || f.to,
+          departureTime: first.departureLocal || f.departureTime,
+          arrivalTime: first.arrivalLocal || f.arrivalTime,
+          stops: first.stops,
+          notes:
+            viaNote && !f.notes.includes(viaNote)
+              ? f.notes ? `${f.notes}\n${viaNote}` : viaNote
+              : f.notes,
+        }));
+        toast.success(
+          first.stops.length > 0
+            ? `Filled in — through flight with a stop at ${first.stops.join(", ")}.`
+            : "Flight details filled in — review and save."
+        );
+        return;
+      }
+
+      // --- Connecting flight (multiple numbers) → one journey ---
+      // Per-leg breakdown + layover/connection-airport sanity, written to notes
+      // so the proposal reflects the routing.
+      const lines: string[] = [];
+      const connectionPoints: string[] = [];
+      // Full ordered list of intermediate stops (each leg's own through-stops,
+      // plus the connection airport between legs) — drives "N stops via …".
+      const journeyStops: string[] = [];
+      legs.forEach((leg, i) => {
+        const num = (leg.flightNumber || numbers[i]).toUpperCase();
+        const via = leg.stops.length > 0 ? ` (via ${leg.stops.join(", ")})` : "";
+        lines.push(`${num}: ${leg.from} → ${leg.to}${via}`);
+        journeyStops.push(...leg.stops);
+        if (i < legs.length - 1) {
+          const next = legs[i + 1];
+          connectionPoints.push(leg.to);
+          journeyStops.push(leg.to);
+          // Layover at the connection point.
+          if (leg.arrivalLocal && next.departureLocal) {
+            const dur = durationBetween(leg.arrivalLocal, next.departureLocal);
+            if (dur) lines.push(`Layover ${dur} at ${leg.to}`);
+          }
+          // Flag if the leg doesn't actually connect (arrival ≠ next departure).
+          if (codeOf(leg.to) && codeOf(next.from) && codeOf(leg.to) !== codeOf(next.from)) {
+            lines.push(`⚠ ${num} arrives ${leg.to} but next leg departs ${next.from}`);
+          }
+        }
+      });
+      const connectionNote = lines.join("\n");
+      const airlines = Array.from(
+        new Set(legs.map((l) => l.airline).filter(Boolean))
+      ).join(" / ");
+
+      setForm((f) => ({
+        ...f,
+        airline: airlines || f.airline,
+        flightNumber: numbers.map((n) => n.toUpperCase()).join(", "),
+        from: first.from || f.from,
+        to: last.to || f.to,
+        departureTime: first.departureLocal || f.departureTime,
+        arrivalTime: last.arrivalLocal || f.arrivalTime,
+        stops: journeyStops,
+        notes: f.notes
+          ? `${f.notes}\n${connectionNote}`
+          : connectionNote,
+      }));
+      toast.success(
+        `Connecting flight filled in — ${legs.length} legs via ${connectionPoints.join(", ")}.`
+      );
+    });
+  }
+
+  function fetchTrain() {
+    if (!form.trainNumber.trim()) {
+      toast.error("Enter a train number to look up.");
+      return;
+    }
+    startEnrich(async () => {
+      const res = await enrichTrainAction({
+        trainNumber: form.trainNumber.trim(),
+        date: journeyDate(),
+        fromHint: form.from,
+        toHint: form.to,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      const d = res.data;
+      setForm((f) => ({
+        ...f,
+        trainName: d.trainName || f.trainName,
+        trainNumber: d.trainNumber || f.trainNumber,
+        from: d.from || f.from,
+        to: d.to || f.to,
+        departureTime: d.departureLocal || f.departureTime,
+        arrivalTime: d.arrivalLocal || f.arrivalTime,
+      }));
+      toast.success(
+        d.departureLocal
+          ? "Train details filled in — review and save."
+          : "Train found — set a departure date to fill in times."
+      );
+    });
   }
 
   // --- Derived: which itinerary day this segment lands on ---
@@ -117,13 +329,31 @@ export function SegmentFormDialog({
   const outOfRange =
     rawDerivedDay != null && (rawDerivedDay < 1 || rawDerivedDay > tripDays);
 
+  // --- Derived: the day the segment ARRIVES (for overnight / multi-day legs) ---
+  const rawArrivalDay = useMemo(
+    () =>
+      form.arrivalTime
+        ? dayNumberForDate(new Date(form.arrivalTime), tripStartDate)
+        : null,
+    [form.arrivalTime, tripStartDate]
+  );
+  const clampedArrivalDay =
+    rawArrivalDay != null
+      ? Math.max(1, Math.min(tripDays, rawArrivalDay))
+      : clampedDay;
+  // The journey crosses into a later itinerary day (e.g. an overnight train).
+  const spansDays =
+    rawArrivalDay != null &&
+    rawDerivedDay != null &&
+    rawArrivalDay > rawDerivedDay;
+
   // --- Derived: arrival-before-departure check ---
   const timeError = useMemo(() => {
     if (!form.departureTime || !form.arrivalTime) return null;
     const dep = new Date(form.departureTime).getTime();
     const arr = new Date(form.arrivalTime).getTime();
     if (Number.isFinite(dep) && Number.isFinite(arr) && arr <= dep) {
-      return "Arrival must be after departure.";
+      return "Arrival is before departure — check the date and time. An overnight journey should arrive on a later date.";
     }
     return null;
   }, [form.departureTime, form.arrivalTime]);
@@ -162,6 +392,7 @@ export function SegmentFormDialog({
       trainNumber: form.trainNumber || null,
       coach: form.coach || null,
       seat: form.seat || null,
+      stops: form.stops,
       notes: form.notes || null,
     };
 
@@ -233,7 +464,7 @@ export function SegmentFormDialog({
               id="seg-dep"
               type="datetime-local"
               value={form.departureTime}
-              onChange={(e) => update("departureTime", e.target.value)}
+              onChange={(e) => onDepartureChange(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
@@ -266,10 +497,20 @@ export function SegmentFormDialog({
                 <CalendarClock className="h-4 w-4 shrink-0 text-gold-deep" />
                 {form.departureTime ? (
                   <span>
-                    Lands on{" "}
+                    Departs{" "}
                     <span className="font-medium">Day {clampedDay}</span>
                     {" · "}
                     {fmtDayDate(tripStartDate, clampedDay)}
+                    {spansDays && (
+                      <>
+                        {" → arrives "}
+                        <span className="font-medium">
+                          Day {clampedArrivalDay}
+                        </span>
+                        {" · "}
+                        {fmtDayDate(tripStartDate, clampedArrivalDay)}
+                      </>
+                    )}
                     {outOfRange ? (
                       <span className="ml-1.5 text-bad">
                         — departure is outside the trip window; clamped to the
@@ -277,7 +518,7 @@ export function SegmentFormDialog({
                       </span>
                     ) : (
                       <span className="ml-1.5 text-muted-foreground">
-                        — auto-assigned from the departure date.
+                        — assigned from the departure date.
                       </span>
                     )}
                   </span>
@@ -319,12 +560,34 @@ export function SegmentFormDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="seg-flight">Flight number</Label>
-                <Input
-                  id="seg-flight"
-                  value={form.flightNumber}
-                  onChange={(e) => update("flightNumber", e.target.value)}
-                  placeholder="6E-234"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="seg-flight"
+                    value={form.flightNumber}
+                    onChange={(e) => update("flightNumber", e.target.value)}
+                    placeholder="6E-234  ·  or 6E-324, 6E-5177"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        fetchFlight();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Auto-fill route & times. For a connecting flight, enter both numbers comma-separated."
+                    onClick={fetchFlight}
+                    disabled={enriching || !form.flightNumber.trim()}
+                  >
+                    {enriching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="seg-pnr">PNR</Label>
@@ -348,12 +611,34 @@ export function SegmentFormDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="seg-train-no">Train number</Label>
-                <Input
-                  id="seg-train-no"
-                  value={form.trainNumber}
-                  onChange={(e) => update("trainNumber", e.target.value)}
-                  placeholder="12951"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="seg-train-no"
+                    value={form.trainNumber}
+                    onChange={(e) => update("trainNumber", e.target.value)}
+                    placeholder="12951"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        fetchTrain();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Auto-fill name, stations & times from this train number"
+                    onClick={fetchTrain}
+                    disabled={enriching || !form.trainNumber.trim()}
+                  >
+                    {enriching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="seg-coach">Coach</Label>

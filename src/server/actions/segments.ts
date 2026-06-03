@@ -22,6 +22,8 @@ const baseSchema = z
     trainNumber: z.string().max(40).optional().nullable(),
     coach: z.string().max(20).optional().nullable(),
     seat: z.string().max(40).optional().nullable(),
+    // Intermediate stops for a connecting/through journey (display labels).
+    stops: z.array(z.string().max(80)).max(5).optional().default([]),
     notes: z.string().max(500).optional().nullable(),
   })
   // Arrival must be strictly after departure — a flight can't land before
@@ -54,6 +56,7 @@ function normalize(data: CreateSegmentInput) {
     trainNumber: !isFlight ? data.trainNumber?.trim() || null : null,
     coach: !isFlight ? data.coach?.trim() || null : null,
     seat: !isFlight ? data.seat?.trim() || null : null,
+    stops: (data.stops ?? []).map((s) => s.trim()).filter(Boolean),
     notes: data.notes?.trim() || null,
   };
 }
@@ -120,6 +123,7 @@ const updateSchema = z.object({
   trainNumber: z.string().max(40).optional().nullable(),
   coach: z.string().max(20).optional().nullable(),
   seat: z.string().max(40).optional().nullable(),
+  stops: z.array(z.string().max(80)).max(5).optional(),
   notes: z.string().max(500).optional().nullable(),
 });
 
@@ -160,6 +164,7 @@ export async function updateTravelSegmentAction(
         : patch.trainNumber,
     coach: patch.coach === undefined ? existing.coach : patch.coach,
     seat: patch.seat === undefined ? existing.seat : patch.seat,
+    stops: patch.stops === undefined ? existing.stops : patch.stops,
     notes: patch.notes === undefined ? existing.notes : patch.notes,
   });
 

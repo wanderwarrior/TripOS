@@ -19,6 +19,10 @@ import {
   deleteTravelSegmentAction,
 } from "@/server/actions/segments";
 import { formatDate } from "@/lib/utils";
+import {
+  formatJourneyDuration,
+  formatStopSummary,
+} from "@/lib/segment-format";
 
 type Props = {
   tripId: string;
@@ -165,6 +169,15 @@ function SegmentRow({
     : segment.pnr
       ? `PNR ${segment.pnr}`
       : null;
+  const duration = formatJourneyDuration(
+    segment.departureTime,
+    segment.arrivalTime
+  );
+  const stopSummary = formatStopSummary(
+    segment.stops,
+    segment.type,
+    segment.flightNumber
+  );
 
   function remove() {
     if (!confirm("Delete this segment?")) return;
@@ -220,6 +233,17 @@ function SegmentRow({
               hour12: false,
             })}
           </p>
+          {(duration || stopSummary) && (
+            <p className="mt-1 text-xs">
+              {duration && <span className="text-muted">{duration}</span>}
+              {duration && stopSummary && (
+                <span className="text-muted"> · </span>
+              )}
+              {stopSummary && (
+                <span className="text-gold-deep font-medium">{stopSummary}</span>
+              )}
+            </p>
+          )}
           {seatLine && (
             <p className="mt-1 text-xs text-muted">{seatLine}</p>
           )}

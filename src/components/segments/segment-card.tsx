@@ -1,6 +1,10 @@
 import { Plane, Train } from "lucide-react";
 import type { TravelSegment } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import {
+  formatJourneyDuration,
+  formatStopSummary,
+} from "@/lib/segment-format";
 
 function formatTime(d: Date | string) {
   const date = typeof d === "string" ? new Date(d) : d;
@@ -31,6 +35,15 @@ export function SegmentInlineCard({
   const identifier = isFlight
     ? [segment.airline, segment.flightNumber].filter(Boolean).join(" · ")
     : [segment.trainName, segment.trainNumber].filter(Boolean).join(" · ");
+  const duration = formatJourneyDuration(
+    segment.departureTime,
+    segment.arrivalTime
+  );
+  const stopSummary = formatStopSummary(
+    segment.stops,
+    segment.type,
+    segment.flightNumber
+  );
 
   return (
     <div
@@ -65,8 +78,18 @@ export function SegmentInlineCard({
           <p className="text-[10px] uppercase tracking-[0.18em] text-faint font-mono tabular-nums mt-0.5">
             {formatDateShort(segment.departureTime)}
           </p>
+          {duration && (
+            <p className="text-[10px] text-muted font-mono tabular-nums mt-0.5">
+              {duration}
+            </p>
+          )}
         </div>
       </div>
+      {stopSummary && (
+        <p className="mt-2 text-[11px] font-medium text-gold-deep">
+          {stopSummary}
+        </p>
+      )}
     </div>
   );
 }

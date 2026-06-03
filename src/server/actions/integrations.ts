@@ -9,6 +9,7 @@ import { encryptSecret, decryptSecret, canEncryptSecrets } from "@/lib/crypto";
 import { postMessage } from "@/lib/whatsapp/client";
 import { normalizeWhatsappPhone } from "@/lib/whatsapp/phone";
 import { verifyRazorpayKeys } from "@/lib/razorpay";
+import { disconnectGoogle } from "@/lib/google/connection";
 import type { WaApiVersion, WaTemplatePayload } from "@/lib/whatsapp/types";
 
 // Owner-only: each agency manages its own WhatsApp + Razorpay credentials.
@@ -244,4 +245,80 @@ export async function verifyRazorpayKeysAction() {
     };
   }
   return verifyRazorpayKeys({ keyId: s.razorpayKeyId, keySecret });
+}
+
+// --- Flight enrichment (BYO API key) ---------------------------------------
+// Per-agency AeroDataBox key for the flight auto-fill lookup. Stored encrypted;
+// a blank field means "keep the saved value". Falls back to a server-wide env
+// key when an agency hasn't set its own. (Trains use eRail — no key needed.)
+
+const enrichmentSchema = z.object({
+  // Blank = unchanged.
+  aerodataboxKey: z.string().optional().default(""),
+});
+
+export type SaveEnrichmentInput = z.infer<typeof enrichmentSchema>;
+
+export async function saveEnrichmentIntegrationAction(
+  input: SaveEnrichmentInput
+) {
+  const data = enrichmentSchema.parse(input);
+  const { agencyId } = await requireOwner();
+  await ensureSettings(agencyId);
+
+  if (data.aerodataboxKey && !canEncryptSecrets()) {
+    return {
+      ok: false as const,
+      error:
+        "Server can't encrypt secrets — set CREDENTIALS_KEY (or NEXTAUTH_SECRET) in the environment.",
+    };
+  }
+
+  if (data.aerodataboxKey.trim()) {
+    await prisma.agencySettings.update({
+      where: { agencyId },
+      data: { aerodataboxKeyEnc: encryptSecret(data.aerodataboxKey.trim()) },
+    });
+  }
+  revalidatePath("/settings/integrations");
+  return { ok: true as const };
+}
+
+// --- Google Workspace ------------------------------------------------------
+// The connect flow itself is an OAuth redirect (see
+// /api/integrations/google/connect). These actions cover post-connection
+// management: per-capability toggles and disconnecting.
+
+export async function setGoogleFeatureAction(input: {
+  sendFromGmail?: boolean;
+  saveToDrive?: boolean;
+}) {
+  const { agencyId } = await requireOwner();
+  const conn = await prisma.googleConnection.findUnique({
+    where: { agencyId },
+    select: { id: true },
+  });
+  if (!conn) {
+    return { ok: false as const, error: "Connect a Google account first." };
+  }
+  await prisma.googleConnection.update({
+    where: { agencyId },
+    data: {
+      ...(input.sendFromGmail !== undefined
+        ? { sendFromGmail: input.sendFromGmail }
+        : {}),
+      ...(input.saveToDrive !== undefined
+        ? { saveToDrive: input.saveToDrive }
+        : {}),
+    },
+  });
+  revalidatePath("/settings/integrations");
+  return { ok: true as const };
+}
+
+export async function disconnectGoogleAction() {
+  const { agencyId } = await requireOwner();
+  await disconnectGoogle(agencyId);
+  revalidatePath("/settings/integrations");
+  return { ok: true as const };
 }

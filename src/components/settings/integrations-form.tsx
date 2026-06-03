@@ -9,14 +9,18 @@ import {
   CreditCard,
   Loader2,
   MessageCircle,
+  Plane,
   Send,
   ShieldCheck,
+  Sparkles,
+  Train,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  saveEnrichmentIntegrationAction,
   saveRazorpayIntegrationAction,
   saveWhatsappIntegrationAction,
   sendTestWhatsappAction,
@@ -41,14 +45,22 @@ type RazorpayProps = {
   hasWebhookSecret: boolean;
   webhookUrl: string;
 };
+type EnrichmentProps = {
+  hasFlightKey: boolean;
+  // True when a server-wide env key is present (so flight lookup works even
+  // without a per-agency key being set).
+  flightServerFallback: boolean;
+};
 
 export function IntegrationsForm({
   whatsapp,
   razorpay,
+  enrichment,
   canEncrypt,
 }: {
   whatsapp: WhatsappProps;
   razorpay: RazorpayProps;
+  enrichment: EnrichmentProps;
   canEncrypt: boolean;
 }) {
   return (
@@ -63,6 +75,7 @@ export function IntegrationsForm({
       )}
       <WhatsappCard data={whatsapp} />
       <RazorpayCard data={razorpay} />
+      <EnrichmentCard data={enrichment} />
     </div>
   );
 }
@@ -364,6 +377,119 @@ function RazorpayCard({ data }: { data: RazorpayProps }) {
           <Button onClick={save} disabled={pending}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Save payment settings
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// --- Flight & train enrichment --------------------------------------------
+
+function EnrichmentCard({ data }: { data: EnrichmentProps }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [flightKey, setFlightKey] = useState("");
+
+  const flightReady = data.hasFlightKey || data.flightServerFallback;
+
+  function save() {
+    start(async () => {
+      const res = await saveEnrichmentIntegrationAction({
+        aerodataboxKey: flightKey,
+      });
+      if (res.ok) {
+        toast.success("Flight lookup key saved");
+        setFlightKey("");
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <section className="tc-card overflow-hidden">
+      <div className="tc-card-head">
+        <div className="ttl">
+          <Sparkles />
+          <h3>Flight &amp; train lookup</h3>
+        </div>
+        <StatusPill on={flightReady} />
+      </div>
+      <div className="p-[18px] space-y-5">
+        <p className="text-sm text-muted">
+          Auto-fill a segment&apos;s route, times and airline / train name from
+          just a flight or train number.
+        </p>
+
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5">
+            <Plane className="h-3.5 w-3.5 text-gold-deep" />
+            AeroDataBox API key (flights)
+          </Label>
+          <Input
+            type="password"
+            value={flightKey}
+            onChange={(e) => setFlightKey(e.target.value)}
+            placeholder={
+              data.hasFlightKey
+                ? "•••••••• saved — leave blank to keep"
+                : "Paste your RapidAPI key"
+            }
+            autoComplete="off"
+          />
+          <p className="text-[11px] text-muted">
+            {data.hasFlightKey
+              ? "Using your key."
+              : data.flightServerFallback
+                ? "Using the server default — add your own to use your quota."
+                : "Not set — flight lookup is off until a key is added."}
+          </p>
+        </div>
+
+        <div className="flex items-start gap-2 rounded-[10px] border border-[var(--gold-line)] bg-gold-soft/40 px-4 py-3">
+          <Train className="h-4 w-4 text-gold-deep mt-0.5 flex-shrink-0" />
+          <p className="text-[13px] text-ink">
+            <b>Trains need no key.</b> Indian Railways lookups are powered by
+            eRail and work out of the box.
+          </p>
+        </div>
+
+        <Instructions title="How to get your flight lookup key">
+          <ol className="list-decimal pl-4 space-y-1.5">
+            <li>
+              Create a free account at{" "}
+              <a
+                className="text-gold-deep underline"
+                href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                rapidapi.com/…/aerodatabox
+              </a>
+              .
+            </li>
+            <li>
+              Click <b>Subscribe to Test</b> and choose the <b>Basic</b> (free)
+              plan.
+            </li>
+            <li>
+              On any endpoint, copy your{" "}
+              <code className="font-mono">X-RapidAPI-Key</code> value and paste
+              it above.
+            </li>
+            <li className="text-muted">
+              The free tier has a monthly limit; when it&apos;s hit, the lookup
+              falls back to manual entry — nothing breaks.
+            </li>
+          </ol>
+        </Instructions>
+
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={pending}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Save flight key
           </Button>
         </div>
       </div>

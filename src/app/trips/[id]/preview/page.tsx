@@ -5,6 +5,7 @@ import { PreviewRenderer } from "@/components/preview-renderer";
 import { PreviewActions } from "@/components/preview-actions";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
+import { getGoogleConnection, hasScope } from "@/lib/google/connection";
 import type { ItineraryContent } from "@/lib/ai";
 import { buildProposalPricing, type LineItemCategory } from "@/types";
 import {
@@ -34,7 +35,7 @@ export default async function PreviewPage({
       travelSegments: {
         orderBy: [{ dayNumber: "asc" }, { departureTime: "asc" }],
       },
-      contact: { select: { id: true, name: true, phone: true } },
+      contact: { select: { id: true, name: true, phone: true, email: true } },
       agency: {
         select: {
           settings: { select: PROPOSAL_SETTINGS_SELECT },
@@ -43,6 +44,14 @@ export default async function PreviewPage({
     },
   });
   if (!trip) notFound();
+
+  // Google capabilities — drive the optional "Save to Drive" / "Email via
+  // Gmail" actions. Null/false when the agency hasn't connected Google.
+  const google = await getGoogleConnection(agencyId);
+  const canSaveToDrive =
+    !!google && google.saveToDrive && hasScope(google.scope, "drive.file");
+  const canEmailViaGmail =
+    !!google && google.sendFromGmail && hasScope(google.scope, "gmail.send");
 
   const itinerary = (trip.itineraries[0]?.content ?? null) as
     | ItineraryContent
@@ -91,6 +100,9 @@ export default async function PreviewPage({
             quoteId={quote?.id ?? null}
             recipientPhone={trip.contact?.phone ?? null}
             recipientName={trip.contact?.name ?? null}
+            recipientEmail={trip.contact?.email ?? null}
+            canSaveToDrive={canSaveToDrive}
+            canEmailViaGmail={canEmailViaGmail}
             destination={trip.destination}
             agencyName={proposalAgency.name}
             total={pricing?.total ?? null}

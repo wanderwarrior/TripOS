@@ -17,6 +17,10 @@ import {
   View,
 } from "@react-pdf/renderer";
 import type { ProposalPdfSnapshot } from "@/server/services/proposal-pdf";
+import {
+  formatJourneyDuration,
+  formatStopSummary,
+} from "@/lib/segment-format";
 
 // --- design tokens --------------------------------------------------------
 
@@ -529,6 +533,8 @@ function TravelPlan({
           : [s.trainName, s.trainNumber].filter(Boolean).join(" · ");
         const dep = new Date(s.departureTime);
         const arr = new Date(s.arrivalTime);
+        const duration = formatJourneyDuration(dep, arr);
+        const stopSummary = formatStopSummary(s.stops, s.type, s.flightNumber);
         return (
           <View key={s.id} style={styles.segmentRow}>
             <View style={styles.segmentRouteRow}>
@@ -543,7 +549,13 @@ function TravelPlan({
             <Text style={styles.segmentTime}>
               {dep.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}{" "}
               · {time(dep)} → {time(arr)}
+              {duration ? ` · ${duration}` : ""}
             </Text>
+            {stopSummary ? (
+              <Text style={[styles.segmentTime, { color: accent }]}>
+                {stopSummary}
+              </Text>
+            ) : null}
           </View>
         );
       })}

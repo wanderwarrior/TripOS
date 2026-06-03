@@ -3,9 +3,12 @@ import { Plug } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IntegrationsForm } from "@/components/settings/integrations-form";
+import { GoogleIntegrationCard } from "@/components/settings/google-integration-card";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { canEncryptSecrets } from "@/lib/crypto";
+import { isGoogleConfigured } from "@/lib/google/oauth";
+import { getGoogleConnection, scopesUpToDate } from "@/lib/google/connection";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +40,13 @@ export default async function IntegrationsSettingsPage() {
       razorpayKeyId: true,
       razorpayKeySecretEnc: true,
       razorpayWebhookSecretEnc: true,
+      aerodataboxKeyEnc: true,
     },
   });
 
   const origin = appOrigin();
+
+  const google = isOwner ? await getGoogleConnection(agencyId) : null;
 
   return (
     <PageShell>
@@ -72,6 +78,18 @@ export default async function IntegrationsSettingsPage() {
           variant="card"
         />
       ) : (
+        <div className="space-y-6">
+        <GoogleIntegrationCard
+          data={{
+            connected: Boolean(google),
+            email: google?.email ?? null,
+            scopesOutdated: google ? !scopesUpToDate(google.scope) : false,
+            sendFromGmail: google?.sendFromGmail ?? true,
+            saveToDrive: google?.saveToDrive ?? true,
+            configured: isGoogleConfigured(),
+            canEncrypt: canEncryptSecrets(),
+          }}
+        />
         <IntegrationsForm
           canEncrypt={canEncryptSecrets()}
           whatsapp={{
@@ -91,7 +109,14 @@ export default async function IntegrationsSettingsPage() {
             hasWebhookSecret: Boolean(s.razorpayWebhookSecretEnc),
             webhookUrl: `${origin}/api/webhooks/razorpay/${agencyId}`,
           }}
+          enrichment={{
+            hasFlightKey: Boolean(s.aerodataboxKeyEnc),
+            flightServerFallback: Boolean(
+              process.env.AERODATABOX_API_KEY || process.env.RAPIDAPI_KEY
+            ),
+          }}
         />
+        </div>
       )}
     </PageShell>
   );

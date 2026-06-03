@@ -323,6 +323,7 @@ model User {
   sentMessages     WhatsappMessage[]  @relation("WhatsappSender")
   createdTemplates WhatsappTemplate[] @relation("TemplateCreator")
   activities       Activity[]         @relation("ActivityActor")
+  googleConnections GoogleConnection[] @relation("GoogleConnectionConnector")
 }
 
 /// Single-use, short-lived password reset token. We store only the SHA-256
@@ -355,6 +356,7 @@ model Agency {
   memberships         Membership[]
   invites             Invite[]
   settings            AgencySettings?
+  googleConnection    GoogleConnection?
   subscription        Subscription?
   invoiceCounters     InvoiceCounter[]
   contacts            Contact[]
@@ -564,6 +566,10 @@ model Trip {
   interests   String[]
   notes       String?
 
+  // Cached id of this trip's folder in the agency's Google Drive (created
+  // lazily the first time a document is saved there). Null = not yet created.
+  driveFolderId String?
+
   status    TripStatus @default(PLANNING)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -751,6 +757,11 @@ model TravelSegment {
   airline      String?
   flightNumber String?
   pnr          String?
+
+  // Intermediate stops for a connecting / through journey, as display labels
+  // e.g. ["Mumbai (BOM)"]. Empty = non-stop / direct. Drives the "1 stop via
+  // Mumbai" line on the itinerary + proposal. Applies to flights and trains.
+  stops String[] @default([])
 
   // Train fields
   trainName   String?
@@ -1018,6 +1029,12 @@ model AgencySettings {
   waAppSecretEnc       String? // encrypted (used to verify inbound webhook signatures)
   waWebhookVerifyToken String? // agency-chosen handshake token (pasted into Meta)
 
+  // === Flight enrichment (per-agency BYO API key) =========================
+  // Auto-fills flight segment details from a flight number. Optional — if unset
+  // the app falls back to a server-wide key (env). Encrypted at rest. (Trains
+  // use eRail, which is keyless, so no train key is stored.)
+  aerodataboxKeyEnc String? // encrypted — AeroDataBox (RapidAPI) flight lookup
+
   // === Payments — Razorpay (per-agency BYO credentials) ===================
   razorpayEnabled          Boolean @default(false)
   razorpayKeyId            String?
@@ -1027,6 +1044,49 @@ model AgencySettings {
   // Future-proof feature flags
   eInvoiceEnabled Boolean @default(false)
   eWayBillEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Per-agency Google Workspace connection (BYO Google account, like the
+/// WhatsApp/Razorpay BYO-credentials pattern on AgencySettings).
+///
+/// The owner authorizes ONE Google account via OAuth with offline access. We
+/// keep the long-lived refresh token encrypted at rest and cache a short-lived
+/// access token + its expiry, refreshing on demand. Granted scopes are minimal
+/// and NON-restricted — `gmail.send` + `drive.file` + `userinfo.email` — so no
+/// Google CASA security assessment is required. See [crypto.ts](src/lib/crypto.ts).
+model GoogleConnection {
+  id       String @id @default(cuid())
+  agencyId String @unique
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  // The Google account the agency authorized (shown in the UI). Emails send
+  // from this address and Drive folders are created in this account's Drive.
+  email String
+
+  // OAuth tokens. The refresh token is long-lived → encrypted. The access
+  // token is short-lived (~1h); we cache it + its expiry and refresh lazily.
+  refreshTokenEnc String
+  accessTokenEnc  String?
+  accessTokenExp  DateTime?
+
+  // Space-separated scopes actually granted — used to gate capabilities and
+  // to detect when a re-consent is needed after we add a scope.
+  scope String
+
+  // Per-capability toggles the owner can flip without disconnecting entirely.
+  sendFromGmail Boolean @default(true)
+  saveToDrive   Boolean @default(true)
+
+  // Root "TripCraft" Drive folder under which per-trip subfolders are created.
+  // Created lazily on first save and cached so we don't re-create it.
+  driveRootFolderId String?
+
+  // Who linked it (audit). Nullable — the linker may later be removed.
+  connectedById String?
+  connectedBy   User?   @relation("GoogleConnectionConnector", fields: [connectedById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
