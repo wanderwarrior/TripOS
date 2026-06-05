@@ -23,6 +23,7 @@ export const authEdgeConfig: NextAuthConfig = {
         // (landing for guests, dashboard for authed users).
         path === "/" ||
         path.startsWith("/pricing") ||
+        path.startsWith("/blog") ||
         path.startsWith("/legal") ||
         path.startsWith("/login") ||
         path.startsWith("/signup") ||
@@ -50,6 +51,7 @@ export const authEdgeConfig: NextAuthConfig = {
         path === "/manifest.webmanifest" ||
         path === "/sitemap.xml" ||
         path === "/robots.txt" ||
+        path === "/llms.txt" ||
         path === "/opengraph-image" ||
         path.startsWith("/uploads/");
       if (isPublic) return true;

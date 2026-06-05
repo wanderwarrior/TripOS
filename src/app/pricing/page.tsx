@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, Check, Sparkles, X } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/structured-data";
 import { PLANS, PRICING_ORDER, TRIAL_DAYS, formatPlanPrice } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
+  alternates: { canonical: "/pricing" },
   title: "Pricing · tripOS",
   description:
     "Simple per-agency pricing for tripOS — the all-in-one travel agency platform. Start with a 14-day free trial.",
@@ -49,6 +52,12 @@ const FAQ = [
 export default async function PricingPage() {
   return (
     <MarketingShell>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Pricing", path: "/pricing" },
+        ])}
+      />
       <section className="mx-auto max-w-6xl px-5 md:px-10 pt-16 md:pt-20 pb-10 text-center">
         <p className="tc-eyebrow gold">Pricing</p>
         <h1 className="mt-3 font-display text-4xl md:text-6xl text-ink leading-tight">

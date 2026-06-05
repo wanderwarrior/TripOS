@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { HelpSearch } from "@/components/help/help-search";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/structured-data";
 import {
   HELP_ARTICLES,
   HELP_CATEGORIES,
@@ -25,7 +27,10 @@ import {
 } from "@/lib/help-content";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Help · tripOS" };
+export const metadata = {
+  title: "Help · tripOS",
+  alternates: { canonical: "/help" },
+};
 
 const ICONS: Record<HelpIconKey, LucideIcon> = {
   rocket: Rocket,
@@ -49,6 +54,12 @@ export default function HelpPage() {
 
   return (
     <PageShell>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Help", path: "/help" },
+        ])}
+      />
       <header className="mb-8 text-center max-w-2xl mx-auto">
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-[10px] bg-inkwash text-[var(--on-dark)] mx-auto">
           <LifeBuoy className="h-5 w-5" />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Compass, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { Logo } from "@/components/brand/mark";
 import { SignupForm } from "@/components/auth/signup-form";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { getSessionUser } from "@/lib/session";
@@ -21,14 +22,10 @@ export default async function SignupPage() {
       <div className="w-full max-w-md">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 mb-10 justify-center w-full"
+          className="inline-flex items-center justify-center w-full mb-10 text-ink"
+          aria-label="tripOS home"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-[9px] text-[var(--on-dark)]" style={{ background: "linear-gradient(150deg, var(--gold), #B0863F)" }}>
-            <Compass className="h-4 w-4" />
-          </span>
-          <span className="font-display text-2xl tracking-tight text-ink">
-            trip<b className="text-gold-deep">OS</b>
-          </span>
+          <Logo size={34} wordClassName="text-2xl" />
         </Link>
 
         <div className="rounded-lg border border-line bg-paper p-8 shadow-soft">

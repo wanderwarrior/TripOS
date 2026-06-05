@@ -2,6 +2,9 @@ import { getSessionUser } from "@/lib/session";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { Landing } from "@/components/marketing/landing";
 import { getHeroMedia } from "@/server/services/platform";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqSchema } from "@/lib/structured-data";
+import { MARKETING_FAQS } from "@/lib/faq-content";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,7 @@ export default async function HomePage() {
 
   return (
     <MarketingShell>
+      <JsonLd data={faqSchema(MARKETING_FAQS)} />
       <Landing
         isAuthed={!!sessionUser}
         heroVideoUrl={hero.videoUrl}

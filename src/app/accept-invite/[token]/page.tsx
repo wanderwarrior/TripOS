@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { AlertTriangle, Compass } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { Logo } from "@/components/brand/mark";
 import { prisma } from "@/lib/prisma";
 import { AcceptInviteForm } from "@/components/auth/accept-invite-form";
 
@@ -27,14 +28,10 @@ export default async function AcceptInvitePage({
       <div className="w-full max-w-md">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 mb-10 justify-center w-full"
+          className="inline-flex items-center justify-center w-full mb-10 text-ink"
+          aria-label="tripOS home"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-[9px] text-[var(--on-dark)]" style={{ background: "linear-gradient(150deg, var(--gold), #B0863F)" }}>
-            <Compass className="h-4 w-4" />
-          </span>
-          <span className="font-display text-2xl tracking-tight text-ink">
-            Trip<b className="text-gold-deep">Craft</b>
-          </span>
+          <Logo size={34} wordClassName="text-2xl" />
         </Link>
 
         <div className="rounded-lg border border-line bg-paper p-8 shadow-soft">

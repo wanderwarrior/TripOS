@@ -91,6 +91,15 @@ export function MarketingNav({ isAuthed }: { isAuthed: boolean }) {
           >
             Pricing
           </Link>
+          <Link
+            href="/blog"
+            className={cn(
+              "transition-colors",
+              solid ? "hover:text-ink" : "hover:text-white"
+            )}
+          >
+            Guides
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2.5">

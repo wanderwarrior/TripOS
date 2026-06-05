@@ -1,18 +1,18 @@
 import Link from "next/link";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Logo } from "@/components/brand/mark";
 
 export const metadata = { title: "Page not found" };
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-5 text-center">
-      <Link href="/" className="flex items-center gap-2.5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-inkwash text-[var(--on-dark)]">
-          <Compass className="h-4.5 w-4.5" />
-        </span>
-        <span className="font-display text-xl tracking-tight text-ink">
-          tripOS
-        </span>
+      <Link
+        href="/"
+        className="flex items-center text-ink"
+        aria-label="tripOS home"
+      >
+        <Logo size={30} wordClassName="text-xl" />
       </Link>
 
       <p className="mt-12 font-mono text-sm uppercase tracking-[0.3em] text-gold-deep">

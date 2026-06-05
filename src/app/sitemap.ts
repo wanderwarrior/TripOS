@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { HELP_ARTICLES } from "@/lib/help-content";
+import { listBlogPosts } from "@/lib/blog-content";
 
 const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL ||
@@ -17,6 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/about", priority: 0.6, freq: "monthly" },
     { path: "/contact", priority: 0.7, freq: "monthly" },
     { path: "/changelog", priority: 0.6, freq: "weekly" },
+    { path: "/blog", priority: 0.8, freq: "weekly" },
     { path: "/help", priority: 0.6, freq: "weekly" },
     { path: "/legal/terms", priority: 0.3, freq: "yearly" },
     { path: "/legal/privacy", priority: 0.3, freq: "yearly" },
@@ -39,5 +41,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.4,
   }));
 
-  return [...staticEntries, ...helpEntries];
+  const blogEntries: MetadataRoute.Sitemap = listBlogPosts().map((p) => ({
+    url: `${APP_URL}/blog/${p.slug}`,
+    lastModified: new Date(`${p.updated ?? p.date}T00:00:00Z`),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  return [...staticEntries, ...blogEntries, ...helpEntries];
 }

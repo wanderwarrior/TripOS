@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema, siteUrl } from "@/lib/structured-data";
 import {
   articleBySlug,
   articlesInCategory,
@@ -12,7 +14,10 @@ export const dynamic = "force-dynamic";
 
 export function generateMetadata({ params }: { params: { slug: string } }) {
   const a = articleBySlug(params.slug);
-  return { title: a ? `${a.title} · Help · tripOS` : "Help · tripOS" };
+  return {
+    title: a ? `${a.title} · Help · tripOS` : "Help · tripOS",
+    alternates: { canonical: `/help/${params.slug}` },
+  };
 }
 
 export default function HelpArticlePage({
@@ -28,8 +33,30 @@ export default function HelpArticlePage({
     (a) => a.slug !== article.slug
   );
 
+  const base = siteUrl();
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: article.title,
+    description: article.summary,
+    url: `${base}/help/${article.slug}`,
+    inLanguage: "en-IN",
+    isPartOf: { "@id": `${base}/#website` },
+    publisher: { "@id": `${base}/#organization` },
+  };
+
   return (
     <PageShell>
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Help", path: "/help" },
+            { name: article.title, path: `/help/${article.slug}` },
+          ]),
+          articleLd,
+        ]}
+      />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/help" className="hover:text-ink transition-colors">

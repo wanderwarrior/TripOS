@@ -3,6 +3,12 @@ import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { CookieConsent } from "@/components/cookie-consent";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  organizationSchema,
+  websiteSchema,
+  softwareApplicationSchema,
+} from "@/lib/structured-data";
 import "./globals.css";
 
 const inter = Inter({
@@ -42,6 +48,8 @@ export const metadata: Metadata = {
     template: "%s · tripOS",
   },
   description: DESCRIPTION,
+  // Self-referencing canonical for the home page; per-page metadata overrides.
+  alternates: { canonical: "/" },
   applicationName: "tripOS",
   keywords: [
     "travel agency software",
@@ -88,6 +96,13 @@ export default function RootLayout({
       className={`${inter.variable} ${playfair.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans">
+        <JsonLd
+          data={[
+            organizationSchema(),
+            websiteSchema(),
+            softwareApplicationSchema(),
+          ]}
+        />
         {children}
         <Toaster />
         <CookieConsent />

@@ -6,6 +6,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/marketing/motion-prim
 export const dynamic = "force-dynamic";
 
 export const metadata = {
+  alternates: { canonical: "/about" },
   title: "About",
   description:
     "tripOS is the all-in-one platform built for modern travel agencies — so you can spend less time fighting tools and more time crafting trips.",

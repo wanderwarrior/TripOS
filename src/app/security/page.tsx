@@ -16,6 +16,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/marketing/motion-prim
 export const dynamic = "force-dynamic";
 
 export const metadata = {
+  alternates: { canonical: "/security" },
   title: "Security",
   description:
     "How tripOS protects your agency and your customers' data — tenant isolation, encryption, role-based access, secure payments and compliance.",

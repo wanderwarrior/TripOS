@@ -6,6 +6,7 @@ import { Reveal } from "@/components/marketing/motion-primitives";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
+  alternates: { canonical: "/changelog" },
   title: "Changelog",
   description:
     "What's new in tripOS — the latest features and improvements shipped for travel agencies.",

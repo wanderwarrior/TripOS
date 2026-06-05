@@ -48,6 +48,7 @@ export async function MarketingShell({
             title="Company"
             links={[
               { label: "About", href: "/about" },
+              { label: "Guides", href: "/blog" },
               { label: "Contact", href: "/contact" },
               { label: "Help centre", href: "/help" },
               { label: "Sign in", href: "/login" },
