@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Security",
   description:
-    "How TripCraft protects your agency and your customers' data — tenant isolation, encryption, role-based access, secure payments and compliance.",
+    "How tripOS protects your agency and your customers' data — tenant isolation, encryption, role-based access, secure payments and compliance.",
 };
 
 const PILLARS = [
@@ -105,7 +105,7 @@ export default function SecurityPage() {
                   Compliance & data rights
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink/75">
-                  TripCraft issues GST-compliant tax invoices and is built with
+                  tripOS issues GST-compliant tax invoices and is built with
                   India&apos;s DPDP Act in mind. We act as a processor for the
                   customer data your agency stores, and as a controller for your
                   account and billing data. See our{" "}

@@ -138,6 +138,15 @@ export async function signOutAction() {
   await signOut({ redirectTo: "/login" });
 }
 
+/**
+ * Start the Google OAuth sign-in flow. `signIn` throws a redirect to Google's
+ * consent screen (and, on return, to /dashboard) — that NEXT_REDIRECT is the
+ * success path, so we let it bubble.
+ */
+export async function googleSignInAction() {
+  await signIn("google", { redirectTo: "/dashboard" });
+}
+
 // === Password reset =======================================================
 
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -183,8 +192,8 @@ export async function requestPasswordResetAction(input: { email: string }) {
     const firstName = user.name?.trim().split(/\s+/)[0] ?? "there";
     await sendEmail({
       to: email,
-      subject: "Reset your TripCraft password",
-      text: `Hi ${firstName},\n\nReset your TripCraft password using this link (valid for 1 hour):\n${url}\n\nIf you didn't request this, you can safely ignore this email.`,
+      subject: "Reset your tripOS password",
+      text: `Hi ${firstName},\n\nReset your tripOS password using this link (valid for 1 hour):\n${url}\n\nIf you didn't request this, you can safely ignore this email.`,
       html: brandedEmail({
         heading: "Reset your password",
         bodyHtml: `<p>Hi ${firstName},</p><p>Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p><p style="color:#9A9A9A;font-size:12px">If you didn't request this, you can safely ignore this email — your password won't change.</p>`,

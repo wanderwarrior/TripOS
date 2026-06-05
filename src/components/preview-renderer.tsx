@@ -207,7 +207,7 @@ export function PreviewRenderer({
     : null;
 
   const startDate = trip.startDate ? new Date(trip.startDate) : null;
-  const agencyName = agency?.name?.trim() || "TripCraft";
+  const agencyName = agency?.name?.trim() || "tripOS";
   const b = resolveBranding(branding);
   // Smart logo fallback: variant → primary → monogram (handled by <Seal>).
   const lightLogo = agency?.logoLight || agency?.logoUrl || null;
@@ -612,6 +612,10 @@ function DayByDay({
   itinerary: ItineraryContent;
   startDate: Date | null;
 }) {
+  // Photo placeholders exist only to keep visual rhythm alongside real day
+  // photos. If no day has an image, suppress them entirely so an image-free
+  // proposal reads clean rather than full of empty slots.
+  const hasDayImages = itinerary.days.some((d) => !!d.imageUrl);
   return (
     <section className="pp-sec" style={{ background: "var(--paper)" }}>
       <div className="sec-kicker">
@@ -623,7 +627,13 @@ function DayByDay({
       </h2>
       <div style={{ marginTop: 16 }}>
         {itinerary.days.map((day, i) => (
-          <DayBlock key={i} day={day} index={i} startDate={startDate} />
+          <DayBlock
+            key={i}
+            day={day}
+            index={i}
+            startDate={startDate}
+            allowPlaceholder={hasDayImages}
+          />
         ))}
       </div>
     </section>
@@ -634,10 +644,12 @@ function DayBlock({
   day,
   index,
   startDate,
+  allowPlaceholder,
 }: {
   day: ItineraryDay;
   index: number;
   startDate: Date | null;
+  allowPlaceholder: boolean;
 }) {
   const rawFood = day.foodNote?.trim() || day.food?.trim() || null;
   const foodText = isGenericMealNote(rawFood) ? null : rawFood;
@@ -645,8 +657,10 @@ function DayBlock({
   const activities = day.activities ?? [];
   const showPhoto = !!day.imageUrl;
   // Striped placeholder reads as a deliberate location slot — only on days
-  // that have real content, never on a bare arrival/departure leg.
-  const showPlaceholder = !day.imageUrl && activities.length >= 2;
+  // that have real content, never on a bare arrival/departure leg, and never
+  // at all when the proposal has no day photos to sit alongside.
+  const showPlaceholder =
+    allowPlaceholder && !day.imageUrl && activities.length >= 2;
 
   return (
     <motion.article {...reveal} className="day">
@@ -925,7 +939,7 @@ function Closing({
           </div>
         )}
         {showRegistered && <div className="close-registered">{registeredLine}</div>}
-        <div className="close-craft">Crafted with TripCraft</div>
+        <div className="close-craft">Crafted with tripOS</div>
       </div>
     </footer>
   );

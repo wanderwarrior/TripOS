@@ -5,6 +5,7 @@ import { AdminAgenciesTable } from "@/components/admin/agencies-table";
 import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import {
+  getAgencyActivityMap,
   getHeroMedia,
   getPlatformStats,
   listAgenciesForAdmin,
@@ -29,6 +30,8 @@ export default async function AdminPage({
     getHeroMedia(),
   ]);
 
+  const activity = await getAgencyActivityMap(agencies.map((a) => a.id));
+
   return (
     <PageShell>
       <header className="mb-7">
@@ -38,7 +41,7 @@ export default async function AdminPage({
         </p>
         <h1 className="tc-page-title mt-2.5">Platform</h1>
         <p className="tc-page-sub">
-          Every agency on TripCraft — subscriptions, usage and controls. Visible
+          Every agency on tripOS — subscriptions, usage and controls. Visible
           only to platform admins.
         </p>
       </header>
@@ -56,12 +59,25 @@ export default async function AdminPage({
       </section>
 
       <AdminAgenciesTable
-        agencies={agencies.map((a) => ({
-          ...a,
-          createdAt: a.createdAt.toISOString(),
-          trialEndsAt: a.trialEndsAt?.toISOString() ?? null,
-          currentPeriodEnd: a.currentPeriodEnd?.toISOString() ?? null,
-        }))}
+        agencies={agencies.map((a) => {
+          const act = activity.get(a.id);
+          return {
+            ...a,
+            createdAt: a.createdAt.toISOString(),
+            trialEndsAt: a.trialEndsAt?.toISOString() ?? null,
+            currentPeriodEnd: a.currentPeriodEnd?.toISOString() ?? null,
+            activity: {
+              contacts: act?.contacts ?? 0,
+              customers: act?.customers ?? 0,
+              trips: act?.trips ?? 0,
+              itineraries: act?.itineraries ?? 0,
+              quotes: act?.quotes ?? 0,
+              invoices: act?.invoices ?? 0,
+              waSent: act?.waSent ?? 0,
+              lastActiveAt: act?.lastActiveAt?.toISOString() ?? null,
+            },
+          };
+        })}
         query={searchParams.q ?? ""}
       />
 

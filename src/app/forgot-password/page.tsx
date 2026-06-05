@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Reset password · TripCraft" };
+export const metadata = { title: "Reset password · tripOS" };
 
 export default async function ForgotPasswordPage() {
   const u = await getSessionUser();

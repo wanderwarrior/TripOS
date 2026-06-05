@@ -135,7 +135,7 @@ export function formatRegisteredAddress(s: {
 // Resolved agency identity for the proposal renderers. Logo URLs here are the
 // raw stored values — the PDF snapshot absolutizes them separately.
 export function buildProposalAgency(s: ProposalSettings | null | undefined) {
-  const name = s?.tradeName?.trim() || s?.legalName?.trim() || "TripCraft";
+  const name = s?.tradeName?.trim() || s?.legalName?.trim() || "tripOS";
   return {
     name,
     logoUrl: s?.logoUrl ?? null,

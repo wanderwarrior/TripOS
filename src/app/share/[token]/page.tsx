@@ -15,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Travel proposal — TripCraft",
+  title: "Travel proposal — tripOS",
   robots: { index: false, follow: false },
 };
 
@@ -153,7 +153,7 @@ export default async function PublicQuotePage({
         ) : null}
 
         <footer className="text-center text-[11px] uppercase tracking-[0.2em] text-muted-foreground pt-6 print:hidden">
-          Crafted with TripCraft · for {agencyName}
+          Crafted with tripOS · for {agencyName}
         </footer>
       </main>
     </div>

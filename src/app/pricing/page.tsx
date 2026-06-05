@@ -6,9 +6,9 @@ import { PLANS, PRICING_ORDER, TRIAL_DAYS, formatPlanPrice } from "@/lib/plans";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Pricing · TripCraft",
+  title: "Pricing · tripOS",
   description:
-    "Simple per-agency pricing for TripCraft — the all-in-one travel agency platform. Start with a 14-day free trial.",
+    "Simple per-agency pricing for tripOS — the all-in-one travel agency platform. Start with a 14-day free trial.",
 };
 
 const COMPARISON: { label: string; key: "starter" | "pro-only" }[] = [

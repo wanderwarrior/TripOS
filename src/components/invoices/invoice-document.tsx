@@ -277,7 +277,7 @@ export function InvoiceDocument({
   return (
     <Document
       title={`Invoice ${invoice.invoiceNumber ?? "DRAFT"}`}
-      author={supplier?.legalName ?? "TripCraft"}
+      author={supplier?.legalName ?? "tripOS"}
     >
       <Page size="A4" style={styles.page}>
         {/* Hero */}

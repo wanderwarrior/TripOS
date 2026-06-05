@@ -11,7 +11,7 @@ import { requireAgency } from "@/lib/session";
 import { isWhatsappConfiguredForAgency } from "@/server/services/integrations";
 
 // First-run checklist. Renders as a card on the dashboard until every
-// foundational piece of TripCraft is set up. Once everything is in place,
+// foundational piece of tripOS is set up. Once everything is in place,
 // returns null and disappears for good.
 //
 // Why a checklist instead of a modal wizard:
@@ -116,7 +116,7 @@ export async function OnboardingPanel() {
             A few essentials to unlock everything.
           </h2>
           <p className="mt-1.5 text-sm text-muted max-w-xl">
-            TripCraft works better when these are in place. Knock them out in
+            tripOS works better when these are in place. Knock them out in
             any order — this card disappears once you're done.
           </p>
         </div>

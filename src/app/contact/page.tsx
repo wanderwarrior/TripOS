@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Contact",
   description:
-    "Talk to the TripCraft team — book a demo, ask a question, or get help moving your travel agency onto one platform.",
+    "Talk to the tripOS team — book a demo, ask a question, or get help moving your travel agency onto one platform.",
 };
 
 const CHANNELS = [
@@ -44,7 +44,7 @@ export default function ContactPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-ink/75">
               Want a walkthrough, have a question, or ready to move your agency
-              onto TripCraft? Send us a note — we usually reply within a business
+              onto tripOS? Send us a note — we usually reply within a business
               day.
             </p>
           </Reveal>

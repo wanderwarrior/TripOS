@@ -52,7 +52,7 @@ export async function updateHeroMediaAction(input: {
   return { ok: true as const };
 }
 
-/** Cancel an agency's TripCraft subscription (immediate). */
+/** Cancel an agency's tripOS subscription (immediate). */
 export async function cancelAgencySubscriptionAction(agencyId: string) {
   await requirePlatformAdmin();
   await getOrCreateSubscription(agencyId);

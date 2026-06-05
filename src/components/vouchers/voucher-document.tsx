@@ -475,10 +475,10 @@ export function VoucherDocument({
             <View style={styles.brandRow}>
               <View style={styles.seal}>
                 <View style={styles.sealInner} />
-                <Text style={styles.sealText}>TC</Text>
+                <Text style={styles.sealText}>tO</Text>
               </View>
               <View style={styles.brandText}>
-                <Text style={styles.wordmark}>TRIPCRAFT</Text>
+                <Text style={styles.wordmark}>tripOS</Text>
                 <Text style={styles.tagline}>Crafted travel · Voucher of service</Text>
               </View>
             </View>

@@ -165,3 +165,121 @@ export async function listAgenciesForAdmin(
     };
   });
 }
+
+/**
+ * Per-agency activation summary for the owner console — a quick read on how
+ * far each signup has actually gotten into the product ("added 1 customer",
+ * "generated their first itinerary"). All counts are cross-tenant aggregates
+ * so this stays a handful of grouped queries regardless of agency count.
+ */
+export type AgencyActivity = {
+  contacts: number;
+  customers: number;
+  trips: number;
+  itineraries: number;
+  quotes: number;
+  invoices: number;
+  waSent: number;
+  lastActiveAt: Date | null;
+};
+
+const later = (a: Date | null, b: Date | null): Date | null =>
+  !a ? b : !b ? a : a > b ? a : b;
+
+export async function getAgencyActivityMap(
+  agencyIds: string[]
+): Promise<Map<string, AgencyActivity>> {
+  const map = new Map<string, AgencyActivity>();
+  if (agencyIds.length === 0) return map;
+  for (const id of agencyIds) {
+    map.set(id, {
+      contacts: 0,
+      customers: 0,
+      trips: 0,
+      itineraries: 0,
+      quotes: 0,
+      invoices: 0,
+      waSent: 0,
+      lastActiveAt: null,
+    });
+  }
+
+  const scope = { agencyId: { in: agencyIds } };
+  const [
+    contactGroups,
+    customerGroups,
+    tripGroups,
+    invoiceGroups,
+    waGroups,
+    tripsWithCounts,
+  ] = await Promise.all([
+    prisma.contact.groupBy({
+      by: ["agencyId"],
+      where: { ...scope, deletedAt: null },
+      _count: { _all: true },
+      _max: { updatedAt: true },
+    }),
+    prisma.contact.groupBy({
+      by: ["agencyId"],
+      where: { ...scope, deletedAt: null, convertedAt: { not: null } },
+      _count: { _all: true },
+    }),
+    prisma.trip.groupBy({
+      by: ["agencyId"],
+      where: { ...scope, deletedAt: null },
+      _count: { _all: true },
+      _max: { updatedAt: true },
+    }),
+    prisma.invoice.groupBy({
+      by: ["agencyId"],
+      where: scope,
+      _count: { _all: true },
+    }),
+    prisma.whatsappMessage.groupBy({
+      by: ["agencyId"],
+      where: { ...scope, direction: "OUTBOUND" },
+      _count: { _all: true },
+    }),
+    // Itineraries and quotes hang off trips, so aggregate their per-trip counts.
+    prisma.trip.findMany({
+      where: { ...scope, deletedAt: null },
+      select: {
+        agencyId: true,
+        _count: { select: { itineraries: true, quotes: true } },
+      },
+    }),
+  ]);
+
+  for (const g of contactGroups) {
+    const a = map.get(g.agencyId);
+    if (!a) continue;
+    a.contacts = g._count._all;
+    a.lastActiveAt = later(a.lastActiveAt, g._max.updatedAt);
+  }
+  for (const g of customerGroups) {
+    const a = map.get(g.agencyId);
+    if (a) a.customers = g._count._all;
+  }
+  for (const g of tripGroups) {
+    const a = map.get(g.agencyId);
+    if (!a) continue;
+    a.trips = g._count._all;
+    a.lastActiveAt = later(a.lastActiveAt, g._max.updatedAt);
+  }
+  for (const g of invoiceGroups) {
+    const a = map.get(g.agencyId);
+    if (a) a.invoices = g._count._all;
+  }
+  for (const g of waGroups) {
+    const a = map.get(g.agencyId);
+    if (a) a.waSent = g._count._all;
+  }
+  for (const t of tripsWithCounts) {
+    const a = map.get(t.agencyId);
+    if (!a) continue;
+    a.itineraries += t._count.itineraries;
+    a.quotes += t._count.quotes;
+  }
+
+  return map;
+}

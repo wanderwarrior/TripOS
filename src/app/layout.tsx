@@ -31,7 +31,7 @@ const APP_URL = (
   "http://localhost:3000"
 ).replace(/\/$/, "");
 
-const TITLE = "TripCraft — Run your travel agency on one platform";
+const TITLE = "tripOS — Run your travel agency on one platform";
 const DESCRIPTION =
   "The all-in-one platform for travel agencies — AI itineraries, branded proposals, WhatsApp, GST invoicing, payments and operations. Start a free trial.";
 
@@ -39,10 +39,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
     default: TITLE,
-    template: "%s · TripCraft",
+    template: "%s · tripOS",
   },
   description: DESCRIPTION,
-  applicationName: "TripCraft",
+  applicationName: "tripOS",
   keywords: [
     "travel agency software",
     "travel CRM",
@@ -52,10 +52,10 @@ export const metadata: Metadata = {
     "WhatsApp travel agency",
     "tour operator software India",
   ],
-  authors: [{ name: "TripCraft" }],
+  authors: [{ name: "tripOS" }],
   openGraph: {
     type: "website",
-    siteName: "TripCraft",
+    siteName: "tripOS",
     title: TITLE,
     description: DESCRIPTION,
     url: APP_URL,

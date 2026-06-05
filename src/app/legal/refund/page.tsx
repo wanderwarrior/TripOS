@@ -1,13 +1,13 @@
 import { LegalDoc } from "@/components/marketing/legal-doc";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Refund Policy · TripCraft" };
+export const metadata = { title: "Refund Policy · tripOS" };
 
 export default function RefundPage() {
   return (
     <LegalDoc title="Refund &amp; Cancellation Policy" updated="May 2026">
       <p>
-        This policy covers your TripCraft subscription. It does not cover
+        This policy covers your tripOS subscription. It does not cover
         payments your agency collects from its own customers — those are
         governed by your agency&apos;s own terms.
       </p>

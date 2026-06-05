@@ -141,7 +141,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     categoryId: "getting-started",
     title: "Connect WhatsApp",
     summary:
-      "TripCraft sends proposals, invoices and reminders over the WhatsApp Cloud API.",
+      "tripOS sends proposals, invoices and reminders over the WhatsApp Cloud API.",
     steps: [
       {
         heading: "Set up a Meta Business + WhatsApp number",

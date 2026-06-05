@@ -116,7 +116,7 @@ function TrustBar() {
 
 const STATS = [
   { to: 12000, suffix: "+", label: "AI itineraries generated", icon: Wand2 },
-  { to: 120, prefix: "₹", suffix: " Cr+", label: "Trips quoted on TripCraft", icon: TrendingUp },
+  { to: 120, prefix: "₹", suffix: " Cr+", label: "Trips quoted on tripOS", icon: TrendingUp },
   { to: 40, suffix: "%", label: "Faster proposal turnaround", icon: Clock },
   { to: 98, suffix: "%", label: "On-time vendor deliveries", icon: ShieldCheck },
 ];
@@ -179,7 +179,7 @@ function ProblemSection() {
       </Stagger>
       <Reveal className="mt-8 text-center" delay={0.1}>
         <p className="text-sm text-ink/70">
-          TripCraft replaces all of it with{" "}
+          tripOS replaces all of it with{" "}
           <span className="font-semibold text-ink">one flow</span> — and your
           customers feel the difference on the very first proposal.
         </p>
@@ -556,7 +556,7 @@ function Comparison() {
               </th>
               <th className="px-4 py-4 text-center">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-soft border border-[var(--gold-line)] px-3 py-1 font-semibold text-gold-deep">
-                  <Sparkles className="h-3.5 w-3.5" /> TripCraft
+                  <Sparkles className="h-3.5 w-3.5" /> tripOS
                 </span>
               </th>
             </tr>
@@ -781,7 +781,7 @@ function ClosingCta() {
               Ready to craft better trips?
             </h2>
             <p className="mt-4 text-[var(--on-dark)]/75 max-w-xl mx-auto">
-              Join the agencies running their entire business on TripCraft. Your
+              Join the agencies running their entire business on tripOS. Your
               free {TRIAL_DAYS}-day trial starts the moment you sign up — and
               founding pricing is still open.
             </p>

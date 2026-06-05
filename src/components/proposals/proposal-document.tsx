@@ -464,7 +464,7 @@ function RunningFooter({
   return (
     <View style={styles.runningFooter} fixed>
       <Text style={styles.runningFooterText}>
-        Crafted with TripCraft · for {snapshot.agency.name}
+        Crafted with tripOS · for {snapshot.agency.name}
       </Text>
       <Text style={styles.runningFooterText}>
         {snapshot.agency.website || ""}
@@ -858,7 +858,7 @@ function ClosingPage({
           <Text style={styles.closingRegistered}>{registeredLine}</Text>
         )}
       </View>
-      <Text style={styles.closingCraft}>Crafted with TripCraft</Text>
+      <Text style={styles.closingCraft}>Crafted with tripOS</Text>
     </Page>
   );
 }

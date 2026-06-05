@@ -157,6 +157,10 @@ export async function updateLeadAction(
       adults: data.adults,
       budget: data.budget === undefined ? undefined : (data.budget ?? null),
       notes: data.notes === undefined ? undefined : (data.notes ?? null),
+      gstin:
+        data.gstin === undefined
+          ? undefined
+          : data.gstin?.trim().toUpperCase() || null,
       status: data.status,
       nextFollowUpAt:
         data.nextFollowUpAt === undefined

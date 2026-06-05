@@ -5,7 +5,7 @@ import { AcceptInviteForm } from "@/components/auth/accept-invite-form";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Accept invite · TripCraft" };
+export const metadata = { title: "Accept invite · tripOS" };
 
 export default async function AcceptInvitePage({
   params,

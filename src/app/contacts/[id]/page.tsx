@@ -7,6 +7,7 @@ import { ContactStrip } from "@/components/crm/contact-strip";
 import { LeadTimeline } from "@/components/crm/contact-timeline";
 import { TaskList } from "@/components/crm/task-list";
 import { ConvertCustomerDialog } from "@/components/crm/convert-customer-dialog";
+import { EditContactDialog } from "@/components/crm/edit-contact-dialog";
 import {
   CustomerPreferencesPanel,
   type CustomerPreferences,
@@ -153,6 +154,27 @@ export default async function LeadDetailPage({
               link={{ contactId: contact.id }}
             />
           ) : null}
+          {canEdit && (
+            <EditContactDialog
+              isCustomer={isCustomer}
+              contact={{
+                id: contact.id,
+                name: contact.name,
+                phone: contact.phone,
+                email: contact.email,
+                source: contact.source,
+                destination: contact.destination,
+                travelStartDate:
+                  contact.travelStartDate?.toISOString().slice(0, 10) ?? null,
+                travelEndDate:
+                  contact.travelEndDate?.toISOString().slice(0, 10) ?? null,
+                adults: contact.adults,
+                budget: contact.budget,
+                gstin: contact.gstin,
+                notes: contact.notes,
+              }}
+            />
+          )}
           {!isCustomer && <ConvertCustomerDialog contactId={contact.id} />}
           <Link href={`/trips/new?contactId=${contact.id}`}>
             <Button variant={isCustomer ? "accent" : "default"}>

@@ -27,7 +27,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if I already use spreadsheets and WhatsApp?",
-    a: "Most agencies that switch were doing exactly that. TripCraft replaces the scattered mess with one flow — and you can keep using WhatsApp, except now proposals, invoices and reminders go out branded and tracked.",
+    a: "Most agencies that switch were doing exactly that. tripOS replaces the scattered mess with one flow — and you can keep using WhatsApp, except now proposals, invoices and reminders go out branded and tracked.",
   },
 ];
 

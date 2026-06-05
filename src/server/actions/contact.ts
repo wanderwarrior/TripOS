@@ -59,7 +59,7 @@ export async function submitContactAction(
   // Acknowledge the sender (best-effort).
   await sendEmail({
     to: email,
-    subject: "We've got your message — TripCraft",
+    subject: "We've got your message — tripOS",
     html: brandedEmail({
       heading: `Thanks, ${name.split(/\s+/)[0]}!`,
       bodyHtml:

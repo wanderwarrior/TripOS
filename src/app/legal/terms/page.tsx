@@ -1,14 +1,14 @@
 import { LegalDoc } from "@/components/marketing/legal-doc";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Terms of Service · TripCraft" };
+export const metadata = { title: "Terms of Service · tripOS" };
 
 export default function TermsPage() {
   return (
     <LegalDoc title="Terms of Service" updated="May 2026">
       <p>
         These Terms of Service (&quot;Terms&quot;) govern your access to and use
-        of TripCraft (the &quot;Service&quot;), operated by TripCraft. By
+        of tripOS (the &quot;Service&quot;), operated by tripOS. By
         creating an account or using the Service, you agree to these Terms.
       </p>
 

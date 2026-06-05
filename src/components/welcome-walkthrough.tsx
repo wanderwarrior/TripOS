@@ -24,7 +24,7 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     icon: Compass,
-    title: "Welcome to TripCraft",
+    title: "Welcome to tripOS",
     body: "Your whole agency in one place — from the first inquiry to a paid, fully-operated trip. Here's the 60-second tour.",
   },
   {

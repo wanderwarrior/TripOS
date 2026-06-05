@@ -128,7 +128,7 @@ export default async function PublicVoucherPage({
               <Seal />
               <div>
                 <div className="text-[13px] font-bold uppercase tracking-[0.34em]">
-                  TripCraft
+                  tripOS
                 </div>
                 <div
                   className="mt-0.5 text-[8.5px] font-medium uppercase tracking-[0.24em]"

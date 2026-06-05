@@ -3,7 +3,7 @@
 // healthcheck). Authentication is a single shared secret in the
 // `Authorization: Bearer …` header, kept in WHATSAPP_CRON_SECRET.
 //
-// When TripCraft moves to BullMQ, this route stays — it just enqueues into
+// When tripOS moves to BullMQ, this route stays — it just enqueues into
 // the queue instead of running the scan in-process.
 
 import { NextRequest, NextResponse } from "next/server";

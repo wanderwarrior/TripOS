@@ -43,7 +43,7 @@ export default async function CommsTemplatesPage() {
       {templates.length === 0 ? (
         <EmptyState
           title="No templates yet"
-          body="Create your first one — proposal, invoice, reminder, follow-up — and TripCraft will reuse it across the workflow."
+          body="Create your first one — proposal, invoice, reminder, follow-up — and tripOS will reuse it across the workflow."
           action={<TemplateEditor />}
           variant="card"
         />

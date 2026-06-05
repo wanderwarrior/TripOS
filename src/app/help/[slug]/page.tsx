@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export function generateMetadata({ params }: { params: { slug: string } }) {
   const a = articleBySlug(params.slug);
-  return { title: a ? `${a.title} · Help · TripCraft` : "Help · TripCraft" };
+  return { title: a ? `${a.title} · Help · tripOS` : "Help · tripOS" };
 }
 
 export default function HelpArticlePage({

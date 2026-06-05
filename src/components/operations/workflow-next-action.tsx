@@ -5,6 +5,24 @@ import { ArrowRight } from "lucide-react";
 import type { NextAction } from "@/server/services/trip-workflow";
 
 /**
+ * Activate a trip workspace tab (#tab-plan / #tab-operations) and bring the
+ * tab strip into view. Radix Tabs switches on `mousedown` / `focus`, NOT on a
+ * synthetic `.click()`, so we dispatch a real mousedown the way Radix expects.
+ */
+export function activateTripTab(tab: "plan" | "operations") {
+  const trigger = document.getElementById(`tab-${tab}`);
+  if (!trigger) return;
+  trigger.dispatchEvent(
+    new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })
+  );
+  // Move focus too, so keyboard users land on the now-active tab.
+  (trigger as HTMLElement).focus({ preventScroll: true });
+  document
+    .getElementById("trip-tabs")
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/**
  * Actionable "do this next" CTA for the trip lifecycle stepper. Turns the
  * computed nextAction into a real button: an `href` becomes a link; a
  * `scrollTarget` clicks the matching Radix tab (#tab-plan / #tab-operations)
@@ -40,11 +58,7 @@ export function WorkflowNextAction({ action }: { action: NextAction }) {
   function jump() {
     const target = action!.scrollTarget;
     if (!target) return;
-    const trigger = document.getElementById(`tab-${target}`);
-    trigger?.click();
-    document
-      .getElementById("trip-tabs")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    activateTripTab(target);
   }
 
   return (

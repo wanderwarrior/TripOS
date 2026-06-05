@@ -13,7 +13,7 @@ import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Billing · TripCraft" };
+export const metadata = { title: "Billing · tripOS" };
 
 const STATUS_LABEL: Record<string, string> = {
   TRIALING: "Trial",
@@ -49,7 +49,7 @@ export default async function BillingPage() {
         <p className="tc-eyebrow gold">Settings</p>
         <h1 className="tc-page-title mt-2.5">Billing & plan</h1>
         <p className="tc-page-sub max-w-2xl">
-          Your TripCraft subscription. Manage the plan your agency runs on and
+          Your tripOS subscription. Manage the plan your agency runs on and
           how many team members you can add.
         </p>
       </header>

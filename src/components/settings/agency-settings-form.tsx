@@ -189,7 +189,7 @@ export function AgencySettingsForm({
                     proposals.
                   </span>
                 ) : (
-                  "Without a logo, customers see the default TripCraft mark on shared pages."
+                  "Without a logo, customers see the default tripOS mark on shared pages."
                 )}
               </p>
             </div>

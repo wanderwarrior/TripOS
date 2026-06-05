@@ -53,7 +53,7 @@ export type VoucherSnapshot = {
 };
 
 const AGENCY = {
-  name: "TripCraft",
+  name: "tripOS",
   phone: "+91 80000 00000",
   email: "concierge@tripcraft.app",
   emergencyPhone: "+91 80000 00000",

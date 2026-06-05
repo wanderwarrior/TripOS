@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Changelog",
   description:
-    "What's new in TripCraft — the latest features and improvements shipped for travel agencies.",
+    "What's new in tripOS — the latest features and improvements shipped for travel agencies.",
 };
 
 type Release = {
@@ -75,7 +75,7 @@ export default function ChangelogPage() {
               Changelog
             </span>
             <h1 className="mt-6 font-display text-4xl text-ink md:text-5xl">
-              What&apos;s new in TripCraft
+              What&apos;s new in tripOS
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-ink/75">
               We ship improvements every week. Here&apos;s the latest.

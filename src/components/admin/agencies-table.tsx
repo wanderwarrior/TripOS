@@ -2,7 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Search } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { PlanTier, SubscriptionStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +27,17 @@ import {
 } from "@/server/actions/platform";
 import { formatDate } from "@/lib/utils";
 
+type Activity = {
+  contacts: number;
+  customers: number;
+  trips: number;
+  itineraries: number;
+  quotes: number;
+  invoices: number;
+  waSent: number;
+  lastActiveAt: string | null;
+};
+
 type Row = {
   id: string;
   name: string;
@@ -35,6 +52,7 @@ type Row = {
   status: SubscriptionStatus | null;
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
+  activity: Activity;
 };
 
 const STATUS_TONE: Record<
@@ -117,6 +135,7 @@ export function AdminAgenciesTable({
 function AgencyRow({ a }: { a: Row }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) {
     start(async () => {
@@ -144,9 +163,23 @@ function AgencyRow({ a }: { a: Row }) {
         : "—";
 
   return (
+    <>
     <tr>
       <td>
         <div className="cell-lead">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-muted hover:bg-paper-2 hover:text-ink"
+            aria-label={open ? "Hide activity" : "Show activity"}
+            aria-expanded={open}
+          >
+            {open ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
           <span className="tc-ava-sm">
             {a.name.slice(0, 2).toUpperCase()}
           </span>
@@ -262,5 +295,72 @@ function AgencyRow({ a }: { a: Row }) {
         </DropdownMenu>
       </td>
     </tr>
+    {open ? (
+      <tr>
+        <td colSpan={8} className="bg-paper-2/60 !py-4">
+          <ActivityDetail a={a} />
+        </td>
+      </tr>
+    ) : null}
+    </>
+  );
+}
+
+/** Human-readable activation milestones for one agency. */
+function buildMilestones(a: Row): string[] {
+  const act = a.activity;
+  const plural = (n: number, one: string, many = `${one}s`) =>
+    `${n} ${n === 1 ? one : many}`;
+  const out: string[] = [`Signed up · ${formatDate(a.createdAt)}`];
+  if (act.contacts > 0) out.push(`Added ${plural(act.contacts, "contact")}`);
+  if (act.customers > 0)
+    out.push(`Converted ${plural(act.customers, "customer")}`);
+  if (act.trips > 0) out.push(`Created ${plural(act.trips, "trip")}`);
+  if (act.itineraries > 0)
+    out.push(
+      `Generated ${plural(act.itineraries, "itinerary", "itineraries")}`
+    );
+  if (act.quotes > 0) out.push(`Built ${plural(act.quotes, "proposal")}`);
+  if (act.invoices > 0) out.push(`Raised ${plural(act.invoices, "invoice")}`);
+  if (act.waSent > 0)
+    out.push(`Sent ${plural(act.waSent, "WhatsApp message")}`);
+  return out;
+}
+
+function ActivityDetail({ a }: { a: Row }) {
+  const milestones = buildMilestones(a);
+  // Only the "Signed up" line → nothing else done yet.
+  const idle = milestones.length === 1;
+
+  return (
+    <div className="px-2">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted">
+          What they&apos;ve done
+        </p>
+        <p className="text-[11px] text-muted">
+          {a.activity.lastActiveAt
+            ? `Last active ${formatDate(a.activity.lastActiveAt)}`
+            : "No activity recorded yet"}
+        </p>
+      </div>
+      {idle ? (
+        <p className="text-sm text-muted">
+          Signed up {formatDate(a.createdAt)} — hasn&apos;t set anything up yet.
+        </p>
+      ) : (
+        <ul className="flex flex-wrap gap-x-5 gap-y-1.5">
+          {milestones.map((m, i) => (
+            <li
+              key={i}
+              className="inline-flex items-center gap-1.5 text-sm text-ink"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-[var(--ok)]" />
+              {m}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

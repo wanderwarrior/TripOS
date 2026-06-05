@@ -25,7 +25,7 @@ import {
 } from "@/lib/help-content";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Help · TripCraft" };
+export const metadata = { title: "Help · tripOS" };
 
 const ICONS: Record<HelpIconKey, LucideIcon> = {
   rocket: Rocket,
@@ -57,7 +57,7 @@ export default function HelpPage() {
           How can we help?
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Guides and fixes for everything in TripCraft. Search, or browse by
+          Guides and fixes for everything in tripOS. Search, or browse by
           topic.
         </p>
         <div className="mt-6 text-left">
@@ -132,7 +132,7 @@ export default function HelpPage() {
             <Rocket className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-sm font-medium text-ink">New to TripCraft?</p>
+            <p className="text-sm font-medium text-ink">New to tripOS?</p>
             <p className="text-xs text-muted">
               Replay the quick welcome walkthrough.
             </p>

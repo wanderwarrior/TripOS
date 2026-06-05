@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "About",
   description:
-    "TripCraft is the all-in-one platform built for modern travel agencies — so you can spend less time fighting tools and more time crafting trips.",
+    "tripOS is the all-in-one platform built for modern travel agencies — so you can spend less time fighting tools and more time crafting trips.",
 };
 
 const VALUES = [
@@ -45,7 +45,7 @@ export default function AboutPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-ink/75">
               Most agencies still run on a patchwork of spreadsheets, Word docs
-              and WhatsApp. TripCraft replaces all of it with one beautiful
+              and WhatsApp. tripOS replaces all of it with one beautiful
               platform — so you can get back to what you do best: crafting
               unforgettable trips.
             </p>
@@ -63,7 +63,7 @@ export default function AboutPage() {
             world-class; the tooling was holding them back.
           </p>
           <p className="leading-relaxed">
-            So we built TripCraft: AI itineraries, white-labelled proposals,
+            So we built tripOS: AI itineraries, white-labelled proposals,
             WhatsApp, GST invoicing, online payments and operations — connected
             end to end. One flow, from the first enquiry to a paid, delivered
             trip.

@@ -21,7 +21,7 @@ export function Breadcrumb() {
       aria-label="Breadcrumb"
       className="hidden md:flex items-center gap-2 text-[13px] text-muted-foreground"
     >
-      <span>TripCraft</span>
+      <span>tripOS</span>
       <ChevronRight className="h-[13px] w-[13px] text-faint" />
       <b className="font-semibold text-ink">{label}</b>
     </nav>

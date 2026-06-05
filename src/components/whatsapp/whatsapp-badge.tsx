@@ -15,7 +15,7 @@ type Scope =
  * of WhatsApp messages exchanged and the status of the most recent one.
  *
  * Async server component — runs the count + last-message query inline. The
- * surrounding page is already a server component in TripCraft.
+ * surrounding page is already a server component in tripOS.
  */
 export async function WhatsappBadge({
   scope,

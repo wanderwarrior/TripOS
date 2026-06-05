@@ -5,7 +5,7 @@ import { getAccessToken } from "./connection";
 // Google Drive helpers, scoped to drive.file — we can only see/manage files &
 // folders this app created. Structure:
 //
-//   TripCraft/                        (root, cached on GoogleConnection)
+//   tripOS/                        (root, cached on GoogleConnection)
 //     <Destination> — <Contact> — <Mon YYYY>/   (per-trip, cached on Trip)
 //       proposal-v2.pdf, voucher-... , passport-scan-... , etc.
 //
@@ -55,7 +55,7 @@ async function stillExists(agencyId: string, fileId: string): Promise<boolean> {
   return !json.trashed;
 }
 
-/** Get (creating + caching if needed) the agency's root "TripCraft" folder. */
+/** Get (creating + caching if needed) the agency's root "tripOS" folder. */
 export async function ensureRootFolder(agencyId: string): Promise<string> {
   const conn = await prisma.googleConnection.findUnique({
     where: { agencyId },
@@ -64,7 +64,7 @@ export async function ensureRootFolder(agencyId: string): Promise<string> {
   if (conn?.driveRootFolderId && (await stillExists(agencyId, conn.driveRootFolderId))) {
     return conn.driveRootFolderId;
   }
-  const id = await createFolder(agencyId, "TripCraft", null);
+  const id = await createFolder(agencyId, "tripOS", null);
   await prisma.googleConnection.update({
     where: { agencyId },
     data: { driveRootFolderId: id },

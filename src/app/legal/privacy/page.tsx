@@ -1,13 +1,13 @@
 import { LegalDoc } from "@/components/marketing/legal-doc";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Privacy Policy · TripCraft" };
+export const metadata = { title: "Privacy Policy · tripOS" };
 
 export default function PrivacyPage() {
   return (
     <LegalDoc title="Privacy Policy" updated="May 2026">
       <p>
-        This Privacy Policy explains how TripCraft collects, uses, and protects
+        This Privacy Policy explains how tripOS collects, uses, and protects
         information when you use the Service. We act as a processor for the
         customer data your agency stores, and as a controller for your account
         and billing information.

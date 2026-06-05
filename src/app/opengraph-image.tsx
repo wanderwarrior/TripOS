@@ -5,7 +5,7 @@ import { ImageResponse } from "next/og";
 // their own opengraph-image to override this.
 
 export const runtime = "edge";
-export const alt = "TripCraft — Run your travel agency on one platform";
+export const alt = "tripOS — Run your travel agency on one platform";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -50,7 +50,7 @@ export default function OgImage() {
               letterSpacing: 1,
             }}
           >
-            TripCraft
+            tripOS
           </div>
         </div>
 

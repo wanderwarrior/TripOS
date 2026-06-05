@@ -11,10 +11,15 @@
 
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authEdgeConfig } from "@/lib/auth-edge";
+import {
+  provisionOAuthUser,
+  resolveActiveMembership,
+} from "@/server/services/account-provisioning";
 
 declare module "next-auth" {
   interface Session {
@@ -50,19 +55,25 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
 });
 
-async function resolveActiveMembership(userId: string) {
-  // Pick the most recently created membership as default. Future: persist
-  // the user's last-active agency in a UserPreferences table.
-  return prisma.membership.findFirst({
-    where: { userId, suspendedAt: null },
-    include: { agency: { select: { id: true, name: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-}
+// Google OAuth uses the same Cloud client as the Drive/Gmail integration
+// (GOOGLE_CLIENT_ID/SECRET) — just register the extra Auth.js callback URL
+// `${APP_URL}/api/auth/callback/google` in the Cloud console.
+const googleEnabled =
+  !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
 export const authConfig: NextAuthConfig = {
   ...authEdgeConfig,
   providers: [
+    ...(googleEnabled
+      ? [
+          Google({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            // Let returning users pick which Google account to use.
+            authorization: { params: { prompt: "select_account" } },
+          }),
+        ]
+      : []),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -102,10 +113,40 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    // Gate OAuth: only allow Google sign-in for a verified email address.
+    async signIn({ account, profile }) {
+      if (account?.provider === "google") {
+        const p = profile as { email?: string; email_verified?: boolean };
+        return p?.email_verified === true && !!p.email;
+      }
+      return true;
+    },
+    async jwt({ token, user, account, profile, trigger }) {
       const t = token as AppJwt;
-      // First login — copy from authorize() result onto the token.
-      if (user) {
+      // First login via Google — resolve/create our own User + Agency and
+      // stamp the membership claims onto the token (the OAuth `user.id` is
+      // Google's, not ours, so we never trust it directly).
+      if (user && account?.provider === "google") {
+        const p = profile as
+          | { email?: string; name?: string; picture?: string }
+          | undefined;
+        const email = (p?.email ?? user.email ?? (token.email as string))
+          ?.toLowerCase();
+        const provisioned = email
+          ? await provisionOAuthUser({
+              email,
+              name: user.name ?? p?.name,
+              image: user.image ?? p?.picture,
+            })
+          : null;
+        if (provisioned) {
+          t.uid = provisioned.userId;
+          t.activeAgencyId = provisioned.activeAgencyId;
+          t.activeAgencyRole = provisioned.activeAgencyRole;
+          t.activeAgencyName = provisioned.activeAgencyName;
+        }
+      } else if (user) {
+        // First login via credentials — copy from authorize() result.
         t.uid = user.id ?? undefined;
         t.activeAgencyId = user.activeAgencyId;
         t.activeAgencyRole = user.activeAgencyRole;

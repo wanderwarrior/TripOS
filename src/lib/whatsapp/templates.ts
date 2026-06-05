@@ -1,7 +1,7 @@
 // Template engine. Two halves:
 //
 // 1. A built-in catalogue of *seed* templates — premium, hospitality-tone
-//    copy that ships with TripCraft. These are used both as defaults when
+//    copy that ships with tripOS. These are used both as defaults when
 //    seeding a fresh agency and as a fallback message body when an agency
 //    hasn't approved a Meta template yet (we degrade to a plain text send
 //    for that case).
@@ -39,7 +39,7 @@ const PROPOSAL: SeedTemplate = {
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "destination", label: "Destination", example: "Kashmir", required: true },
     { key: "proposal_link", label: "Proposal link", example: "https://tripcraft.app/v/abc", required: true },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}} ✨\n` +
@@ -59,7 +59,7 @@ const INVOICE: SeedTemplate = {
     { key: "invoice_number", label: "Invoice number", example: "TC/26-27/0001", required: true },
     { key: "amount", label: "Amount (formatted)", example: "₹ 1,82,500", required: true },
     { key: "due_status", label: "Due status", example: "Due on 12 Jun" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}},\n` +
@@ -80,7 +80,7 @@ const PAYMENT_REMINDER_T3: SeedTemplate = {
     { key: "amount", label: "Amount due", example: "₹ 82,500", required: true },
     { key: "due_date", label: "Due date", example: "12 Jun", required: true },
     { key: "invoice_link", label: "Invoice link", example: "https://tripcraft.app/i/abc" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}} ✨\n` +
@@ -99,7 +99,7 @@ const PAYMENT_REMINDER_DUE: SeedTemplate = {
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "amount", label: "Amount due", example: "₹ 82,500", required: true },
     { key: "invoice_link", label: "Invoice link", example: "https://tripcraft.app/i/abc" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}},\n` +
@@ -118,7 +118,7 @@ const PAYMENT_REMINDER_OVERDUE: SeedTemplate = {
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "amount", label: "Amount due", example: "₹ 82,500", required: true },
     { key: "invoice_link", label: "Invoice link", example: "https://tripcraft.app/i/abc" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}},\n` +
@@ -137,7 +137,7 @@ const FOLLOWUP_24H: SeedTemplate = {
   variables: [
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "destination", label: "Destination", example: "Kashmir" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}} ✨\n` +
@@ -154,7 +154,7 @@ const FOLLOWUP_3D: SeedTemplate = {
   language: "en",
   variables: [
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}}, just checking in 🌿\n` +
@@ -171,7 +171,7 @@ const FOLLOWUP_7D: SeedTemplate = {
   language: "en",
   variables: [
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}},\n` +
@@ -191,7 +191,7 @@ const TRIP_T_MINUS_7: SeedTemplate = {
     { key: "destination", label: "Destination", example: "Rajasthan", required: true },
     { key: "start_date", label: "Start date", example: "12 Jun" },
     { key: "voucher_link", label: "Voucher / itinerary link", example: "https://tripcraft.app/v/abc" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}} ✨\n` +
@@ -210,7 +210,7 @@ const TRIP_T_MINUS_1: SeedTemplate = {
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "destination", label: "Destination", example: "Rajasthan", required: true },
     { key: "voucher_link", label: "Voucher / itinerary link", example: "https://tripcraft.app/v/abc" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Your {{destination}} journey begins tomorrow ✨\n` +
@@ -229,7 +229,7 @@ const TRIP_DEPARTURE_DAY: SeedTemplate = {
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "destination", label: "Destination", example: "Rajasthan", required: true },
     { key: "ops_phone", label: "24x7 ops phone", example: "+91 90000 00000" },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Bon voyage, {{name}} 🌅\n` +
@@ -247,7 +247,7 @@ const TRIP_THANKS: SeedTemplate = {
     { key: "name", label: "Customer first name", example: "Rahul", required: true },
     { key: "destination", label: "Destination", example: "Rajasthan", required: true },
     { key: "review_link", label: "Review link", example: "https://g.page/r/..." },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hope {{destination}} stayed with you, {{name}} 🌿\n` +
@@ -265,7 +265,7 @@ const OPS_VOUCHER: SeedTemplate = {
     { key: "name", label: "Recipient first name", example: "Rahul", required: true },
     { key: "voucher_title", label: "Voucher title", example: "Taj Lake Palace booking" },
     { key: "voucher_link", label: "Voucher link", example: "https://tripcraft.app/v/abc", required: true },
-    { key: "agency", label: "Agency name", example: "TripCraft" },
+    { key: "agency", label: "Agency name", example: "tripOS" },
   ],
   body:
     `Hi {{name}},\n` +

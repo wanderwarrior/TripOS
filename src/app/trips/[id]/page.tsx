@@ -130,7 +130,10 @@ export default async function TripWorkspacePage({
         Trips
       </Link>
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div
+        id="trip-header"
+        className="mb-5 flex flex-wrap items-start justify-between gap-4 scroll-mt-24"
+      >
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant={TRIP_STATUS_TONE[trip.status]}>
@@ -195,7 +198,10 @@ export default async function TripWorkspacePage({
             the button on the right always tells you the single next thing to
             do.
           </OneTimeHint>
-          <TripWorkflowStepper workflow={workflow} />
+          <TripWorkflowStepper
+            workflow={workflow}
+            contactId={trip.contact?.id ?? null}
+          />
         </div>
       ) : null}
 
@@ -220,7 +226,7 @@ export default async function TripWorkspacePage({
       )}
 
       <Tabs defaultValue="plan">
-        <TabsList className="mb-6" id="trip-tabs">
+        <TabsList className="mb-6 scroll-mt-24" id="trip-tabs">
           <TabsTrigger value="plan" id="tab-plan">
             Plan & Quote
           </TabsTrigger>

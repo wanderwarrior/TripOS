@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowUpRight, Sparkles, Heart } from "lucide-react";
+import { ArrowUpRight, Sparkles, Heart, Pencil } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ContactStrip } from "@/components/crm/contact-strip";
 import { CustomersTable, type CustomerRow } from "@/components/crm/customers-table";
+import { EditContactDialog } from "@/components/crm/edit-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageGuide } from "@/components/ui/page-guide";
@@ -170,13 +171,43 @@ export default async function CustomersPage({
                   <Stat label="Paid" value={formatINR(c.lifetimePaid)} />
                 </div>
 
-                <Link
-                  href={`/contacts/${c.id}`}
-                  className="text-xs uppercase tracking-[0.2em] text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5 self-start"
-                >
-                  Open profile
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
+                <div className="flex items-center justify-between gap-3">
+                  <Link
+                    href={`/contacts/${c.id}`}
+                    className="text-xs uppercase tracking-[0.2em] text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
+                  >
+                    Open profile
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                  <EditContactDialog
+                    isCustomer
+                    contact={{
+                      id: c.id,
+                      name: c.name,
+                      phone: c.phone,
+                      email: c.email,
+                      source: c.source,
+                      destination: c.destination,
+                      travelStartDate:
+                        c.travelStartDate?.toISOString().slice(0, 10) ?? null,
+                      travelEndDate:
+                        c.travelEndDate?.toISOString().slice(0, 10) ?? null,
+                      adults: c.adults,
+                      budget: c.budget,
+                      gstin: c.gstin,
+                      notes: c.notes,
+                    }}
+                    trigger={
+                      <button
+                        type="button"
+                        className="text-xs uppercase tracking-[0.2em] text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                    }
+                  />
+                </div>
               </article>
             </li>
           ))}

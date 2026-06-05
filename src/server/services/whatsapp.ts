@@ -74,7 +74,7 @@ async function getAgencyName(agencyId: string): Promise<string> {
     where: { agencyId },
     select: { tradeName: true, legalName: true },
   });
-  return s?.tradeName || s?.legalName || "TripCraft";
+  return s?.tradeName || s?.legalName || "tripOS";
 }
 
 type ResolvedTemplate = {

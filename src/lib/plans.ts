@@ -1,4 +1,4 @@
-// SaaS plan catalogue for TripCraft itself — the tiers agencies subscribe
+// SaaS plan catalogue for tripOS itself — the tiers agencies subscribe
 // to. Pure config (no server imports) so the pricing page, billing page and
 // gating engine all read from one source of truth. Prices are in INR.
 

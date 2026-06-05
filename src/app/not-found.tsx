@@ -11,7 +11,7 @@ export default function NotFound() {
           <Compass className="h-4.5 w-4.5" />
         </span>
         <span className="font-display text-xl tracking-tight text-ink">
-          TripCraft
+          tripOS
         </span>
       </Link>
 
