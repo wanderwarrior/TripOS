@@ -35,22 +35,27 @@ import {
 import type { FlightEnrichment } from "@/lib/enrichment/types";
 import { cn, dayNumberForDate } from "@/lib/utils";
 
+// Segment times are a fixed wall-clock (local airport time, stored as UTC).
+// The datetime-local input must show exactly that wall-clock — never shifted by
+// the viewer's timezone — so we read/write the UTC wall-clock directly.
 function isoLocal(d: Date | string | null | undefined) {
   if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  if (Number.isNaN(date.getTime())) return "";
-  // datetime-local needs YYYY-MM-DDTHH:mm in local time
-  const tzOffsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+  // A datetime-local / ISO string already carries the wall-clock — take it as-is.
+  if (typeof d === "string") return d.slice(0, 16);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 16);
 }
 
-/** datetime-local default: the trip's start date at 09:00 local. */
+/** Parse a datetime-local string as a fixed wall-clock instant (epoch, UTC). */
+function parseLocal(s: string | null | undefined): number {
+  if (!s) return NaN;
+  return Date.parse(s.slice(0, 16) + ":00Z");
+}
+
+/** datetime-local default: the trip's start date at 09:00. */
 function defaultDeparture(tripStartDate: string | null): string {
-  if (!tripStartDate) return "";
-  const d = new Date(tripStartDate);
-  if (Number.isNaN(d.getTime())) return "";
-  d.setHours(9, 0, 0, 0);
-  return isoLocal(d);
+  const day = tripStartDate?.slice(0, 10) ?? "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? `${day}T09:00` : "";
 }
 
 /** Pull the airport/station code out of a "Place (CODE)" label. */
@@ -137,9 +142,9 @@ export function SegmentFormDialog({
   function onDepartureChange(value: string) {
     setForm((f) => {
       let arrivalTime = f.arrivalTime;
-      const oldDep = new Date(f.departureTime).getTime();
-      const oldArr = new Date(f.arrivalTime).getTime();
-      const newDep = new Date(value).getTime();
+      const oldDep = parseLocal(f.departureTime);
+      const oldArr = parseLocal(f.arrivalTime);
+      const newDep = parseLocal(value);
       if (
         value &&
         Number.isFinite(oldDep) &&

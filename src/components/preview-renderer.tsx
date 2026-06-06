@@ -21,6 +21,8 @@ import type { ProposalPricing } from "@/types";
 import { addDays, formatINR } from "@/lib/utils";
 import {
   formatJourneyDuration,
+  formatSegmentDate,
+  formatSegmentTime,
   formatStopSummary,
 } from "@/lib/segment-format";
 
@@ -526,12 +528,7 @@ function SegmentGroup({
   icon: React.ReactNode;
   segments: TravelSegment[];
 }) {
-  const time = (d: Date) =>
-    d.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+  const time = formatSegmentTime;
   return (
     <div>
       <div className="exp-h" style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -567,12 +564,8 @@ function SegmentGroup({
                 className="ppmono"
                 style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}
               >
-                Day {s.dayNumber} ·{" "}
-                {dep.toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                })}{" "}
-                · {time(dep)} → {time(arr)}
+                Day {s.dayNumber} · {formatSegmentDate(dep)} · {time(dep)} →{" "}
+                {time(arr)}
               </div>
               {duration && (
                 <div

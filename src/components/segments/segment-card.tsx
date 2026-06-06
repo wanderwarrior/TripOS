@@ -8,10 +8,12 @@ import {
 
 function formatTime(d: Date | string) {
   const date = typeof d === "string" ? new Date(d) : d;
+  // Wall-clock (stored as UTC) — render in UTC so it never shifts by viewer tz.
   return date.toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: "UTC",
   });
 }
 
@@ -20,6 +22,7 @@ function formatDateShort(d: Date | string) {
   return date.toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
   });
 }
 

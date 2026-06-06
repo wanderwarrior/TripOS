@@ -19,6 +19,8 @@ import {
 import type { ProposalPdfSnapshot } from "@/server/services/proposal-pdf";
 import {
   formatJourneyDuration,
+  formatSegmentDate,
+  formatSegmentTime,
   formatStopSummary,
 } from "@/lib/segment-format";
 
@@ -510,12 +512,7 @@ function TravelPlan({
 }) {
   const flights = snapshot.segments.filter((s) => s.type === "FLIGHT");
   const trains = snapshot.segments.filter((s) => s.type === "TRAIN");
-  const time = (d: Date) =>
-    d.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+  const time = formatSegmentTime;
 
   const Group = ({
     title,
@@ -547,8 +544,7 @@ function TravelPlan({
             </View>
             {id ? <Text style={styles.segmentMeta}>{id}</Text> : null}
             <Text style={styles.segmentTime}>
-              {dep.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}{" "}
-              · {time(dep)} → {time(arr)}
+              {formatSegmentDate(dep)} · {time(dep)} → {time(arr)}
               {duration ? ` · ${duration}` : ""}
             </Text>
             {stopSummary ? (

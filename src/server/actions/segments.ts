@@ -6,6 +6,17 @@ import { prisma } from "@/lib/prisma";
 import { assertCan, requireAgency } from "@/lib/session";
 import { dayNumberForDate } from "@/lib/utils";
 
+/**
+ * Parse a datetime-local / ISO string as a fixed wall-clock instant pinned to
+ * UTC — so the local airport time the agent entered is stored verbatim and
+ * never shifted by the server's timezone. Renderers display these in UTC too
+ * (see lib/segment-format), keeping entry → storage → display consistent.
+ */
+function wallClock(s: string): Date {
+  if (/[zZ]|[+-]\d\d:?\d\d$/.test(s)) return new Date(s); // explicit zone — trust it
+  return new Date(s.slice(0, 16) + ":00Z");
+}
+
 const baseSchema = z
   .object({
     tripId: z.string(),
@@ -30,8 +41,8 @@ const baseSchema = z
   // it takes off. Overnight journeys are fine: the timestamps span midnight.
   .refine(
     (d) => {
-      const dep = new Date(d.departureTime).getTime();
-      const arr = new Date(d.arrivalTime).getTime();
+      const dep = wallClock(d.departureTime).getTime();
+      const arr = wallClock(d.arrivalTime).getTime();
       return Number.isFinite(dep) && Number.isFinite(arr) && arr > dep;
     },
     { message: "Arrival must be after departure.", path: ["arrivalTime"] }
@@ -47,8 +58,8 @@ function normalize(data: CreateSegmentInput) {
     dayNumber: data.dayNumber,
     from: data.from.trim(),
     to: data.to.trim(),
-    departureTime: new Date(data.departureTime),
-    arrivalTime: new Date(data.arrivalTime),
+    departureTime: wallClock(data.departureTime),
+    arrivalTime: wallClock(data.arrivalTime),
     airline: isFlight ? data.airline?.trim() || null : null,
     flightNumber: isFlight ? data.flightNumber?.trim() || null : null,
     pnr: isFlight ? data.pnr?.trim() || null : null,

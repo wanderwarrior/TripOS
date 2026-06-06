@@ -18,9 +18,10 @@ import {
   addSegmentToQuoteAction,
   deleteTravelSegmentAction,
 } from "@/server/actions/segments";
-import { formatDate } from "@/lib/utils";
 import {
   formatJourneyDuration,
+  formatSegmentDate,
+  formatSegmentTime,
   formatStopSummary,
 } from "@/lib/segment-format";
 
@@ -219,19 +220,15 @@ function SegmentRow({
             <p className="mt-1 text-sm text-ink/80">{identifier}</p>
           )}
           <p className="mt-1 text-xs text-faint font-mono tabular-nums">
-            {formatDate(segment.departureTime)}
+            {formatSegmentDate(segment.departureTime, {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
             {" · "}
-            {new Date(segment.departureTime).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
+            {formatSegmentTime(segment.departureTime)}
             {" → "}
-            {new Date(segment.arrivalTime).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
+            {formatSegmentTime(segment.arrivalTime)}
           </p>
           {(duration || stopSummary) && (
             <p className="mt-1 text-xs">

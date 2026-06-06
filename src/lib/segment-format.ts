@@ -2,6 +2,25 @@
 // (preview-renderer) and the PDF proposal (proposal-document) so the journey
 // duration + stop summary read identically on screen and in the document.
 
+// Segment times are stored as a fixed wall-clock value (local airport time,
+// persisted as UTC). Always display them in UTC so they read exactly as the
+// agent entered them — never shifted by the server's or viewer's timezone.
+export function formatSegmentTime(d: Date | string): string {
+  return new Date(d).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  });
+}
+
+export function formatSegmentDate(
+  d: Date | string,
+  opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }
+): string {
+  return new Date(d).toLocaleDateString("en-IN", { ...opts, timeZone: "UTC" });
+}
+
 /** "10 h 30 m" between two times. Spans midnight / multiple days fine. */
 export function formatJourneyDuration(
   departure: Date | string,
