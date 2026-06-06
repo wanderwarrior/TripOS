@@ -35,15 +35,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 export async function requireUser(): Promise<SessionUser> {
   const u = await getSessionUser();
   if (!u) redirect("/login");
-  // Trial-approval gate. New agencies await manual approval before they can
-  // use the app; existing agencies are APPROVED (backfilled), so unaffected.
-  // Read live from the DB so an approval takes effect on the very next request
-  // (no stale-session window). /pending uses getSessionUser, so no loop.
-  const agency = await prisma.agency.findUnique({
-    where: { id: u.activeAgencyId },
-    select: { status: true },
-  });
-  if (agency && agency.status !== "APPROVED") redirect("/pending");
+  // Open signup: anyone can use the app immediately. Usage limits come from the
+  // subscription/trial system (14-day trial → upgrade), not a manual gate.
   return u;
 }
 

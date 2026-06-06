@@ -95,11 +95,12 @@ export async function signupAction(input: SignupInput) {
         });
 
     const agency = await tx.agency.create({
-      // PENDING — a platform admin must approve the trial before app access.
+      // Open signup — active immediately on a 14-day trial. Phone is still
+      // captured as a sales lead for the owner console.
       data: {
         name: data.agencyName.trim(),
         slug,
-        status: "PENDING",
+        status: "APPROVED",
         requestPhone: data.phone.trim(),
       },
     });
@@ -119,9 +120,9 @@ export async function signupAction(input: SignupInput) {
     });
   });
 
-  // Ping the founder so a pending trial can be approved fast (webhook).
+  // FYI ping to the founder on every new signup (webhook).
   await notifyAdmin(
-    `🆕 New trial request — needs approval\n${data.agencyName} · ${data.name}\n${email} · ${data.phone}\nApprove: ${publicBase()}/admin`
+    `🆕 New signup\n${data.agencyName} · ${data.name}\n${email} · ${data.phone}`
   );
 
   await signIn("credentials", {

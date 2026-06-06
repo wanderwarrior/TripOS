@@ -71,9 +71,8 @@ export async function createAgencyForUser(
   const slug = await uniqueSlug(slugify(agencyName));
   return prisma.$transaction(async (tx) => {
     const agency = await tx.agency.create({
-      // PENDING — Google sign-ups also wait for manual approval. They have no
-      // phone yet; the /pending page collects it.
-      data: { name: agencyName.trim(), slug, status: "PENDING" },
+      // Open signup — active immediately on a 14-day trial.
+      data: { name: agencyName.trim(), slug, status: "APPROVED" },
     });
     await tx.membership.create({
       data: { userId, agencyId: agency.id, role: "OWNER" },
@@ -143,10 +142,8 @@ export async function provisionOAuthUser(input: {
       user.id,
       deriveAgencyName(input.name ?? user.name, email)
     );
-    // New trial via Google sign-in — ping the founder to approve (webhook).
-    await notifyAdmin(
-      `🆕 New trial request (Google) — needs approval\n${agency.name}\n${email}`
-    );
+    // FYI ping to the founder on every new signup (webhook).
+    await notifyAdmin(`🆕 New signup (Google)\n${agency.name}\n${email}`);
     return {
       userId: user.id,
       activeAgencyId: agency.id,

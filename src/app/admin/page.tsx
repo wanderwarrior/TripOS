@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { AdminAgenciesTable } from "@/components/admin/agencies-table";
-import { TrialRequests } from "@/components/admin/trial-requests";
 import { DemoRequests } from "@/components/admin/demo-requests";
 import { ContactMessages } from "@/components/admin/contact-messages";
 import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
@@ -14,7 +13,6 @@ import {
   listAgenciesForAdmin,
   listContactMessages,
   listDemoRequests,
-  listPendingTrialRequests,
 } from "@/server/services/platform";
 import { formatINR } from "@/lib/utils";
 
@@ -30,12 +28,11 @@ export default async function AdminPage({
   const admin = await getPlatformAdmin();
   if (!admin) notFound();
 
-  const [stats, agencies, hero, trialRequests, demoRequests, contactMessages] =
+  const [stats, agencies, hero, demoRequests, contactMessages] =
     await Promise.all([
       getPlatformStats(),
       listAgenciesForAdmin(searchParams.q),
       getHeroMedia(),
-      listPendingTrialRequests(),
       listDemoRequests(),
       listContactMessages(),
     ]);
@@ -70,13 +67,6 @@ export default async function AdminPage({
 
       <DemoRequests
         requests={demoRequests.map((r) => ({
-          ...r,
-          createdAt: r.createdAt.toISOString(),
-        }))}
-      />
-
-      <TrialRequests
-        requests={trialRequests.map((r) => ({
           ...r,
           createdAt: r.createdAt.toISOString(),
         }))}

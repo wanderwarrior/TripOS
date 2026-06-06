@@ -108,11 +108,11 @@ export function Hero({
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative mx-auto max-w-5xl px-5 py-28 text-center md:px-10 md:py-32"
+        className="relative mx-auto max-w-3xl px-5 py-24 text-center md:px-10 md:py-28"
       >
         {/* Brand intro — the C·Stack mark stacks itself in on first paint. */}
-        <div className="brand-intro run mb-7 flex justify-center text-white">
-          <Mark size={64} title="tripOS" />
+        <div className="brand-intro run mb-5 flex justify-center text-white">
+          <Mark size={42} title="tripOS" />
         </div>
 
         <motion.span
@@ -120,35 +120,34 @@ export function Hero({
           className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/90 backdrop-blur-sm"
         >
           <Sparkles className="h-3.5 w-3.5 text-[#e3c98f]" />
-          AI-powered travel CRM
+          AI itineraries for travel agencies
         </motion.span>
 
         <motion.h1
           variants={item}
-          className="mt-7 font-display text-5xl leading-[0.98] tracking-tight text-white md:text-7xl"
+          className="mt-5 font-display text-4xl leading-[1.02] tracking-tight text-white md:text-6xl"
         >
-          Run your travel agency
-          <br className="hidden md:block" /> on one beautiful platform.
+          From idea to itinerary
+          <br className="hidden md:block" /> in seconds.
         </motion.h1>
 
         <motion.p
           variants={item}
-          className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/80"
+          className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
         >
-          From the first inquiry to a paid booking — capture leads, generate AI
-          itineraries, send branded proposals on WhatsApp, collect payments, and
-          run operations. Everything your agency needs, in one place.
+          Describe a trip and watch tripOS build a branded, client-ready
+          itinerary — then run the whole booking on one platform.
         </motion.p>
 
-        <motion.div
-          variants={item}
-          className="mt-10 flex flex-wrap items-center justify-center gap-3"
-        >
-          {isAuthed ? (
-            <>
+        {isAuthed ? (
+          <>
+            <motion.div
+              variants={item}
+              className="mt-8 flex flex-wrap items-center justify-center gap-3"
+            >
               <Link
                 href="/dashboard"
-                className="group inline-flex items-center gap-2 rounded-[10px] bg-[#e3c98f] px-6 py-3.5 text-sm font-semibold text-[#1a1205] shadow-[0_8px_30px_-8px_rgba(200,169,106,0.6)] transition-all hover:bg-[#ecd6a4] hover:shadow-[0_10px_36px_-8px_rgba(200,169,106,0.75)]"
+                className="group inline-flex items-center gap-2 rounded-[10px] bg-[#e3c98f] px-6 py-3.5 text-sm font-semibold text-[#1a1205] shadow-[0_8px_30px_-8px_rgba(200,169,106,0.6)] transition-all hover:bg-[#ecd6a4]"
               >
                 Go to dashboard
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -159,41 +158,35 @@ export function Hero({
               >
                 Explore features
               </Link>
-            </>
-          ) : (
-            <>
+            </motion.div>
+            <motion.p variants={item} className="mt-5 text-xs text-white/55">
+              Welcome back — pick up right where you left off.
+            </motion.p>
+          </>
+        ) : (
+          <>
+            {/* Product-led "try it" widget — the centerpiece, above the fold. */}
+            <motion.div variants={item}>
+              <HeroTripGenerator />
+            </motion.div>
+            <motion.p
+              variants={item}
+              className="mt-5 text-xs text-white/65"
+            >
               <Link
                 href="/signup"
-                className="group inline-flex items-center gap-2 rounded-[10px] bg-[#e3c98f] px-6 py-3.5 text-sm font-semibold text-[#1a1205] shadow-[0_8px_30px_-8px_rgba(200,169,106,0.6)] transition-all hover:bg-[#ecd6a4] hover:shadow-[0_10px_36px_-8px_rgba(200,169,106,0.75)]"
+                className="font-medium text-white underline-offset-4 hover:underline"
               >
                 Start your {TRIAL_DAYS}-day free trial
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center gap-2 rounded-[10px] border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/10"
-              >
+              <span className="mx-2 text-white/30">·</span>
+              <Link href="/pricing" className="hover:text-white">
                 See pricing
               </Link>
-            </>
-          )}
-        </motion.div>
-
-        <motion.p variants={item} className="mt-5 text-xs text-white/55">
-          {isAuthed
-            ? "Welcome back — pick up right where you left off."
-            : "No card required · Set up in minutes · Made for Indian agencies"}
-        </motion.p>
-
-        {/* Product-led "try it" widget — let prospects feel the AI before
-            signing up. Guests only. */}
-        {!isAuthed && (
-          <motion.div variants={item}>
-            <p className="mt-12 text-[11px] uppercase tracking-[0.2em] text-white/55">
-              ✨ Try it now — no signup
-            </p>
-            <HeroTripGenerator />
-          </motion.div>
+              <span className="mx-2 text-white/30">·</span>
+              No card required
+            </motion.p>
+          </>
         )}
       </motion.div>
 
