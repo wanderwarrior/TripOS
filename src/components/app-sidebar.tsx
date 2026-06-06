@@ -2,9 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Rocket } from "lucide-react";
 import { NAV_GROUPS, isNavActive } from "@/lib/nav";
 import { Logo } from "@/components/brand";
 import { cn } from "@/lib/utils";
+
+export type SidebarPlan = {
+  tier: "TRIAL" | "STARTER" | "PRO";
+  trialActive: boolean;
+  trialDaysLeft: number | null;
+  needsUpgrade: boolean;
+};
+
+const TRIAL_TOTAL_DAYS = 14;
 
 // Desktop left rail — "Atelier Pro": full-height inkwash panel with a warm
 // gold edge-glow, gold brand mark, and a gold left-edge bar on the active
@@ -14,9 +24,11 @@ import { cn } from "@/lib/utils";
 export function AppSidebar({
   agencyName,
   userName,
+  plan,
 }: {
   agencyName: string;
   userName?: string;
+  plan?: SidebarPlan;
 }) {
   const pathname = usePathname();
   const initials = (userName ?? agencyName)
@@ -100,6 +112,8 @@ export function AppSidebar({
         ))}
       </nav>
 
+      {plan ? <PlanChip plan={plan} /> : null}
+
       <div
         className="flex items-center gap-2.5 px-3.5 py-[11px]"
         style={{ borderTop: "1px solid rgba(255,255,255,.07)" }}
@@ -125,5 +139,71 @@ export function AppSidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+// Persistent plan/trial status — always visible (like the best SaaS sidebars),
+// so trial days left + the upgrade path are never more than a glance away.
+function PlanChip({ plan }: { plan: SidebarPlan }) {
+  const pct = Math.min(
+    100,
+    Math.max(6, Math.round(((plan.trialDaysLeft ?? 0) / TRIAL_TOTAL_DAYS) * 100))
+  );
+  const paidLabel = plan.tier === "PRO" ? "Pro" : "Starter";
+
+  return (
+    <div className="px-3.5 pt-3">
+      <div className="rounded-[10px] border border-white/10 bg-white/[0.04] p-3">
+        {plan.needsUpgrade ? (
+          <>
+            <p className="text-[11.5px] font-medium text-white">Trial ended</p>
+            <p className="mt-0.5 text-[10.5px] leading-snug text-[var(--on-dark-mut)]">
+              Upgrade to keep full access.
+            </p>
+          </>
+        ) : plan.trialActive ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-[11.5px] font-medium text-white">
+                Free trial
+              </span>
+              <span className="text-[10.5px] font-medium text-gold">
+                {plan.trialDaysLeft === 0
+                  ? "ends today"
+                  : `${plan.trialDaysLeft}d left`}
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gold"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="text-[11.5px] font-medium text-white">
+            {paidLabel} plan ·{" "}
+            <span className="text-[var(--on-dark-mut)]">active</span>
+          </p>
+        )}
+
+        {plan.needsUpgrade || plan.trialActive ? (
+          <Link
+            href="/settings/billing"
+            className="mt-2.5 flex items-center justify-center gap-1.5 rounded-[8px] bg-gold px-3 py-1.5 text-[11px] font-semibold text-inkwash transition-[filter] hover:brightness-105"
+          >
+            <Rocket className="h-3 w-3" />
+            Upgrade
+          </Link>
+        ) : (
+          <Link
+            href="/settings/billing"
+            className="mt-2 block text-[10.5px] text-[var(--on-dark-mut)] hover:text-white"
+          >
+            Manage plan →
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }

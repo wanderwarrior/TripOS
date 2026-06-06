@@ -365,6 +365,82 @@ export async function generateItineraryAI(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Public landing "try it" generator (no auth) — powers the interactive hero.
+// ---------------------------------------------------------------------------
+
+export type SampleItinerary = {
+  destination: string;
+  days: { title: string; summary: string }[];
+};
+
+const SAMPLE_DAYS = 3;
+
+/** Best-effort destination guess from free text (mock fallback only). */
+function guessDestination(text: string): string {
+  const to = text.match(
+    /\b(?:to|in|for|visit(?:ing)?|around)\s+([A-Z][\w'’.-]+(?:\s+[A-Z][\w'’.-]+){0,2})/
+  );
+  if (to) return to[1].trim();
+  const caps = text.match(/[A-Z][\w'’.-]+(?:\s+[A-Z][\w'’.-]+){0,2}/g);
+  return caps?.[0] ?? "your destination";
+}
+
+/**
+ * Free-text → a short teaser itinerary for the public landing hero. Uses
+ * Gemini when configured; falls back to the deterministic mock so the widget
+ * always returns something impressive even without an API key.
+ */
+export async function generateSampleItineraryAI(
+  prompt: string
+): Promise<SampleItinerary> {
+  const clean = prompt.trim().slice(0, 300);
+  if (genai) {
+    try {
+      const response = await genai.models.generateContent({
+        model,
+        contents: `A prospective traveller described their trip: "${clean}".
+Infer the destination and craft a vivid, premium ${SAMPLE_DAYS}-day teaser itinerary.
+Return JSON ONLY:
+{"destination":"<destination>","days":[{"title":"Day 1: <short title>","summary":"3-4 vivid sentences describing the day"}]}
+Exactly ${SAMPLE_DAYS} days. No commentary.`,
+        config: { temperature: 0.7, responseMimeType: "application/json" },
+      });
+      const parsed = JSON.parse(response.text ?? "{}") as SampleItinerary;
+      if (parsed?.days?.length) {
+        return {
+          destination: parsed.destination?.trim() || guessDestination(clean),
+          days: parsed.days.slice(0, SAMPLE_DAYS).map((d) => ({
+            title: String(d.title ?? "").slice(0, 120),
+            summary: String(d.summary ?? "").slice(0, 600),
+          })),
+        };
+      }
+    } catch (err) {
+      console.warn(
+        "[gemini] sample itinerary fallback —",
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+  const destination = guessDestination(clean);
+  const mock = mockItinerary({
+    destination,
+    days: SAMPLE_DAYS,
+    travelers: 2,
+    travelType: "Leisure",
+    pace: "Moderate",
+    interests: [],
+    hotelType: "Boutique",
+    budget: null,
+    notes: clean,
+  });
+  return {
+    destination,
+    days: mock.days.map((d) => ({ title: d.title, summary: d.summary ?? "" })),
+  };
+}
+
 /**
  * Rewrite prose for a single day. Keeps surrounding days untouched. Returns
  * just the day object (caller merges back).

@@ -27,6 +27,16 @@ export async function PageShell({
         <AppSidebar
           agencyName={user.activeAgencyName}
           userName={user.name ?? undefined}
+          plan={
+            plan
+              ? {
+                  tier: plan.tier,
+                  trialActive: plan.trialActive,
+                  trialDaysLeft: plan.trialDaysLeft,
+                  needsUpgrade: plan.needsUpgrade,
+                }
+              : undefined
+          }
         />
       ) : null}
 

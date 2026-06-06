@@ -66,6 +66,8 @@ export default async function DashboardPage({
     activitiesRaw,
     upcomingTasks,
     unreadInboundCount,
+    tripsTotalAgency,
+    contactsTotalAgency,
   ] = await Promise.all([
     prisma.contact.count({
       where: { agencyId, deletedAt: null, ...leadFilter },
@@ -136,6 +138,9 @@ export default async function DashboardPage({
         ...(mine ? { contact: { ownerId: user.id } } : {}),
       },
     }),
+    // Agency-wide totals (unscoped) — drives the first-run experience.
+    prisma.trip.count({ where: { agencyId, deletedAt: null } }),
+    prisma.contact.count({ where: { agencyId, deletedAt: null } }),
   ]);
 
   const conversionPct =
@@ -153,6 +158,23 @@ export default async function DashboardPage({
   }));
 
   const firstName = (user.name ?? "").trim().split(/\s+/)[0];
+
+  // Brand-new agency → a focused, single-action welcome instead of empty stats.
+  const isFirstRun = tripsTotalAgency === 0 && contactsTotalAgency === 0;
+  if (isFirstRun) {
+    return (
+      <PageShell>
+        <BrandIntro />
+        <WelcomeWalkthrough
+          userId={user.id}
+          firstName={firstName || null}
+          forceOpen={searchParams.tour === "1"}
+        />
+        <FirstRunHero firstName={firstName} canEdit={canEdit} />
+        <OnboardingPanel />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
@@ -300,6 +322,53 @@ export default async function DashboardPage({
         </div>
       </section>
     </PageShell>
+  );
+}
+
+function FirstRunHero({
+  firstName,
+  canEdit,
+}: {
+  firstName: string;
+  canEdit: boolean;
+}) {
+  return (
+    <section className="mb-8 rounded-2xl border border-line bg-paper p-8 md:p-12 text-center shadow-soft">
+      <p className="tc-eyebrow gold inline-flex items-center gap-1.5">
+        <Sparkles className="h-3 w-3" />
+        Welcome to tripOS
+      </p>
+      <h1 className="mt-3 font-display text-3xl md:text-4xl text-ink text-balance">
+        {firstName ? `Welcome, ${firstName} 👋` : "Welcome to tripOS 👋"}
+      </h1>
+      <p className="mx-auto mt-3 max-w-md text-muted">
+        The fastest way to feel the magic: generate your first AI itinerary. It
+        takes about 10 seconds — then brand it, price it, and send it to a
+        client.
+      </p>
+      {canEdit ? (
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/trips/new">
+            <Button className="px-6">
+              <Sparkles className="h-4 w-4" />
+              Generate your first AI itinerary
+            </Button>
+          </Link>
+          <NewLeadDialog
+            trigger={
+              <Button variant="outline">
+                <UserPlus className="h-4 w-4" />
+                Add your first contact
+              </Button>
+            }
+          />
+        </div>
+      ) : (
+        <p className="mt-6 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          Viewer access · read-only
+        </p>
+      )}
+    </section>
   );
 }
 

@@ -6,6 +6,7 @@ import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { TRIAL_DAYS } from "@/lib/plans";
 import { parseYouTubeId, youTubeBackgroundEmbedUrl } from "@/lib/video";
 import { Mark } from "@/components/brand";
+import { HeroTripGenerator } from "@/components/marketing/hero-trip-generator";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -183,6 +184,17 @@ export function Hero({
             ? "Welcome back — pick up right where you left off."
             : "No card required · Set up in minutes · Made for Indian agencies"}
         </motion.p>
+
+        {/* Product-led "try it" widget — let prospects feel the AI before
+            signing up. Guests only. */}
+        {!isAuthed && (
+          <motion.div variants={item}>
+            <p className="mt-12 text-[11px] uppercase tracking-[0.2em] text-white/55">
+              ✨ Try it now — no signup
+            </p>
+            <HeroTripGenerator />
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Scroll cue */}
