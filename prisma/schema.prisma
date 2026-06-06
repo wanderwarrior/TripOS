@@ -307,6 +307,29 @@ enum AgencyStatus {
   REJECTED
 }
 
+/// Lifecycle of a public "get a free demo" lead in the owner console.
+enum DemoRequestStatus {
+  NEW
+  CONTACTED
+  DONE
+}
+
+/// A public demo request captured from the marketing site (nav / landing).
+/// Stored so the platform admin sees every lead even when transactional email
+/// isn't configured. Not tenant-scoped — these are prospects, not agencies.
+model DemoRequest {
+  id         String            @id @default(cuid())
+  name       String
+  email      String
+  phone      String
+  agencyName String?
+  message    String?
+  status     DemoRequestStatus @default(NEW)
+  createdAt  DateTime          @default(now())
+
+  @@index([status, createdAt])
+}
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique

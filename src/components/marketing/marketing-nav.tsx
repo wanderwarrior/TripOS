@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand";
+import { RequestDemoDialog } from "@/components/marketing/request-demo-dialog";
 import { cn } from "@/lib/utils";
 
 // Scroll- and hover-aware marketing header. Over the landing hero it floats
@@ -117,6 +118,21 @@ export function MarketingNav({ isAuthed }: { isAuthed: boolean }) {
             </Link>
           ) : (
             <>
+              <RequestDemoDialog
+                trigger={
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded-[8px] px-4 py-2 text-sm font-medium transition-colors duration-200",
+                      solid
+                        ? "border border-line text-ink hover:bg-paper-2"
+                        : "border border-white/30 text-white hover:bg-white/10"
+                    )}
+                  >
+                    Get a demo
+                  </button>
+                }
+              />
               <Link
                 href="/login"
                 className={cn(

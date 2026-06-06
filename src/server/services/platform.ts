@@ -176,6 +176,35 @@ export async function listAgenciesForAdmin(
  * "generated their first itinerary"). All counts are cross-tenant aggregates
  * so this stays a handful of grouped queries regardless of agency count.
  */
+export type DemoRequestRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  agencyName: string | null;
+  message: string | null;
+  status: "NEW" | "CONTACTED" | "DONE";
+  createdAt: Date;
+};
+
+/** Demo leads for the owner console — newest first, NEW ones surfaced first. */
+export async function listDemoRequests(): Promise<DemoRequestRow[]> {
+  const rows = await prisma.demoRequest.findMany({
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 300,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    agencyName: r.agencyName,
+    message: r.message,
+    status: r.status,
+    createdAt: r.createdAt,
+  }));
+}
+
 export type TrialRequest = {
   id: string;
   name: string;

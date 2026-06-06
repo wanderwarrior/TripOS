@@ -25,6 +25,7 @@ import { PLANS, PRICING_ORDER, TRIAL_DAYS, formatPlanPrice } from "@/lib/plans";
 import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Faq } from "@/components/marketing/faq";
+import { RequestDemoDialog } from "@/components/marketing/request-demo-dialog";
 import { Testimonials } from "@/components/marketing/testimonials";
 import {
   CountUp,
@@ -785,13 +786,25 @@ function ClosingCta() {
               free {TRIAL_DAYS}-day trial starts the moment you sign up — and
               founding pricing is still open.
             </p>
-            <Link
-              href="/signup"
-              className="mt-8 inline-flex items-center gap-2 rounded-[8px] bg-paper px-6 py-3 text-sm font-medium text-ink hover:bg-paper-2 transition-colors"
-            >
-              Start your free trial
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 rounded-[8px] bg-paper px-6 py-3 text-sm font-medium text-ink hover:bg-paper-2 transition-colors"
+              >
+                Start your free trial
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <RequestDemoDialog
+                trigger={
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-[8px] border border-white/30 px-6 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                  >
+                    Get a free demo
+                  </button>
+                }
+              />
+            </div>
             <p className="mt-4 text-xs text-[var(--on-dark)]/55">
               No card required · Set up in minutes · Cancel anytime
             </p>
