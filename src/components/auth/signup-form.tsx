@@ -12,6 +12,7 @@ export function SignupForm() {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     agencyName: "",
   });
@@ -65,6 +66,20 @@ export function SignupForm() {
         />
       </div>
       <div className="space-y-1.5">
+        <Label htmlFor="phone">Phone (WhatsApp)</Label>
+        <Input
+          id="phone"
+          type="tel"
+          autoComplete="tel"
+          value={form.phone}
+          onChange={(e) => update("phone", e.target.value)}
+          placeholder="+91 …"
+        />
+        <p className="text-[11px] text-muted">
+          We review every trial request and may reach out to set you up.
+        </p>
+      </div>
+      <div className="space-y-1.5">
         <Label htmlFor="password">Password</Label>
         <Input
           id="password"
@@ -77,7 +92,7 @@ export function SignupForm() {
       </div>
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        Create agency & sign in
+        Request free trial
       </Button>
     </form>
   );

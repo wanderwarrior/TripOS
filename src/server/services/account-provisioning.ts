@@ -70,7 +70,9 @@ export async function createAgencyForUser(
   const slug = await uniqueSlug(slugify(agencyName));
   return prisma.$transaction(async (tx) => {
     const agency = await tx.agency.create({
-      data: { name: agencyName.trim(), slug },
+      // PENDING — Google sign-ups also wait for manual approval. They have no
+      // phone yet; the /pending page collects it.
+      data: { name: agencyName.trim(), slug, status: "PENDING" },
     });
     await tx.membership.create({
       data: { userId, agencyId: agency.id, role: "OWNER" },

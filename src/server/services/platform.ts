@@ -172,6 +172,45 @@ export async function listAgenciesForAdmin(
  * "generated their first itinerary"). All counts are cross-tenant aggregates
  * so this stays a handful of grouped queries regardless of agency count.
  */
+export type TrialRequest = {
+  id: string;
+  name: string;
+  slug: string;
+  requestPhone: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  createdAt: Date;
+};
+
+/** Agencies awaiting manual trial approval, oldest first (FIFO queue). */
+export async function listPendingTrialRequests(): Promise<TrialRequest[]> {
+  const agencies = await prisma.agency.findMany({
+    where: { status: "PENDING" },
+    orderBy: { createdAt: "asc" },
+    take: 200,
+    include: {
+      memberships: {
+        where: { role: "OWNER" },
+        take: 1,
+        orderBy: { createdAt: "asc" },
+        include: { user: { select: { name: true, email: true } } },
+      },
+    },
+  });
+  return agencies.map((a) => {
+    const owner = a.memberships[0]?.user ?? null;
+    return {
+      id: a.id,
+      name: a.name,
+      slug: a.slug,
+      requestPhone: a.requestPhone,
+      ownerName: owner?.name ?? null,
+      ownerEmail: owner?.email ?? null,
+      createdAt: a.createdAt,
+    };
+  });
+}
+
 export type AgencyActivity = {
   contacts: number;
   customers: number;

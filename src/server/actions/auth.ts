@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
+import { getSessionUser } from "@/lib/session";
 import { brandedEmail, sendEmail } from "@/lib/email";
 import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
 import { TRIAL_DAYS } from "@/lib/plans";
@@ -24,6 +25,12 @@ const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Use at least 8 characters"),
   agencyName: z.string().min(2).max(160),
+  // Required so the platform admin can vet + contact the trial requester.
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Enter a valid phone number")
+    .max(20),
 });
 
 export type SignupInput = z.input<typeof signupSchema>;
@@ -87,7 +94,13 @@ export async function signupAction(input: SignupInput) {
         });
 
     const agency = await tx.agency.create({
-      data: { name: data.agencyName.trim(), slug },
+      // PENDING — a platform admin must approve the trial before app access.
+      data: {
+        name: data.agencyName.trim(),
+        slug,
+        status: "PENDING",
+        requestPhone: data.phone.trim(),
+      },
     });
 
     await tx.membership.create({
@@ -136,6 +149,26 @@ export async function loginAction(input: z.input<typeof loginSchema>) {
 
 export async function signOutAction() {
   await signOut({ redirectTo: "/login" });
+}
+
+/**
+ * Save a phone number against the signed-in user's (still-PENDING) agency —
+ * used on the /pending screen when a trial was requested via Google sign-in,
+ * which doesn't collect a phone up front. The platform admin needs it to vet
+ * and contact the requester.
+ */
+export async function submitTrialPhoneAction(input: { phone: string }) {
+  const user = await getSessionUser();
+  if (!user) return { ok: false as const, error: "Please sign in again." };
+  const parsed = z.string().trim().min(7).max(20).safeParse(input.phone);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Enter a valid phone number." };
+  }
+  await prisma.agency.update({
+    where: { id: user.activeAgencyId },
+    data: { requestPhone: parsed.data },
+  });
+  return { ok: true as const };
 }
 
 /**

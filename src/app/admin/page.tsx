@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { AdminAgenciesTable } from "@/components/admin/agencies-table";
+import { TrialRequests } from "@/components/admin/trial-requests";
 import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import {
@@ -9,6 +10,7 @@ import {
   getHeroMedia,
   getPlatformStats,
   listAgenciesForAdmin,
+  listPendingTrialRequests,
 } from "@/server/services/platform";
 import { formatINR } from "@/lib/utils";
 
@@ -24,10 +26,11 @@ export default async function AdminPage({
   const admin = await getPlatformAdmin();
   if (!admin) notFound();
 
-  const [stats, agencies, hero] = await Promise.all([
+  const [stats, agencies, hero, trialRequests] = await Promise.all([
     getPlatformStats(),
     listAgenciesForAdmin(searchParams.q),
     getHeroMedia(),
+    listPendingTrialRequests(),
   ]);
 
   const activity = await getAgencyActivityMap(agencies.map((a) => a.id));
@@ -57,6 +60,13 @@ export default async function AdminPage({
           tone="navy"
         />
       </section>
+
+      <TrialRequests
+        requests={trialRequests.map((r) => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+        }))}
+      />
 
       <AdminAgenciesTable
         agencies={agencies.map((a) => {

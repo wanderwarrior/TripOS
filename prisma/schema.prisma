@@ -298,6 +298,15 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+/// Manual trial gate. New agencies start PENDING and can't use the app until a
+/// platform admin APPROVES them; REJECTED is a soft denial. Default is APPROVED
+/// so every pre-existing agency stays live when this column is added.
+enum AgencyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
@@ -352,6 +361,13 @@ model Agency {
   slug      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Manual trial approval. Defaults to APPROVED so existing agencies keep
+  // working; new signups are created explicitly as PENDING.
+  status       AgencyStatus @default(APPROVED)
+  approvedAt   DateTime?
+  // Phone the requester gave when asking for a trial (shown to the admin).
+  requestPhone String?
 
   memberships         Membership[]
   invites             Invite[]
