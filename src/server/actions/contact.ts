@@ -1,9 +1,13 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 import { brandedEmail, sendEmail } from "@/lib/email";
 import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
+import { notifyAdmin } from "@/lib/notify";
+import { requirePlatformAdmin } from "@/lib/platform-admin";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Please add your name").max(120),
@@ -41,6 +45,17 @@ export async function submitContactAction(
   // Silently succeed for honeypot hits so bots don't learn anything.
   if (company) return { ok: true };
 
+  // Store it so nothing is lost even if email isn't configured — shows up in
+  // the owner console alongside demo requests.
+  await prisma.contactMessage.create({
+    data: { name, email, agency: agency?.trim() || null, message },
+  });
+
+  // Instant ping (webhook — works without email).
+  await notifyAdmin(
+    `✉️ New contact enquiry\n${name}${agency ? ` · ${agency}` : ""}\n${email}\n\n${message}`
+  );
+
   // Notify the team.
   await sendEmail({
     to: INBOX,
@@ -73,4 +88,26 @@ export async function submitContactAction(
   });
 
   return { ok: true };
+}
+
+/** Mark a contact enquiry handled / reopened (platform admin only). */
+export async function setContactHandledAction(input: {
+  id: string;
+  handled: boolean;
+}) {
+  await requirePlatformAdmin();
+  await prisma.contactMessage.update({
+    where: { id: input.id },
+    data: { handled: input.handled },
+  });
+  revalidatePath("/admin");
+  return { ok: true as const };
+}
+
+/** Delete a contact enquiry (platform admin only). */
+export async function deleteContactMessageAction(id: string) {
+  await requirePlatformAdmin();
+  await prisma.contactMessage.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { ok: true as const };
 }

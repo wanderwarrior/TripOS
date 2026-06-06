@@ -12,9 +12,15 @@ import { submitTrialPhoneAction, signOutAction } from "@/server/actions/auth";
 export function PendingApproval({
   status,
   hasPhone,
+  demoVideoUrl = null,
+  demoPosterUrl = null,
+  supportWhatsapp = null,
 }: {
   status: "PENDING" | "REJECTED";
   hasPhone: boolean;
+  demoVideoUrl?: string | null;
+  demoPosterUrl?: string | null;
+  supportWhatsapp?: string | null;
 }) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
@@ -114,10 +120,28 @@ export function PendingApproval({
         Your trial is under review
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Thanks for requesting tripOS. We review every request to keep the
-        platform high-quality — you&apos;ll get access as soon as we approve it,
-        usually within a business day.
+        Thanks for requesting tripOS! We approve new agencies by hand —{" "}
+        <strong className="text-ink">usually within a few hours</strong>. This
+        page unlocks automatically the moment you&apos;re approved.
       </p>
+
+      {demoVideoUrl ? (
+        <div className="mt-5 overflow-hidden rounded-lg border border-line bg-inkwash">
+          <p className="px-3 pt-2.5 text-left text-[11px] uppercase tracking-[0.18em] text-[var(--on-dark)]/60">
+            While you wait — see tripOS in action
+          </p>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video
+            src={demoVideoUrl}
+            poster={demoPosterUrl ?? undefined}
+            controls
+            playsInline
+            preload="metadata"
+            className="mt-2 aspect-video w-full"
+          />
+        </div>
+      ) : null}
+
       <Button
         variant="outline"
         className="mt-5"
@@ -131,8 +155,35 @@ export function PendingApproval({
         )}
         Check status
       </Button>
+
+      <ContactLine supportWhatsapp={supportWhatsapp} />
       <SignOutLink />
     </div>
+  );
+}
+
+function ContactLine({ supportWhatsapp }: { supportWhatsapp: string | null }) {
+  return (
+    <p className="mt-4 text-xs text-muted">
+      Need it sooner?{" "}
+      {supportWhatsapp ? (
+        <a
+          href={`https://wa.me/${supportWhatsapp.replace(/[^\d]/g, "")}`}
+          target="_blank"
+          rel="noopener"
+          className="text-ink underline underline-offset-2"
+        >
+          Message us on WhatsApp
+        </a>
+      ) : (
+        <a
+          href="mailto:hello@tripcraft.app"
+          className="text-ink underline underline-offset-2"
+        >
+          Email us
+        </a>
+      )}
+    </p>
   );
 }
 

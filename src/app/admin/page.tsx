@@ -4,6 +4,7 @@ import { PageShell } from "@/components/page-shell";
 import { AdminAgenciesTable } from "@/components/admin/agencies-table";
 import { TrialRequests } from "@/components/admin/trial-requests";
 import { DemoRequests } from "@/components/admin/demo-requests";
+import { ContactMessages } from "@/components/admin/contact-messages";
 import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import {
@@ -11,6 +12,7 @@ import {
   getHeroMedia,
   getPlatformStats,
   listAgenciesForAdmin,
+  listContactMessages,
   listDemoRequests,
   listPendingTrialRequests,
 } from "@/server/services/platform";
@@ -28,13 +30,14 @@ export default async function AdminPage({
   const admin = await getPlatformAdmin();
   if (!admin) notFound();
 
-  const [stats, agencies, hero, trialRequests, demoRequests] =
+  const [stats, agencies, hero, trialRequests, demoRequests, contactMessages] =
     await Promise.all([
       getPlatformStats(),
       listAgenciesForAdmin(searchParams.q),
       getHeroMedia(),
       listPendingTrialRequests(),
       listDemoRequests(),
+      listContactMessages(),
     ]);
 
   const activity = await getAgencyActivityMap(agencies.map((a) => a.id));
@@ -76,6 +79,13 @@ export default async function AdminPage({
         requests={trialRequests.map((r) => ({
           ...r,
           createdAt: r.createdAt.toISOString(),
+        }))}
+      />
+
+      <ContactMessages
+        messages={contactMessages.map((m) => ({
+          ...m,
+          createdAt: m.createdAt.toISOString(),
         }))}
       />
 

@@ -330,6 +330,20 @@ model DemoRequest {
   @@index([status, createdAt])
 }
 
+/// A public contact-form enquiry. Stored (not just emailed) so nothing is lost
+/// when transactional email isn't configured. Shown in the owner console.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  agency    String?
+  message   String
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([handled, createdAt])
+}
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique

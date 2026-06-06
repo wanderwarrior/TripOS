@@ -26,6 +26,9 @@ const EMPTY = {
   company: "", // honeypot
 };
 
+// Optional self-serve booking link (Calendly/Cal.com). Shown on success when set.
+const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "";
+
 export function RequestDemoDialog({ trigger }: { trigger: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
@@ -78,10 +81,27 @@ export function RequestDemoDialog({ trigger }: { trigger: React.ReactNode }) {
             <DialogDescription className="mt-2">
               Thanks{form.name ? `, ${form.name.split(/\s+/)[0]}` : ""}! Our team
               will reach out shortly to schedule your free demo.
+              {calendlyUrl ? " Prefer to pick a time now?" : ""}
             </DialogDescription>
-            <Button className="mt-5" onClick={() => onOpenChange(false)}>
-              Done
-            </Button>
+            <div className="mt-5 flex flex-col items-center gap-2">
+              {calendlyUrl ? (
+                <a
+                  href={calendlyUrl}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-inkwash px-5 py-2.5 text-sm font-medium text-[var(--on-dark)] hover:bg-inkwash/90"
+                >
+                  Book a time now
+                </a>
+              ) : null}
+              <Button
+                variant={calendlyUrl ? "ghost" : "default"}
+                className="w-full"
+                onClick={() => onOpenChange(false)}
+              >
+                Done
+              </Button>
+            </div>
           </div>
         ) : (
           <>

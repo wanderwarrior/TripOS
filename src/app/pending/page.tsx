@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/brand/mark";
 import { PendingApproval } from "@/components/auth/pending-approval";
+import { getHeroMedia } from "@/server/services/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,17 @@ export default async function PendingPage() {
   const u = await getSessionUser();
   if (!u) redirect("/login");
 
-  const agency = await prisma.agency.findUnique({
-    where: { id: u.activeAgencyId },
-    select: { status: true, requestPhone: true },
-  });
+  const [agency, hero] = await Promise.all([
+    prisma.agency.findUnique({
+      where: { id: u.activeAgencyId },
+      select: { status: true, requestPhone: true },
+    }),
+    getHeroMedia(),
+  ]);
   // Already approved (or no agency) → straight into the app.
   if (!agency || agency.status === "APPROVED") redirect("/dashboard");
+
+  const supportWhatsapp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || null;
 
   return (
     <main className="min-h-screen bg-canvas flex items-center justify-center px-4 py-12">
@@ -37,6 +43,9 @@ export default async function PendingPage() {
           <PendingApproval
             status={agency.status === "REJECTED" ? "REJECTED" : "PENDING"}
             hasPhone={!!agency.requestPhone?.trim()}
+            demoVideoUrl={hero.videoUrl}
+            demoPosterUrl={hero.posterUrl}
+            supportWhatsapp={supportWhatsapp}
           />
         </div>
 

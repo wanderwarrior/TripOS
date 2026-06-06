@@ -10,6 +10,7 @@ import { signIn, signOut } from "@/lib/auth";
 import { getSessionUser } from "@/lib/session";
 import { brandedEmail, sendEmail } from "@/lib/email";
 import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
+import { notifyAdmin } from "@/lib/notify";
 import { TRIAL_DAYS } from "@/lib/plans";
 
 function publicBase(): string {
@@ -117,6 +118,11 @@ export async function signupAction(input: SignupInput) {
       },
     });
   });
+
+  // Ping the founder so a pending trial can be approved fast (webhook).
+  await notifyAdmin(
+    `🆕 New trial request — needs approval\n${data.agencyName} · ${data.name}\n${email} · ${data.phone}\nApprove: ${publicBase()}/admin`
+  );
 
   await signIn("credentials", {
     email,

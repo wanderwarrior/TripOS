@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { brandedEmail, sendEmail } from "@/lib/email";
 import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
 import { platformAdminEmails, requirePlatformAdmin } from "@/lib/platform-admin";
+import { notifyAdmin } from "@/lib/notify";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Please add your name").max(120),
@@ -58,6 +59,11 @@ export async function createDemoRequestAction(
       message: message?.trim() || null,
     },
   });
+
+  // Instant ping (works without email — Slack/Discord/Telegram/Zapier webhook).
+  await notifyAdmin(
+    `🎬 New demo request\n${name}${agencyName ? ` · ${agencyName}` : ""}\n${email} · ${phone}`
+  );
 
   // Best-effort notify the platform admin (works once email is configured).
   const notify = platformAdminEmails()[0] || process.env.CONTACT_INBOX;

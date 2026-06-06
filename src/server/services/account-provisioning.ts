@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { TRIAL_DAYS } from "@/lib/plans";
+import { notifyAdmin } from "@/lib/notify";
 
 // Shared account/tenant provisioning. Used by both the email/password signup
 // action and OAuth (Google) sign-in: every authenticated user must resolve to
@@ -141,6 +142,10 @@ export async function provisionOAuthUser(input: {
     const agency = await createAgencyForUser(
       user.id,
       deriveAgencyName(input.name ?? user.name, email)
+    );
+    // New trial via Google sign-in — ping the founder to approve (webhook).
+    await notifyAdmin(
+      `🆕 New trial request (Google) — needs approval\n${agency.name}\n${email}`
     );
     return {
       userId: user.id,

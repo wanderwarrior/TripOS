@@ -205,6 +205,33 @@ export async function listDemoRequests(): Promise<DemoRequestRow[]> {
   }));
 }
 
+export type ContactMessageRow = {
+  id: string;
+  name: string;
+  email: string;
+  agency: string | null;
+  message: string;
+  handled: boolean;
+  createdAt: Date;
+};
+
+/** Contact-form enquiries for the owner console — unhandled first. */
+export async function listContactMessages(): Promise<ContactMessageRow[]> {
+  const rows = await prisma.contactMessage.findMany({
+    orderBy: [{ handled: "asc" }, { createdAt: "desc" }],
+    take: 300,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    agency: r.agency,
+    message: r.message,
+    handled: r.handled,
+    createdAt: r.createdAt,
+  }));
+}
+
 export type TrialRequest = {
   id: string;
   name: string;

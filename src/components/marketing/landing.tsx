@@ -617,9 +617,6 @@ function Integrations() {
 // --- urgency / FOMO banner ------------------------------------------------
 
 function UrgencyBanner() {
-  const claimed = 412;
-  const total = 500;
-  const pct = Math.round((claimed / total) * 100);
   return (
     <section className="mx-auto max-w-5xl px-5 md:px-10 pt-24 md:pt-28">
       <Reveal>
@@ -631,26 +628,13 @@ function UrgencyBanner() {
               Founding offer · limited
             </span>
             <h2 className="mt-5 font-display text-3xl md:text-4xl">
-              Lock in founding pricing before it&apos;s gone
+              Lock in founding pricing while it&apos;s open
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--on-dark)]/75">
-              The first {total} agencies get founding rates for life. Once the
-              spots are claimed, pricing goes up — for good. Don&apos;t watch
-              your competitors get the edge.
+              Early agencies lock in founding rates for life. We&apos;re
+              onboarding our first cohort by hand — join now, before pricing
+              moves up.
             </p>
-
-            <div className="mx-auto mt-7 max-w-md">
-              <div className="flex items-center justify-between text-xs text-[var(--on-dark)]/70">
-                <span>{claimed} agencies claimed</span>
-                <span>{total - claimed} spots left</span>
-              </div>
-              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#e3c98f] to-[var(--gold-deep)]"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
 
             <Link
               href="/signup"
@@ -782,16 +766,16 @@ function ClosingCta() {
               Ready to craft better trips?
             </h2>
             <p className="mt-4 text-[var(--on-dark)]/75 max-w-xl mx-auto">
-              Join the agencies running their entire business on tripOS. Your
-              free {TRIAL_DAYS}-day trial starts the moment you sign up — and
-              founding pricing is still open.
+              Join the agencies running their entire business on tripOS. Request
+              your free {TRIAL_DAYS}-day trial — we approve new agencies within a
+              few hours, and founding pricing is still open.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/signup"
                 className="inline-flex items-center gap-2 rounded-[8px] bg-paper px-6 py-3 text-sm font-medium text-ink hover:bg-paper-2 transition-colors"
               >
-                Start your free trial
+                Request your free trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <RequestDemoDialog

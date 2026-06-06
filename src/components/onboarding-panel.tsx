@@ -32,7 +32,7 @@ type Step = {
 export async function OnboardingPanel() {
   const { agencyId, user } = await requireAgency();
 
-  const [agency, templateCount, leadCount, memberCount, waConfigured] =
+  const [agency, templateCount, leadCount, memberCount, waConfigured, tripCount] =
     await Promise.all([
       prisma.agencySettings.findUnique({
         where: { agencyId },
@@ -42,9 +42,19 @@ export async function OnboardingPanel() {
       prisma.contact.count({ where: { agencyId, deletedAt: null } }),
       prisma.membership.count({ where: { agencyId } }),
       isWhatsappConfiguredForAgency(agencyId),
+      prisma.trip.count({ where: { agencyId, deletedAt: null } }),
     ]);
 
   const steps: Step[] = [
+    // Lead with the "wow" — the AI itinerary is what makes a trial convert.
+    {
+      key: "trip",
+      label: "Create your first AI itinerary",
+      hint: "Type a destination and let AI draft a day-by-day plan in seconds.",
+      href: "/trips/new",
+      cta: "New trip",
+      done: tripCount > 0,
+    },
     {
       key: "agency",
       label: "Add your agency identity",
