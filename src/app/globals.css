@@ -1613,6 +1613,158 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+/* ============================================================
+   PROPOSAL — premium creative polish
+   Layered over the base styles above. Scoped to .pp; decorative + typographic
+   only, so the responsive blocks below still own layout. PDF is a separate
+   renderer and is unaffected.
+   ============================================================ */
+
+/* Cover: an editorial gold hairline frame + a soft vignette for depth. */
+.pp-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    115% 80% at 50% 46%,
+    transparent 56%,
+    rgba(6, 12, 18, 0.4) 100%
+  );
+}
+.pp-cover::after {
+  content: "";
+  position: absolute;
+  inset: 20px;
+  z-index: 1;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--ppaccent) 42%, transparent);
+}
+/* A gold rule trailing the cover kicker — a small couture flourish. */
+.pp .cover-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.pp .cover-kicker::after {
+  content: "";
+  width: 46px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ppaccent), transparent);
+}
+.pp .cover-title {
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.35);
+}
+/* A hairline gold seam above the cover facts. */
+.pp .cover-meta {
+  border-top-color: color-mix(in srgb, var(--ppaccent) 38%, transparent);
+}
+
+/* Section eyebrows get a small gold lozenge marker. */
+.pp .sec-kicker .eyb::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 11px;
+  transform: rotate(45deg);
+  background: var(--ppaccent);
+  vertical-align: middle;
+  border-radius: 1px;
+}
+
+/* Itinerary index rows: a gentle hover wash on screen. */
+.pp .ov-row {
+  transition: background-color 0.2s ease;
+  padding-inline: 6px;
+  margin-inline: -6px;
+  border-radius: 4px;
+}
+.pp .ov-row:hover {
+  background: color-mix(in srgb, var(--ppaccent) 7%, transparent);
+}
+
+/* Day numerals: a brushed-gold gradient fill — the signature creative beat. */
+.pp .day-num {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--ppaccent) 96%, #fff) 8%,
+    var(--gold-deep) 92%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Day photos: softer corners, an inner hairline, and a slow zoom on hover. */
+.pp .day-img {
+  border-radius: 12px;
+}
+.pp .day-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(12, 22, 32, 0.07);
+  pointer-events: none;
+}
+.pp .day-img img {
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Stay card + callouts: a gold edge and a whisper of lift. */
+.pp .stay-card {
+  border-left: 3px solid var(--ppaccent);
+  box-shadow: 0 14px 34px -26px rgba(12, 22, 32, 0.45);
+}
+.pp .callout {
+  border-left: 3px solid color-mix(in srgb, var(--ppaccent) 55%, var(--line));
+}
+
+/* Investment: brushed-gold headline figure on the navy block. */
+.pp .invest-total {
+  background: linear-gradient(
+    118deg,
+    #ffffff 28%,
+    color-mix(in srgb, var(--ppaccent) 80%, #fff) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Closing: a centred gold seam above the hand-written sign-off. */
+.pp .close-sig::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 1px;
+  margin: 0 auto 26px;
+  background: linear-gradient(90deg, transparent, var(--ppaccent), transparent);
+}
+
+/* Motion is opt-in — slow Ken Burns on the cover, gentle hover zoom on photos. */
+@media (prefers-reduced-motion: no-preference) {
+  .pp-cover .cover-img {
+    animation: pp-kenburns 26s ease-in-out infinite alternate;
+    transform-origin: 60% 40%;
+  }
+  @keyframes pp-kenburns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.08);
+    }
+  }
+  .pp .day-img:hover img {
+    transform: scale(1.045);
+  }
+}
+
 @media (max-width: 860px) {
   .pp-cover-inner,
   .pp-sec,
