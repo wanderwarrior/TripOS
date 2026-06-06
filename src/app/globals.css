@@ -1143,7 +1143,10 @@
 .pp .day-num {
   font-family: var(--serif);
   font-size: 62px;
-  line-height: 0.8;
+  /* Roomy enough that serif numerals (and the gold gradient text-clip) never
+     clip top or bottom. */
+  line-height: 1.1;
+  padding-bottom: 0.04em;
   color: var(--ppaccent);
   font-weight: 500;
 }
