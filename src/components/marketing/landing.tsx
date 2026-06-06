@@ -24,6 +24,7 @@ import { PLANS, PRICING_ORDER, TRIAL_DAYS, formatPlanPrice } from "@/lib/plans";
 import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Faq } from "@/components/marketing/faq";
+import { PlatformShowcase } from "@/components/marketing/platform-showcase";
 import { RequestDemoDialog } from "@/components/marketing/request-demo-dialog";
 import { Testimonials, QUOTES } from "@/components/marketing/testimonials";
 import {
@@ -51,9 +52,10 @@ export function Landing({
         videoUrl={heroVideoUrl}
         posterUrl={heroPosterUrl}
       />
-      {/* Narrative: hook → credibility → agitate the problem → show the
-          solution (overview → breadth → depth) → prove it (results, social
-          proof, comparison) → de-risk → convert (offer, pricing, FAQ, CTA). */}
+      {/* Narrative: hook → the whole platform at a glance (second fold) →
+          credibility → agitate the problem → show the solution (overview →
+          breadth → depth) → prove it → de-risk → convert. */}
+      <PlatformShowcase />
       <TrustBar />
       <ProblemSection />
       <Features />
