@@ -3,8 +3,18 @@
 // Auto-scrolling testimonial marquee (two rows, opposite directions, pause on
 // hover). Pure CSS animation via .tc-marquee in globals.css — no JS timer — so
 // it stays smooth and respects prefers-reduced-motion (animation disabled).
-// NOTE: names/quotes are illustrative placeholders — replace with real
-// customer quotes before launch.
+//
+// IMPORTANT: only REAL customer quotes go in QUOTES. While it's empty the whole
+// testimonials section is hidden (see SocialProof in landing.tsx) — we don't
+// ship fabricated social proof. To add real ones, paste objects into QUOTES
+// using the template below (even a WhatsApp screenshot quote works).
+//
+//   {
+//     name: "Ananya Rao",
+//     role: "Founder, Wanderloom Travel",
+//     city: "Bengaluru",
+//     body: "We used to lose a full day building each proposal. Now it's 20 minutes…",
+//   },
 
 import { Star } from "lucide-react";
 
@@ -15,44 +25,7 @@ type Quote = {
   body: string;
 };
 
-const QUOTES: Quote[] = [
-  {
-    name: "Ananya Rao",
-    role: "Founder, Wanderloom Travel",
-    city: "Bengaluru",
-    body: "We used to lose a full day building each proposal. Now it's 20 minutes — AI itinerary, branded PDF, sent on WhatsApp. We've closed deals the same evening we got the enquiry.",
-  },
-  {
-    name: "Imran Shaikh",
-    role: "Director, Crescent Holidays",
-    city: "Mumbai",
-    body: "GST invoices, payment links and vouchers in one place finally killed our spreadsheet chaos. My accountant actually thanked me.",
-  },
-  {
-    name: "Meghna Pillai",
-    role: "Owner, Coastline Journeys",
-    city: "Kochi",
-    body: "The proposals look like a luxury brand made them. Clients reply 'wow' before they even read the price. Our conversion jumped noticeably.",
-  },
-  {
-    name: "Rohit Khanna",
-    role: "Co-founder, Summit Trails",
-    city: "Delhi",
-    body: "I can see my whole pipeline, who's following up, and what's stuck — for the first time. It feels like I hired an operations manager.",
-  },
-  {
-    name: "Sneha Desai",
-    role: "Travel Consultant",
-    city: "Ahmedabad",
-    body: "WhatsApp reminders alone recovered payments I'd have chased for weeks. It pays for itself.",
-  },
-  {
-    name: "Karan Mehta",
-    role: "MD, Voyage Crafters",
-    city: "Pune",
-    body: "We onboarded the whole team in an afternoon. No training, no manual — they just got it.",
-  },
-];
+export const QUOTES: Quote[] = [];
 
 function Card({ q }: { q: Quote }) {
   return (
@@ -84,8 +57,9 @@ function Card({ q }: { q: Quote }) {
 }
 
 export function Testimonials() {
-  const rowA = QUOTES.slice(0, 3);
-  const rowB = QUOTES.slice(3);
+  if (QUOTES.length === 0) return null;
+  const rowA = QUOTES.slice(0, Math.ceil(QUOTES.length / 2));
+  const rowB = QUOTES.slice(Math.ceil(QUOTES.length / 2));
   return (
     <div className="space-y-5">
       <div className="tc-marquee group">
@@ -95,13 +69,15 @@ export function Testimonials() {
           ))}
         </div>
       </div>
-      <div className="tc-marquee group">
-        <div className="tc-marquee-track tc-marquee-reverse gap-5 group-hover:[animation-play-state:paused]">
-          {[...rowB, ...rowB, ...rowB].map((q, i) => (
-            <Card key={`b-${i}`} q={q} />
-          ))}
+      {rowB.length > 0 ? (
+        <div className="tc-marquee group">
+          <div className="tc-marquee-track tc-marquee-reverse gap-5 group-hover:[animation-play-state:paused]">
+            {[...rowB, ...rowB, ...rowB].map((q, i) => (
+              <Card key={`b-${i}`} q={q} />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/session";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
+import { WhatsappFab } from "@/components/marketing/whatsapp-fab";
 import { Logo, BrandIntro } from "@/components/brand";
 
 // Public, logged-out chrome for the marketing surface (landing, pricing,
@@ -23,6 +24,8 @@ export async function MarketingShell({
         <MarketingNav isAuthed={!!user} />
 
         <main className="flex-1">{children}</main>
+
+        <WhatsappFab />
 
         <footer className="border-t border-line bg-paper">
         <div className="mx-auto max-w-6xl px-5 md:px-10 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">

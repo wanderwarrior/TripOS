@@ -14,7 +14,6 @@ import {
   Minus,
   ShieldCheck,
   Sparkles,
-  Star,
   TrendingUp,
   Users,
   Wand2,
@@ -26,7 +25,7 @@ import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Faq } from "@/components/marketing/faq";
 import { RequestDemoDialog } from "@/components/marketing/request-demo-dialog";
-import { Testimonials } from "@/components/marketing/testimonials";
+import { Testimonials, QUOTES } from "@/components/marketing/testimonials";
 import {
   CountUp,
   Reveal,
@@ -62,6 +61,7 @@ export function Landing({
       <FeatureShowcase />
       <StatsBand />
       <SocialProof />
+      <FounderNote />
       <Comparison />
       <Integrations />
       <UrgencyBanner />
@@ -77,6 +77,7 @@ export function Landing({
 const TRUST_SIGNALS = [
   { icon: ShieldCheck, label: "GST-compliant invoicing" },
   { icon: MessageCircle, label: "Official WhatsApp Cloud API" },
+  { icon: CreditCard, label: "INR pricing & payments" },
   { icon: Zap, label: "Set up in minutes" },
 ];
 
@@ -85,19 +86,9 @@ function TrustBar() {
     <section className="border-y border-line bg-paper-2">
       <div className="mx-auto max-w-6xl px-5 py-8 md:px-10">
         <p className="text-center text-sm font-medium text-ink/80">
-          Trusted by{" "}
-          <span className="font-semibold text-ink">500+ travel agencies</span>{" "}
-          across India
+          Built for how Indian travel agencies actually sell
         </p>
         <div className="mx-auto mt-6 grid max-w-4xl grid-cols-2 gap-y-5 sm:grid-cols-4 sm:divide-x sm:divide-line">
-          <div className="flex items-center justify-center gap-2 px-4 text-xs text-muted">
-            <span className="flex gap-0.5 text-gold-deep">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-3.5 w-3.5 fill-current" />
-              ))}
-            </span>
-            <span>4.9/5 rating</span>
-          </div>
           {TRUST_SIGNALS.map((s) => (
             <div
               key={s.label}
@@ -115,11 +106,12 @@ function TrustBar() {
 
 // --- stats band -----------------------------------------------------------
 
+// Honest, verifiable claims — capability + pricing, not fabricated adoption.
 const STATS = [
-  { to: 12000, suffix: "+", label: "AI itineraries generated", icon: Wand2 },
-  { to: 120, prefix: "₹", suffix: " Cr+", label: "Trips quoted on tripOS", icon: TrendingUp },
-  { to: 40, suffix: "%", label: "Faster proposal turnaround", icon: Clock },
-  { to: 98, suffix: "%", label: "On-time vendor deliveries", icon: ShieldCheck },
+  { to: 10, suffix: " min", label: "From enquiry to a sent proposal", icon: Clock },
+  { to: 100, suffix: "%", label: "GST-compliant tax invoices", icon: ShieldCheck },
+  { to: 2499, prefix: "₹", suffix: "/mo", label: "Simple per-agency pricing", icon: TrendingUp },
+  { to: 14, suffix: "-day", label: "Free trial — no card required", icon: Sparkles },
 ];
 
 function StatsBand() {
@@ -490,6 +482,8 @@ function MockAnalytics() {
 // --- social proof (testimonials) ------------------------------------------
 
 function SocialProof() {
+  // Only render once there are REAL testimonials — never fabricated proof.
+  if (QUOTES.length === 0) return null;
   return (
     <section className="bg-paper-2 py-24 md:py-28">
       <Reveal className="mx-auto max-w-3xl px-5 text-center md:px-10">
@@ -504,6 +498,37 @@ function SocialProof() {
       <div className="mt-12">
         <Testimonials />
       </div>
+    </section>
+  );
+}
+
+// Honest, human trust signal that doesn't depend on (non-existent) customer
+// counts. Personalise: swap in the founder's name + photo when ready.
+function FounderNote() {
+  return (
+    <section className="mx-auto max-w-3xl px-5 md:px-10 py-20">
+      <Reveal>
+        <div className="rounded-2xl border border-line bg-paper p-8 text-center shadow-soft md:p-10">
+          <p className="tc-eyebrow gold">Why we built tripOS</p>
+          <p className="mt-5 font-display text-2xl leading-snug text-ink md:text-3xl">
+            &ldquo;We watched brilliant travel agents lose hours — and bookings —
+            to spreadsheets, Word proposals and scattered WhatsApp chats. tripOS
+            is the tool we wished they had: one place to turn an enquiry into a
+            branded proposal, a paid booking and a GST invoice.&rdquo;
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-inkwash text-sm font-semibold text-[var(--on-dark)]">
+              tO
+            </span>
+            <div className="text-left">
+              <p className="text-sm font-medium text-ink">The tripOS team</p>
+              <p className="text-xs text-muted">
+                Building for Indian travel agencies
+              </p>
+            </div>
+          </div>
+        </div>
+      </Reveal>
     </section>
   );
 }
