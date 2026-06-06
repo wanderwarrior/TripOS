@@ -272,7 +272,9 @@ export function seoLandingMetadata(slug: string): Metadata {
   const l = getSeoLanding(slug);
   if (!l) return {};
   return {
-    title: l.metaTitle,
+    // Absolute → bypass the layout's "%s · tripOS" template (metaTitle already
+    // ends in "| tripOS"), so we don't double-brand the title.
+    title: { absolute: l.metaTitle },
     description: l.metaDescription,
     keywords: l.keywords,
     alternates: { canonical: `/${l.slug}` },
