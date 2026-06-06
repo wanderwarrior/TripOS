@@ -1620,7 +1620,7 @@
    renderer and is unaffected.
    ============================================================ */
 
-/* Cover: an editorial gold hairline frame + a soft vignette for depth. */
+/* Cover: a soft vignette for depth. */
 .pp-cover::before {
   content: "";
   position: absolute;
@@ -1632,14 +1632,6 @@
     transparent 56%,
     rgba(6, 12, 18, 0.4) 100%
   );
-}
-.pp-cover::after {
-  content: "";
-  position: absolute;
-  inset: 20px;
-  z-index: 1;
-  pointer-events: none;
-  border: 1px solid color-mix(in srgb, var(--ppaccent) 42%, transparent);
 }
 /* A gold rule trailing the cover kicker — a small couture flourish. */
 .pp .cover-kicker {

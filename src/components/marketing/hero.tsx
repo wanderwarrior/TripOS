@@ -45,7 +45,7 @@ export function Hero({
   };
 
   return (
-    <section className="relative isolate flex min-h-[92vh] items-center overflow-hidden">
+    <section className="relative isolate flex min-h-[85vh] items-center overflow-hidden md:min-h-[92vh]">
       {/* Animated fallback — always present, so the hero is never blank even
           before /videos/hero.mp4 exists. The video (when it loads) sits on
           top and covers it. */}
