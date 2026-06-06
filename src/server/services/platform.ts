@@ -1,5 +1,5 @@
 import "server-only";
-import type { PlanTier, SubscriptionStatus } from "@prisma/client";
+import type { AgencyStatus, PlanTier, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PLANS } from "@/lib/plans";
 
@@ -103,6 +103,8 @@ export type AdminAgencyRow = {
   createdAt: Date;
   ownerName: string | null;
   ownerEmail: string | null;
+  requestPhone: string | null;
+  approvalStatus: AgencyStatus;
   members: number;
   trips: number;
   contacts: number;
@@ -155,6 +157,8 @@ export async function listAgenciesForAdmin(
       createdAt: a.createdAt,
       ownerName: owner?.name ?? null,
       ownerEmail: owner?.email ?? null,
+      requestPhone: a.requestPhone,
+      approvalStatus: a.status,
       members: a._count.memberships,
       trips: a._count.trips,
       contacts: a._count.contacts,

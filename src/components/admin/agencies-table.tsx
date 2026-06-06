@@ -45,6 +45,8 @@ type Row = {
   createdAt: string;
   ownerName: string | null;
   ownerEmail: string | null;
+  requestPhone: string | null;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
   members: number;
   trips: number;
   contacts: number;
@@ -184,17 +186,43 @@ function AgencyRow({ a }: { a: Row }) {
             {a.name.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0">
-            <div className="t-strong truncate">{a.name}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="t-strong truncate">{a.name}</span>
+              {a.approvalStatus === "PENDING" ? (
+                <Badge variant="warn">Pending</Badge>
+              ) : a.approvalStatus === "REJECTED" ? (
+                <Badge variant="danger">Rejected</Badge>
+              ) : null}
+            </div>
             <div className="t-mut font-mono">/{a.slug}</div>
           </div>
         </div>
       </td>
       <td className="t-mut">
-        {a.ownerEmail ? (
-          <span className="truncate">{a.ownerEmail}</span>
-        ) : (
-          "—"
-        )}
+        <div className="flex flex-col gap-0.5 min-w-0">
+          {a.ownerName ? (
+            <span className="t-strong truncate">{a.ownerName}</span>
+          ) : null}
+          {a.ownerEmail ? (
+            <a
+              href={`mailto:${a.ownerEmail}`}
+              className="truncate hover:text-ink underline-offset-2 hover:underline"
+            >
+              {a.ownerEmail}
+            </a>
+          ) : null}
+          {a.requestPhone ? (
+            <a
+              href={`https://wa.me/${a.requestPhone.replace(/[^\d]/g, "")}`}
+              target="_blank"
+              rel="noopener"
+              className="font-mono text-[11px] hover:text-ink underline-offset-2 hover:underline"
+            >
+              {a.requestPhone}
+            </a>
+          ) : null}
+          {!a.ownerEmail && !a.requestPhone && !a.ownerName ? "—" : null}
+        </div>
       </td>
       <td>
         <div className="flex items-center gap-2">
