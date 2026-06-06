@@ -28,7 +28,7 @@ export async function MarketingShell({
         <WhatsappFab />
 
         <footer className="border-t border-line bg-paper">
-        <div className="mx-auto max-w-6xl px-5 md:px-10 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto max-w-6xl px-5 md:px-10 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
             <Logo size={28} wordClassName="text-xl" className="text-ink" />
             <p className="mt-3 text-sm text-muted max-w-xs">
@@ -45,6 +45,15 @@ export async function MarketingShell({
               { label: "Changelog", href: "/changelog" },
               { label: "Security", href: "/security" },
               { label: "Start free trial", href: "/signup" },
+            ]}
+          />
+          <FooterCol
+            title="Solutions"
+            links={[
+              { label: "Travel agency software", href: "/travel-agency-software-india" },
+              { label: "Travel agency CRM", href: "/travel-agency-crm" },
+              { label: "Travel proposal software", href: "/travel-proposal-software" },
+              { label: "GST invoicing", href: "/gst-invoicing-for-travel-agents" },
             ]}
           />
           <FooterCol

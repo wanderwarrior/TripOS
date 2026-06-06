@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { HELP_ARTICLES } from "@/lib/help-content";
 import { listBlogPosts } from "@/lib/blog-content";
+import { SEO_LANDING_SLUGS } from "@/lib/seo-landings";
 
 const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL ||
@@ -48,5 +49,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticEntries, ...blogEntries, ...helpEntries];
+  // Keyword-targeted SEO landing pages — high priority, they're conversion-led.
+  const landingEntries: MetadataRoute.Sitemap = SEO_LANDING_SLUGS.map((slug) => ({
+    url: `${APP_URL}/${slug}`,
+    lastModified: now,
+    changeFrequency: "weekly",
+    priority: 0.9,
+  }));
+
+  return [...staticEntries, ...landingEntries, ...blogEntries, ...helpEntries];
 }
