@@ -25,6 +25,15 @@ import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Faq } from "@/components/marketing/faq";
 import { PlatformShowcase } from "@/components/marketing/platform-showcase";
+import {
+  Frame,
+  MockCapture,
+  MockPlan,
+  MockPropose,
+  MockBook,
+  MockOperate,
+  MockGrow,
+} from "@/components/marketing/product-mockups";
 import { RequestDemoDialog } from "@/components/marketing/request-demo-dialog";
 import { Testimonials, QUOTES } from "@/components/marketing/testimonials";
 import {
@@ -249,6 +258,20 @@ function Features() {
 function FeatureShowcase() {
   const blocks = [
     {
+      eyebrow: "CRM & pipeline",
+      title: "Capture every enquiry — and convert more of them",
+      points: [
+        "Every lead from Instagram, WhatsApp, referrals and your site — one pipeline.",
+        "Move leads new → quoted → won, and assign them to agents.",
+        "Customer profiles, trip history and follow-ups in one place.",
+      ],
+      mock: (
+        <Frame label="CRM">
+          <MockCapture />
+        </Frame>
+      ),
+    },
+    {
       eyebrow: "AI itineraries",
       title: "From a one-line brief to a day-by-day masterpiece",
       points: [
@@ -256,7 +279,12 @@ function FeatureShowcase() {
         "Edit any day, swap hotels, add activities — you stay in control.",
         "Regenerate the prose while keeping your structured facts intact.",
       ],
-      mock: <MockItinerary />,
+      mock: (
+        <Frame label="Plan">
+          <MockPlan />
+        </Frame>
+      ),
+      flip: true,
     },
     {
       eyebrow: "Branded proposals",
@@ -266,28 +294,54 @@ function FeatureShowcase() {
         "Customer-safe pricing: cost, markup and margin never leak.",
         "Share a live link or a pixel-perfect PDF in one tap.",
       ],
-      mock: <MockProposal />,
+      mock: (
+        <Frame label="Propose">
+          <MockPropose />
+        </Frame>
+      ),
+    },
+    {
+      eyebrow: "Bookings, payments & GST",
+      title: "Book, get paid, and invoice — without leaving the flow",
+      points: [
+        "Turn an accepted quote into a booking in one click.",
+        "Collect deposits and balances via Indian payment gateways.",
+        "Issue GST-compliant tax invoices automatically.",
+      ],
+      mock: (
+        <Frame label="Book">
+          <MockBook />
+        </Frame>
+      ),
       flip: true,
     },
     {
-      eyebrow: "WhatsApp & payments",
-      title: "Send, get paid, and reconcile — without leaving the chat",
+      eyebrow: "Operations",
+      title: "Run every trip end to end",
       points: [
-        "Proposals, invoices and reminders over official WhatsApp Cloud API.",
-        "Payment links that reconcile automatically against the booking.",
-        "Automated nudges recover payments you'd otherwise chase for weeks.",
+        "Assign vendors and track confirmations.",
+        "Generate vouchers and travel docs for travellers.",
+        "An operations checklist so nothing slips before departure.",
       ],
-      mock: <MockWhatsapp />,
+      mock: (
+        <Frame label="Operate">
+          <MockOperate />
+        </Frame>
+      ),
     },
     {
-      eyebrow: "Analytics",
+      eyebrow: "Analytics & automations",
       title: "Finally know what's actually making you money",
       points: [
         "Conversion funnel from enquiry to paid booking.",
-        "Revenue trend, margins and agent-by-agent performance.",
-        "Lead-source ROI so you spend where it pays off.",
+        "Margins and ROI by agent and lead source.",
+        "WhatsApp automations that follow up and recover payments.",
       ],
-      mock: <MockAnalytics />,
+      mock: (
+        <Frame label="Grow">
+          <MockGrow />
+        </Frame>
+      ),
       flip: true,
     },
   ];
@@ -319,165 +373,6 @@ function FeatureShowcase() {
         </div>
       ))}
     </section>
-  );
-}
-
-// --- mock UI cards (CSS-only, no screenshots) ------------------------------
-
-function MockShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-line bg-paper shadow-lift">
-      <div className="flex items-center gap-1.5 border-b border-line bg-paper-2 px-4 py-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-red-300" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-        <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
-
-function MockItinerary() {
-  return (
-    <MockShell>
-      <div className="space-y-3">
-        {[
-          { d: "Day 1", t: "Arrival in Udaipur · Lake Pichola", w: "82%" },
-          { d: "Day 2", t: "City Palace & vintage car museum", w: "64%" },
-          { d: "Day 3", t: "Kumbhalgarh fort day trip", w: "74%" },
-        ].map((r) => (
-          <div key={r.d} className="flex items-start gap-3 rounded-lg border border-line p-3">
-            <span className="rounded-md bg-gold-soft px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gold-deep">
-              {r.d}
-            </span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-ink">{r.t}</p>
-              <div className="mt-2 h-1.5 rounded-full bg-paper-2">
-                <div
-                  className="h-1.5 rounded-full bg-[var(--gold-line)]"
-                  style={{ width: r.w }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-        <div className="flex items-center gap-2 text-xs text-gold-deep">
-          <Sparkles className="h-3.5 w-3.5" /> Generated in 4 seconds
-        </div>
-      </div>
-    </MockShell>
-  );
-}
-
-function MockProposal() {
-  return (
-    <MockShell>
-      <div className="rounded-lg bg-inkwash p-5 text-[var(--on-dark)]">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-[#e3c98f]">
-            Travel Proposal
-          </span>
-          <span className="text-[10px] text-[var(--on-dark)]/60">v2</span>
-        </div>
-        <p className="mt-4 font-display text-3xl">Rajasthan</p>
-        <p className="mt-1 text-xs text-[var(--on-dark)]/70">
-          7 days · 2 travellers · Luxury
-        </p>
-        <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-3">
-          <span className="text-[10px] uppercase tracking-wide text-[var(--on-dark)]/60">
-            From
-          </span>
-          <span className="font-display text-2xl text-white">₹1,84,000</span>
-        </div>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-xs text-muted">
-        <FileText className="h-3.5 w-3.5" /> Branded PDF · customer-safe pricing
-      </div>
-    </MockShell>
-  );
-}
-
-function MockWhatsapp() {
-  return (
-    <MockShell>
-      <div className="space-y-2.5 rounded-lg bg-[#E5DDD3] p-4">
-        <div className="ml-auto max-w-[80%] rounded-[10px_4px_10px_10px] bg-[#d9fdd3] px-3 py-2 text-[12px] text-[#111]">
-          Hi Priya — your Rajasthan proposal ✨ Tap to view.
-          <div className="mt-1 text-[10px] text-[#667]">tripcraft.app/p/4f9 ✓✓</div>
-        </div>
-        <div className="max-w-[80%] rounded-[4px_10px_10px_10px] bg-white px-3 py-2 text-[12px] text-[#111]">
-          This looks stunning 😍 How do I pay?
-        </div>
-        <div className="ml-auto max-w-[80%] rounded-[10px_4px_10px_10px] bg-[#d9fdd3] px-3 py-2 text-[12px] text-[#111]">
-          Here&apos;s your secure link 👇
-          <div className="mt-1 rounded-md bg-white px-2 py-1 text-[10px] font-medium text-ok">
-            Pay ₹1,84,000 · Razorpay
-          </div>
-        </div>
-      </div>
-    </MockShell>
-  );
-}
-
-function MockAnalytics() {
-  const bars = [40, 62, 55, 78, 70, 92];
-  const kpis = [
-    { label: "Revenue", value: "₹42.6L" },
-    { label: "Bookings", value: "37" },
-    { label: "Avg margin", value: "21%" },
-  ];
-  const sources = [
-    { name: "Instagram", pct: 46 },
-    { name: "Referral", pct: 31 },
-    { name: "Website", pct: 23 },
-  ];
-  return (
-    <MockShell>
-      <div className="grid grid-cols-3 gap-2.5">
-        {kpis.map((k) => (
-          <div key={k.label} className="rounded-lg border border-line bg-paper-2 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wide text-muted">{k.label}</p>
-            <p className="mt-1 font-display text-lg text-ink">{k.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-5 flex items-center justify-between">
-        <p className="text-sm font-medium text-ink">Revenue trend</p>
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-ok">
-          <TrendingUp className="h-3.5 w-3.5" /> +28%
-        </span>
-      </div>
-      <div className="mt-4 flex h-24 items-end gap-2.5">
-        {bars.map((h, i) => (
-          <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
-            <div
-              className="w-full rounded-t bg-[var(--gold-line)]"
-              style={{ height: `${h}%` }}
-            />
-            <span className="text-[9px] text-muted">M{i + 1}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-5 border-t border-line pt-4">
-        <p className="text-[10px] uppercase tracking-wide text-muted">Lead-source ROI</p>
-        <div className="mt-3 space-y-2.5">
-          {sources.map((s) => (
-            <div key={s.name} className="flex items-center gap-3">
-              <span className="w-16 shrink-0 text-xs text-ink/80">{s.name}</span>
-              <div className="h-1.5 flex-1 rounded-full bg-paper-2">
-                <div
-                  className="h-1.5 rounded-full bg-[var(--gold-line)]"
-                  style={{ width: `${s.pct}%` }}
-                />
-              </div>
-              <span className="w-8 shrink-0 text-right text-[11px] text-muted">{s.pct}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </MockShell>
   );
 }
 
