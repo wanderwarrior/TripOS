@@ -5,7 +5,7 @@
 // when it reaches the middle of the viewport — turning the four-step flow into
 // a little guided journey instead of a static grid.
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   ClipboardList,
   CreditCard,
@@ -21,6 +21,14 @@ import {
   useSpring,
   type Variants,
 } from "framer-motion";
+import {
+  Frame,
+  MockCapture,
+  MockPlan,
+  MockPropose,
+  MockBook,
+} from "@/components/marketing/product-mockups";
+import { MockReveal } from "@/components/marketing/motion-primitives";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -29,6 +37,7 @@ type Step = {
   title: string;
   body: string;
   icon: LucideIcon;
+  mock: ReactNode;
 };
 
 const STEPS: Step[] = [
@@ -37,24 +46,44 @@ const STEPS: Step[] = [
     title: "Capture the inquiry",
     body: "Log a lead from Instagram, a referral, a walk-in — anywhere. Track it through your pipeline.",
     icon: ClipboardList,
+    mock: (
+      <Frame label="CRM">
+        <MockCapture />
+      </Frame>
+    ),
   },
   {
     n: "02",
     title: "Craft the trip",
     body: "Generate an AI itinerary from a brief, refine it, and build a priced quote in minutes.",
     icon: Wand2,
+    mock: (
+      <Frame label="Plan">
+        <MockPlan />
+      </Frame>
+    ),
   },
   {
     n: "03",
     title: "Send the proposal",
     body: "Share a beautiful, branded proposal on WhatsApp. The customer accepts online.",
     icon: Send,
+    mock: (
+      <Frame label="Propose">
+        <MockPropose />
+      </Frame>
+    ),
   },
   {
     n: "04",
     title: "Collect & operate",
     body: "Take payment online, issue the GST invoice, assign vendors and run the trip to completion.",
     icon: CreditCard,
+    mock: (
+      <Frame label="Book">
+        <MockBook />
+      </Frame>
+    ),
   },
 ];
 
@@ -162,6 +191,17 @@ function TimelineStep({ step, index }: { step: Step; index: number }) {
           {step.body}
         </p>
       </motion.div>
+
+      {/* Framed product mockup — opposite side on desktop, below on mobile */}
+      <MockReveal
+        from={flip ? "right" : "left"}
+        className={
+          "col-start-2 mt-4 md:row-start-1 md:mt-0 " +
+          (flip ? "md:col-start-3" : "md:col-start-1")
+        }
+      >
+        {step.mock}
+      </MockReveal>
     </li>
   );
 }

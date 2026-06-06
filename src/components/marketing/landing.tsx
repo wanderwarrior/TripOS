@@ -38,6 +38,7 @@ import { RequestDemoDialog } from "@/components/marketing/request-demo-dialog";
 import { Testimonials, QUOTES } from "@/components/marketing/testimonials";
 import {
   CountUp,
+  MockReveal,
   Reveal,
   ScrollProgress,
   Stagger,
@@ -367,9 +368,12 @@ function FeatureShowcase() {
               ))}
             </ul>
           </Reveal>
-          <Reveal delay={0.1} className={b.flip ? "md:order-1" : ""}>
+          <MockReveal
+            from={b.flip ? "left" : "right"}
+            className={b.flip ? "md:order-1" : ""}
+          >
             {b.mock}
-          </Reveal>
+          </MockReveal>
         </div>
       ))}
     </section>

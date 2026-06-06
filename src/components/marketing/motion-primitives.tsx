@@ -44,6 +44,31 @@ export function Reveal({
   );
 }
 
+/** Premium reveal for product mockups — subtle scale + directional slide-in. */
+export function MockReveal({
+  children,
+  className,
+  from = "right",
+}: {
+  children: ReactNode;
+  className?: string;
+  from?: "left" | "right";
+}) {
+  const reduce = useReducedMotion();
+  const dx = from === "left" ? -40 : 40;
+  return (
+    <motion.div
+      className={className}
+      initial={reduce ? false : { opacity: 0, x: dx, y: 16, scale: 0.96 }}
+      whileInView={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.75, ease: EASE }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /** Parent that staggers its <StaggerItem> children as the group scrolls in. */
 export function Stagger({
   children,
