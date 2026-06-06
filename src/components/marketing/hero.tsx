@@ -120,7 +120,7 @@ export function Hero({
           className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/90 backdrop-blur-sm"
         >
           <Sparkles className="h-3.5 w-3.5 text-[#e3c98f]" />
-          AI itineraries for travel agencies
+          The operating system for travel agencies
         </motion.span>
 
         <motion.h1
@@ -135,8 +135,10 @@ export function Hero({
           variants={item}
           className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
         >
-          Describe a trip and watch tripOS build a branded, client-ready
-          itinerary — then run the whole booking on one platform.
+          AI itineraries are just the start. tripOS runs your whole agency —{" "}
+          <span className="text-white">CRM &amp; lead pipeline, branded
+          proposals, bookings, WhatsApp, payments and GST invoicing</span> — on
+          one platform.
         </motion.p>
 
         {isAuthed ? (
