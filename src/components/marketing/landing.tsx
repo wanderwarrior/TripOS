@@ -8,7 +8,6 @@ import {
   Clock,
   CreditCard,
   FileText,
-  Flame,
   Globe,
   MessageCircle,
   Minus,
@@ -21,7 +20,18 @@ import {
   Zap,
 } from "lucide-react";
 import { PLANS, PRICING_ORDER, TRIAL_DAYS, formatPlanPrice } from "@/lib/plans";
+import {
+  FOUNDING_DISCOUNT_PCT,
+  FOUNDING_PRICES,
+  SCALE_ANCHOR,
+  standardMonthly,
+  type FoundingStatus,
+} from "@/lib/founding";
+import { getFoundingStatus } from "@/server/services/founding";
 import { Hero } from "@/components/marketing/hero";
+import { FoundingOffer } from "@/components/marketing/founding-offer";
+import { StickyCta } from "@/components/marketing/sticky-cta";
+import { LeadCapture } from "@/components/marketing/lead-capture";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Faq } from "@/components/marketing/faq";
 import { PlatformShowcase } from "@/components/marketing/platform-showcase";
@@ -45,7 +55,7 @@ import {
   StaggerItem,
 } from "@/components/marketing/motion-primitives";
 
-export function Landing({
+export async function Landing({
   isAuthed = false,
   heroVideoUrl,
   heroPosterUrl,
@@ -54,6 +64,7 @@ export function Landing({
   heroVideoUrl?: string | null;
   heroPosterUrl?: string | null;
 }) {
+  const founding = await getFoundingStatus();
   return (
     <>
       <ScrollProgress />
@@ -76,10 +87,16 @@ export function Landing({
       <FounderNote />
       <Comparison />
       <Integrations />
-      <UrgencyBanner />
-      <PricingTeaser />
+      <UrgencyBanner status={founding} />
+      <PricingTeaser status={founding} />
       <FaqSection />
       <ClosingCta />
+      {!isAuthed && (
+        <>
+          <StickyCta spotsLeft={founding.spotsLeft} isOpen={founding.isOpen} />
+          <LeadCapture />
+        </>
+      )}
     </>
   );
 }
@@ -542,38 +559,11 @@ function Integrations() {
 
 // --- urgency / FOMO banner ------------------------------------------------
 
-function UrgencyBanner() {
+function UrgencyBanner({ status }: { status: FoundingStatus }) {
   return (
     <section className="mx-auto max-w-5xl px-5 md:px-10 pt-24 md:pt-28">
       <Reveal>
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--gold-line)] bg-inkwash px-6 py-10 text-center text-[var(--on-dark)] md:px-12 md:py-12">
-          <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(200,169,106,0.22),transparent_65%)]" />
-          <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--gold-line)] bg-white/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#e3c98f]">
-              <Flame className="h-3.5 w-3.5" />
-              Founding offer · limited
-            </span>
-            <h2 className="mt-5 font-display text-3xl md:text-4xl">
-              Lock in founding pricing while it&apos;s open
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--on-dark)]/75">
-              Early agencies lock in founding rates for life. We&apos;re
-              onboarding our first cohort by hand — join now, before pricing
-              moves up.
-            </p>
-
-            <Link
-              href="/signup"
-              className="mt-8 inline-flex items-center gap-2 rounded-[10px] bg-[#e3c98f] px-7 py-3.5 text-sm font-semibold text-[#1a1205] shadow-[0_8px_30px_-8px_rgba(200,169,106,0.6)] transition-all hover:bg-[#ecd6a4]"
-            >
-              Claim your founding spot
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <p className="mt-3 text-xs text-[var(--on-dark)]/55">
-              {TRIAL_DAYS}-day free trial · no card required · cancel anytime
-            </p>
-          </div>
-        </div>
+        <FoundingOffer status={status} />
       </Reveal>
     </section>
   );
@@ -581,23 +571,34 @@ function UrgencyBanner() {
 
 // --- pricing teaser -------------------------------------------------------
 
-function PricingTeaser() {
+function PricingTeaser({ status }: { status: FoundingStatus }) {
+  const founding = status.isOpen;
   return (
-    <section id="pricing" className="mx-auto max-w-5xl px-5 md:px-10 py-24 md:py-28">
+    <section id="pricing" className="mx-auto max-w-6xl px-5 md:px-10 py-24 md:py-28">
       <Reveal className="text-center mb-12">
         <p className="tc-eyebrow gold">Simple pricing</p>
         <h2 className="mt-3 font-display text-4xl md:text-5xl text-ink">
           Plans that grow with you
         </h2>
         <p className="mt-3 text-sm text-muted">
-          Start free for {TRIAL_DAYS} days. No card required. Founding rates
-          locked in while spots last.
+          Start free for {TRIAL_DAYS} days. No card required.{" "}
+          {founding ? (
+            <span className="text-ink">
+              Founding {FOUNDING_DISCOUNT_PCT}% off is locked for life —{" "}
+              <span className="font-mono tabular-nums">{status.spotsLeft}</span>{" "}
+              of {status.cap} spots left.
+            </span>
+          ) : (
+            "Upgrade or cancel anytime."
+          )}
         </p>
       </Reveal>
-      <Stagger className="grid gap-5 md:grid-cols-2">
+      <Stagger className="grid gap-5 md:grid-cols-3">
         {PRICING_ORDER.map((tier) => {
           const def = PLANS[tier];
           const featured = tier === "PRO";
+          const standard = standardMonthly(tier as "STARTER" | "PRO");
+          const foundingPrice = FOUNDING_PRICES[tier as "STARTER" | "PRO"];
           return (
             <StaggerItem key={tier} className="h-full">
               <div
@@ -618,12 +619,23 @@ function PricingTeaser() {
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted">{def.tagline}</p>
-                <p className="mt-4">
+                <p className="mt-4 flex items-baseline gap-2">
                   <span className="font-display text-4xl text-ink font-mono tabular-nums">
-                    {formatPlanPrice(def.priceMonthly)}
+                    {formatPlanPrice(founding ? foundingPrice : standard)}
                   </span>
                   <span className="text-sm text-muted"> / month</span>
                 </p>
+                {founding && (
+                  <p className="mt-1 text-xs text-muted">
+                    <span className="font-mono tabular-nums line-through">
+                      {formatPlanPrice(standard)}
+                    </span>{" "}
+                    standard ·{" "}
+                    <span className="font-medium text-gold-deep">
+                      locked for life
+                    </span>
+                  </p>
+                )}
                 <ul className="mt-5 space-y-2 flex-1">
                   {def.highlights.map((h, i) => (
                     <li
@@ -644,13 +656,49 @@ function PricingTeaser() {
                       : "border border-line text-ink hover:border-line-2")
                   }
                 >
-                  Start free trial
+                  {founding ? "Claim founding price" : "Start free trial"}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </StaggerItem>
           );
         })}
+
+        {/* Scale — a display-only anchor tier (decoy/contrast effect). Not a
+            billable plan; routes to a sales conversation for custom deals. */}
+        <StaggerItem className="h-full">
+          <div className="h-full rounded-lg border border-line bg-paper p-6 shadow-soft flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-[var(--gold-line)] hover:shadow-lift">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-2xl text-ink">
+                {SCALE_ANCHOR.name}
+              </h3>
+            </div>
+            <p className="mt-1 text-sm text-muted">{SCALE_ANCHOR.tagline}</p>
+            <p className="mt-4 flex items-baseline gap-2">
+              <span className="font-display text-4xl text-ink">
+                {SCALE_ANCHOR.priceLabel}
+              </span>
+            </p>
+            <ul className="mt-5 space-y-2 flex-1">
+              {SCALE_ANCHOR.highlights.map((h, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-sm text-ink/85"
+                >
+                  <Check className="h-4 w-4 text-ok mt-0.5 shrink-0" />
+                  {h}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/contact"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-[8px] border border-line px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-line-2"
+            >
+              Talk to us
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </StaggerItem>
       </Stagger>
       <p className="mt-6 text-center text-sm">
         <Link href="/pricing" className="text-ink underline">

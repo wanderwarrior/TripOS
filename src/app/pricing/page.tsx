@@ -4,6 +4,12 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema } from "@/lib/structured-data";
 import { PLANS, PRICING_ORDER, TRIAL_DAYS, formatPlanPrice } from "@/lib/plans";
+import {
+  FOUNDING_DISCOUNT_PCT,
+  FOUNDING_PRICES,
+  standardMonthly,
+} from "@/lib/founding";
+import { getFoundingStatus } from "@/server/services/founding";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +56,8 @@ const FAQ = [
 ];
 
 export default async function PricingPage() {
+  const founding = await getFoundingStatus();
+  const isFounding = founding.isOpen;
   return (
     <MarketingShell>
       <JsonLd
@@ -67,6 +75,14 @@ export default async function PricingPage() {
           Start free for {TRIAL_DAYS} days. Pick a plan when you&apos;re ready —
           everything your team needs, billed simply.
         </p>
+        {isFounding && (
+          <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-[var(--gold-line)] bg-gold-soft px-4 py-1.5 text-xs font-semibold text-gold-deep">
+            <Sparkles className="h-3.5 w-3.5" />
+            Founding offer · {FOUNDING_DISCOUNT_PCT}% off for life ·{" "}
+            <span className="font-mono tabular-nums">{founding.spotsLeft}</span>{" "}
+            of {founding.cap} spots left
+          </p>
+        )}
       </section>
 
       {/* Plan cards */}
@@ -98,13 +114,29 @@ export default async function PricingPage() {
               </p>
               <p className="mt-6">
                 <span className="font-display text-5xl text-ink font-mono tabular-nums">
-                  {formatPlanPrice(def.priceMonthly)}
+                  {formatPlanPrice(
+                    isFounding
+                      ? FOUNDING_PRICES[tier as "STARTER" | "PRO"]
+                      : def.priceMonthly
+                  )}
                 </span>
                 <span className="text-sm text-muted"> / month</span>
               </p>
-              <p className="mt-1 text-xs text-muted font-mono tabular-nums">
-                or {formatPlanPrice(def.priceAnnual)} / year — two months free
-              </p>
+              {isFounding ? (
+                <p className="mt-1 text-xs text-muted">
+                  <span className="font-mono tabular-nums line-through">
+                    {formatPlanPrice(standardMonthly(tier as "STARTER" | "PRO"))}
+                  </span>{" "}
+                  standard ·{" "}
+                  <span className="font-medium text-gold-deep">
+                    locked for life
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted font-mono tabular-nums">
+                  or {formatPlanPrice(def.priceAnnual)} / year — two months free
+                </p>
+              )}
               <ul className="mt-6 space-y-2.5 flex-1">
                 {def.highlights.map((h, i) => (
                   <li
