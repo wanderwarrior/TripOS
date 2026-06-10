@@ -646,6 +646,384 @@ export const SEO_LANDINGS: SeoLandingContent[] = [
       ...RELATED_COMMON,
     ],
   },
+  {
+    slug: "tutterfly-alternative",
+    metaTitle: "The Best Tutterfly Alternative | tripOS",
+    metaDescription:
+      "Looking for a Tutterfly alternative? tripOS is the AI-first, all-in-one travel agency platform for Indian agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments. Free trial.",
+    keywords: [
+      "tutterfly alternative",
+      "alternative to tutterfly",
+      "tutterfly vs tripos",
+      "tutterfly competitor",
+      "best tutterfly alternative",
+    ],
+    eyebrow: "Tutterfly alternative",
+    h1: "The AI-first Tutterfly alternative",
+    intro:
+      "Tutterfly is travel-agency software aimed at tour operators. If you want an **AI-first, all-in-one** platform that's quick to set up and priced for Indian margins, **tripOS** is the alternative.",
+    sections: [
+      {
+        h2: "Why agencies choose tripOS",
+        body: "Small and growing agencies tell us they want speed and a premium client experience:",
+        bullets: [
+          "**AI itineraries** drafted from a one-line brief, then edited.",
+          "**Premium white-label proposals** sent on WhatsApp.",
+          "**GST invoicing, INR payments, vendors and vouchers** built in.",
+          "**Self-serve setup** with a free trial — start the same day.",
+        ],
+      },
+      {
+        h2: "All-in-one, India-native",
+        body: "tripOS combines a travel CRM, AI itinerary builder, proposals, GST billing, payments and operations in one place — see [travel agency software for India](/travel-agency-software-india).",
+      },
+      {
+        h2: "Who should choose which",
+        body: "**Choose tripOS** if you want a modern, AI-first, all-in-one tool with transparent pricing from ₹2,499/month. **Tutterfly may suit you** if your needs centre on its specific operator workflows.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What is a good Tutterfly alternative?",
+        a: "tripOS is an AI-first, all-in-one Tutterfly alternative for Indian travel agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Best travel agency software in India", href: "/best-travel-agency-software-india" },
+      { label: "Compare tripOS", href: "/compare" },
+      { label: "Sembark alternative", href: "/sembark-alternative" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "tripos-vs-sembark",
+    metaTitle: "tripOS vs Sembark: Which Travel Software Wins? | tripOS",
+    metaDescription:
+      "tripOS vs Sembark compared — AI itineraries, proposals, GST invoicing, WhatsApp, setup and pricing. See which travel agency software fits your agency. Free trial.",
+    keywords: [
+      "tripos vs sembark",
+      "sembark vs tripos",
+      "sembark comparison",
+      "sembark vs tripos pricing",
+    ],
+    eyebrow: "tripOS vs Sembark",
+    h1: "tripOS vs Sembark",
+    intro:
+      "Both run travel agencies — but they're built for different teams. **tripOS** is AI-first, proposal-led and self-serve for small and owner-led agencies; **Sembark** leans toward larger operators with heavier back-office needs.",
+    sections: [
+      {
+        h2: "Where tripOS leads",
+        body: "For a 1–20 person agency, tripOS focuses on what wins bookings:",
+        bullets: [
+          "**AI itineraries** from a brief, not manual trip-building.",
+          "**Premium, white-labelled proposals** sent on WhatsApp.",
+          "**Self-serve setup + free trial** — live the same day, no sales cycle.",
+          "**Transparent pricing** from ₹2,499/month.",
+        ],
+      },
+      {
+        h2: "Where Sembark may fit",
+        body: "Sembark is a capable, established platform that can suit larger tour operators whose primary need is deep inventory and back-office workflows.",
+      },
+      {
+        h2: "The honest summary",
+        body: "If you're small or owner-led and want AI + beautiful proposals + GST + WhatsApp in one simple tool, tripOS is the better fit — see the full [Sembark alternative](/sembark-alternative) page or [compare all options](/compare).",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is tripOS better than Sembark?",
+        a: "For small and owner-led Indian agencies, tripOS is typically the better fit — it's AI-first, proposal-led, self-serve and priced from ₹2,499/month. Sembark can suit larger operators with heavier back-office needs. Try tripOS free for 14 days to compare on a real enquiry.",
+      },
+    ],
+    related: [
+      { label: "Sembark alternative", href: "/sembark-alternative" },
+      { label: "Compare tripOS", href: "/compare" },
+      { label: "tripOS vs helloGTX", href: "/tripos-vs-hellogtx" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "tripos-vs-hellogtx",
+    metaTitle: "tripOS vs helloGTX: Travel Software Compared | tripOS",
+    metaDescription:
+      "tripOS vs helloGTX compared — AI, proposals, GST invoicing, WhatsApp, setup and pricing. See which travel agency software fits your team. Free 14-day trial.",
+    keywords: [
+      "tripos vs hellogtx",
+      "hellogtx vs tripos",
+      "hellogtx comparison",
+    ],
+    eyebrow: "tripOS vs helloGTX",
+    h1: "tripOS vs helloGTX",
+    intro:
+      "**helloGTX** is a long-established travel CRM oriented to larger B2B travel businesses. **tripOS** is the modern, AI-first, self-serve alternative built for small and owner-led agencies.",
+    sections: [
+      {
+        h2: "Where tripOS leads",
+        body: "For smaller teams, tripOS trades enterprise breadth for speed and polish:",
+        bullets: [
+          "**AI itineraries** and **premium proposals** out of the box.",
+          "**Modern, self-serve** setup with a free trial — no implementation project.",
+          "**GST invoicing, WhatsApp and INR payments** built in.",
+          "**Transparent pricing** from ₹2,499/month.",
+        ],
+      },
+      {
+        h2: "Where helloGTX may fit",
+        body: "helloGTX can suit larger B2B travel businesses that need a heavier CRM rollout and an established agent-network feature set.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is tripOS better than helloGTX?",
+        a: "For small and owner-led agencies that want a modern, AI-first, all-in-one tool with transparent pricing, tripOS is usually the better fit. helloGTX suits larger B2B travel businesses. See the [helloGTX alternative](/hellogtx-alternative) page.",
+      },
+    ],
+    related: [
+      { label: "helloGTX alternative", href: "/hellogtx-alternative" },
+      { label: "Compare tripOS", href: "/compare" },
+      { label: "tripOS vs Sembark", href: "/tripos-vs-sembark" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "tripos-vs-travefy",
+    metaTitle: "tripOS vs Travefy (for India) | tripOS",
+    metaDescription:
+      "tripOS vs Travefy compared for Indian agencies — itineraries and proposals, plus GST invoicing, INR payments and WhatsApp that Travefy doesn't do natively. Free trial.",
+    keywords: [
+      "tripos vs travefy",
+      "travefy vs tripos",
+      "travefy comparison india",
+    ],
+    eyebrow: "tripOS vs Travefy",
+    h1: "tripOS vs Travefy",
+    intro:
+      "**Travefy** is a polished US itinerary and proposal tool. **tripOS** matches the itinerary-and-proposal experience and adds the India essentials Travefy doesn't do natively.",
+    sections: [
+      {
+        h2: "Where tripOS leads for India",
+        body: "If you sell from India, these matter every day:",
+        bullets: [
+          "**GST-compliant tax invoicing** (Travefy doesn't do this).",
+          "**INR pricing + Indian payment gateways.**",
+          "**WhatsApp-first** delivery, not email-only.",
+          "**AI itineraries** and a full CRM-to-invoice flow.",
+        ],
+      },
+      {
+        h2: "Where Travefy may fit",
+        body: "Travefy is a strong choice for US-based agencies that need polished itineraries and proposals and don't need GST or INR.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is tripOS a good Travefy alternative in India?",
+        a: "Yes — tripOS gives Indian agencies AI itineraries and branded proposals plus GST invoicing, INR payments and WhatsApp, which Travefy doesn't do natively. See the [Travefy alternative](/travefy-alternative-india) page.",
+      },
+    ],
+    related: [
+      { label: "Travefy alternative (India)", href: "/travefy-alternative-india" },
+      { label: "Compare tripOS", href: "/compare" },
+      { label: "Travel proposal software", href: "/travel-proposal-software" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-jaipur",
+    metaTitle: "Travel Agency Software in Jaipur | tripOS",
+    metaDescription:
+      "Travel agency software for Jaipur agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for Rajasthan tour and wedding specialists. Free trial.",
+    keywords: [
+      "travel agency software jaipur",
+      "travel crm jaipur",
+      "tour operator software jaipur",
+      "travel software rajasthan",
+    ],
+    eyebrow: "Jaipur",
+    h1: "Travel agency software for Jaipur agencies",
+    intro:
+      "From Rajasthan heritage circuits and palace stays to destination weddings and outbound packages, Jaipur agencies sell premium trips that deserve premium proposals. **tripOS** helps you build and send them in minutes — with GST invoicing and WhatsApp built in.",
+    sections: [
+      {
+        h2: "Built for how Jaipur agencies sell",
+        body: "Whether you specialise in Rajasthan tours (Jaipur–Jodhpur–Udaipur–Jaisalmer), palace and heritage stays, destination weddings, or outbound holidays, tripOS turns an enquiry into a branded itinerary, a paid booking and a GST invoice in one flow.",
+        bullets: [
+          "**AI itineraries** for Rajasthan circuits and outbound packages.",
+          "**White-label proposals** worthy of a heritage/luxury sell.",
+          "**GST tax invoices** and **INR payments** built in.",
+          "**WhatsApp** delivery and follow-ups where clients reply.",
+        ],
+      },
+      {
+        h2: "Heritage and wedding work, made effortless",
+        body: "Multi-day, multi-property Rajasthan and destination-wedding itineraries are exactly where Word and Canva eat your evenings. Build once in tripOS, clone for the next client, and look like the premium house you are. It's complete [travel agency software for India](/travel-agency-software-india).",
+      },
+      {
+        h2: "Switch in an afternoon",
+        body: "No setup project — add your logo, generate your first AI itinerary and send a branded proposal the same day. From ₹2,499/month with a free 14-day trial.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What is the best travel agency software for a Jaipur agency?",
+        a: "Jaipur agencies selling Rajasthan tours, heritage stays, destination weddings and outbound packages need AI itineraries, premium branded proposals, GST invoicing and WhatsApp in one tool. tripOS is built for exactly this, from ₹2,499/month with a free trial.",
+      },
+      {
+        q: "Does tripOS handle GST invoicing for Rajasthan agencies?",
+        a: "Yes — tripOS issues GST-compliant tax invoices with the correct CGST/SGST vs IGST split and sequential numbering, straight from a booking.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      { label: "Travel agency software in Jodhpur", href: "/travel-agency-software-jodhpur" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-jodhpur",
+    metaTitle: "Travel Agency Software in Jodhpur | tripOS",
+    metaDescription:
+      "Travel agency software for Jodhpur agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for Marwar tours and outbound packages. Free trial.",
+    keywords: [
+      "travel agency software jodhpur",
+      "travel crm jodhpur",
+      "tour operator software jodhpur",
+    ],
+    eyebrow: "Jodhpur",
+    h1: "Travel agency software for Jodhpur agencies",
+    intro:
+      "Jodhpur agencies sell the Blue City, Marwar and desert circuits, fort-and-palace stays, and a growing book of outbound holidays. **tripOS** lets you turn those enquiries into branded proposals, paid bookings and GST invoices — fast.",
+    sections: [
+      {
+        h2: "Made for Marwar and beyond",
+        body: "From Jodhpur–Jaisalmer–Udaipur itineraries to Dubai, Thailand and Europe packages, tripOS drafts the day-by-day plan with AI and lets you send a premium, white-labelled proposal on WhatsApp.",
+        bullets: [
+          "**AI itineraries** for Rajasthan and outbound trips.",
+          "**Branded proposals** that match a heritage/luxury sell.",
+          "**GST invoicing + INR payments** built in.",
+          "**WhatsApp** proposals, reminders and follow-ups.",
+        ],
+      },
+      {
+        h2: "One platform, not a patchwork",
+        body: "Replace spreadsheets, Word, Canva and scattered WhatsApp chats with one flow — see [travel agency software for India](/travel-agency-software-india). Local agencies use tripOS as both a [travel CRM](/travel-agency-crm) and a proposal tool.",
+      },
+      {
+        h2: "Start the same day",
+        body: "Self-serve setup, free 14-day trial, no card. From ₹2,499/month.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Which travel software is best for a Jodhpur travel agency?",
+        a: "For Jodhpur agencies selling Rajasthan circuits and outbound packages, tripOS combines AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency software in Jaipur", href: "/travel-agency-software-jaipur" },
+      { label: "Travel proposal software", href: "/travel-proposal-software" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-indore",
+    metaTitle: "Travel Agency Software in Indore | tripOS",
+    metaDescription:
+      "Travel agency software for Indore agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for outbound and pilgrimage specialists. Free trial.",
+    keywords: [
+      "travel agency software indore",
+      "travel crm indore",
+      "tour operator software indore",
+      "travel software madhya pradesh",
+    ],
+    eyebrow: "Indore",
+    h1: "Travel agency software for Indore agencies",
+    intro:
+      "Indore agencies run a busy mix of outbound holidays, family and group tours, and pilgrimage travel. **tripOS** brings every enquiry, proposal, booking and GST invoice into one platform — so nothing slips and you reply faster.",
+    sections: [
+      {
+        h2: "Built for Indore's travel mix",
+        body: "Whether you sell Southeast Asia and Dubai packages, family holidays, group departures or pilgrimage tours, tripOS drafts itineraries with AI and sends branded proposals on WhatsApp.",
+        bullets: [
+          "**AI itineraries** for outbound, group and pilgrimage trips.",
+          "**Branded, customer-safe proposals** — your margin stays private.",
+          "**GST invoicing + INR payments** built in.",
+          "**Pipeline + follow-ups** so no enquiry goes cold.",
+        ],
+      },
+      {
+        h2: "More than a CRM",
+        body: "Unlike a generic CRM, tripOS is travel-native — itineraries, proposals, GST invoices and vouchers included. See [travel agency software for India](/travel-agency-software-india) and our [travel CRM](/travel-agency-crm).",
+      },
+      {
+        h2: "Start free",
+        body: "Self-serve setup and a free 14-day trial, from ₹2,499/month — no card required.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What is the best travel agency software in Indore?",
+        a: "Indore agencies selling outbound, group and pilgrimage travel need AI itineraries, branded proposals, GST invoicing and WhatsApp in one place. tripOS is built for this, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      { label: "Travel agency software in Surat", href: "/travel-agency-software-surat" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-surat",
+    metaTitle: "Travel Agency Software in Surat | tripOS",
+    metaDescription:
+      "Travel agency software for Surat agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for outbound and group-tour specialists. Free trial.",
+    keywords: [
+      "travel agency software surat",
+      "travel crm surat",
+      "tour operator software surat",
+      "travel software gujarat",
+    ],
+    eyebrow: "Surat",
+    h1: "Travel agency software for Surat agencies",
+    intro:
+      "Surat agencies sell high volumes of outbound holidays, group departures and family packages — to Dubai, Southeast Asia, Europe and beyond. **tripOS** helps you quote faster, look more professional, and never lose a lead.",
+    sections: [
+      {
+        h2: "Built for Surat's outbound trade",
+        body: "From Dubai and Thailand to Europe and group departures, tripOS drafts the itinerary with AI, brands the proposal, and sends it on WhatsApp with a payment link and GST invoice ready to follow.",
+        bullets: [
+          "**AI itineraries** for outbound and group packages.",
+          "**Premium white-label proposals** sent on WhatsApp.",
+          "**GST invoicing + INR payments** built in.",
+          "**Pipeline + agent reporting** for busy, multi-agent teams.",
+        ],
+      },
+      {
+        h2: "Handle volume without the chaos",
+        body: "High enquiry volume is where spreadsheets and WhatsApp break down. tripOS keeps every lead, quote and follow-up in one place — see [travel agency software for India](/travel-agency-software-india).",
+      },
+      {
+        h2: "Start the same day",
+        body: "Free 14-day trial, self-serve setup, from ₹2,499/month — no card.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Which travel software is best for a Surat agency?",
+        a: "For Surat agencies selling outbound and group travel at volume, tripOS combines AI itineraries, branded proposals, GST invoicing, WhatsApp and agent reporting in one platform, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      { label: "Travel agency software in Indore", href: "/travel-agency-software-indore" },
+      ...RELATED_COMMON,
+    ],
+  },
 ];
 
 export const SEO_LANDING_SLUGS = SEO_LANDINGS.map((l) => l.slug);

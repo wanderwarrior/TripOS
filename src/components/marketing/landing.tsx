@@ -653,6 +653,14 @@ function CompetitorComparison() {
           See why agencies switch — start free
           <ArrowRight className="h-4 w-4" />
         </Link>
+        <p className="mt-4 text-sm">
+          <Link
+            href="/compare"
+            className="text-ink underline underline-offset-4 hover:text-gold-deep"
+          >
+            Compare tripOS to each tool in detail
+          </Link>
+        </p>
       </div>
       <p className="mx-auto mt-5 max-w-2xl text-center text-[11px] leading-relaxed text-muted/80">
         Comparison reflects tripOS&apos;s assessment for small, owner-led travel

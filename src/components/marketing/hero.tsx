@@ -84,7 +84,9 @@ export function Hero({
             muted
             loop
             playsInline
-            preload="auto"
+            // metadata (not auto): the poster paints instantly for a fast LCP
+            // while the video streams in, instead of eagerly downloading it all.
+            preload="metadata"
             poster={poster}
           >
             <source src={video} type="video/mp4" />

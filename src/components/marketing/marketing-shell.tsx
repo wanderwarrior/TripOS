@@ -76,6 +76,7 @@ export async function MarketingShell({
               { label: "Travel agency CRM", href: "/travel-agency-crm" },
               { label: "Travel proposal software", href: "/travel-proposal-software" },
               { label: "GST invoicing", href: "/gst-invoicing-for-travel-agents" },
+              { label: "Compare tripOS", href: "/compare" },
             ]}
           />
           <FooterCol

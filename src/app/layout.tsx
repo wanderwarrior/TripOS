@@ -41,6 +41,23 @@ const TITLE = "tripOS — Run your travel agency on one platform";
 const DESCRIPTION =
   "The all-in-one platform for travel agencies — AI itineraries, branded proposals, WhatsApp, GST invoicing, payments and operations. Start a free trial.";
 
+// Search-engine site verification — paste the codes into env (no redeploy of
+// code needed). Google Search Console feeds Google/Gemini; Bing Webmaster feeds
+// Bing, which is the index behind ChatGPT search and Copilot.
+const GOOGLE_SITE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION;
+const BING_SITE_VERIFICATION = process.env.BING_SITE_VERIFICATION;
+const verification =
+  GOOGLE_SITE_VERIFICATION || BING_SITE_VERIFICATION
+    ? {
+        ...(GOOGLE_SITE_VERIFICATION
+          ? { google: GOOGLE_SITE_VERIFICATION }
+          : {}),
+        ...(BING_SITE_VERIFICATION
+          ? { other: { "msvalidate.01": BING_SITE_VERIFICATION } }
+          : {}),
+      }
+    : undefined;
+
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
@@ -49,7 +66,12 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   // Self-referencing canonical for the home page; per-page metadata overrides.
-  alternates: { canonical: "/" },
+  // RSS autodiscovery points at the blog feed.
+  alternates: {
+    canonical: "/",
+    types: { "application/rss+xml": `${APP_URL}/blog/feed.xml` },
+  },
+  verification,
   applicationName: "tripOS",
   keywords: [
     "travel agency software",

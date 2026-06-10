@@ -8,6 +8,13 @@
 // runtime (route handler + server actions + server components).
 
 import type { NextAuthConfig } from "next-auth";
+import { SEO_LANDING_SLUGS } from "@/lib/seo-landings";
+
+// All public SEO landing routes (/<slug>), derived from the content data so a
+// new entry in seo-landings.ts is automatically public, routed (app/[slug]) and
+// in the sitemap — no hand-syncing here. seo-landings.ts is edge-safe (its only
+// type import from @prisma/client is erased at build).
+const SEO_LANDING_PATHS = new Set(SEO_LANDING_SLUGS.map((s) => `/${s}`));
 
 export const authEdgeConfig: NextAuthConfig = {
   pages: { signIn: "/login" },
@@ -24,20 +31,10 @@ export const authEdgeConfig: NextAuthConfig = {
         path === "/" ||
         path.startsWith("/pricing") ||
         path.startsWith("/blog") ||
-        // Public SEO landing pages (keep in sync with lib/seo-landings.ts —
-        // these are served by app/[slug]/page.tsx and the explicit folders).
-        path === "/travel-agency-software-india" ||
-        path === "/travel-agency-crm" ||
-        path === "/gst-invoicing-for-travel-agents" ||
-        path === "/travel-proposal-software" ||
-        // Comparison / alternative landing pages.
-        path === "/best-travel-agency-software-india" ||
-        path === "/sembark-alternative" ||
-        path === "/hellogtx-alternative" ||
-        path === "/crmtravel-alternative" ||
-        path === "/travefy-alternative-india" ||
-        path === "/tourwriter-alternative-india" ||
-        path === "/zoho-crm-for-travel-agency-alternative" ||
+        path.startsWith("/compare") ||
+        // Public SEO landing pages — auto-derived from lib/seo-landings.ts
+        // (served by app/[slug]/page.tsx and the explicit folders).
+        SEO_LANDING_PATHS.has(path) ||
         path.startsWith("/legal") ||
         path.startsWith("/login") ||
         path.startsWith("/signup") ||
