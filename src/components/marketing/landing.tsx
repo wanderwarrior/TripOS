@@ -86,6 +86,7 @@ export async function Landing({
       <SocialProof />
       <FounderNote />
       <Comparison />
+      <CompetitorComparison />
       <Integrations />
       <UrgencyBanner status={founding} />
       <PricingTeaser status={founding} />
@@ -486,7 +487,10 @@ function Comparison() {
         </h2>
       </Reveal>
       <Reveal className="overflow-hidden rounded-xl border border-line bg-paper shadow-soft">
-        <table className="w-full text-sm">
+        {/* Horizontal scroll on phones so the 4-column table never crushes —
+            the bordered card clips the corners, the inner track scrolls. */}
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="border-b border-line bg-paper-2">
               <th className="px-4 py-4 text-left font-medium text-ink">
@@ -518,7 +522,120 @@ function Comparison() {
             ))}
           </tbody>
         </table>
+        </div>
       </Reveal>
+    </section>
+  );
+}
+
+// --- competitor comparison -------------------------------------------------
+
+// Honest, defensible competitor matrix. tripOS leads every row, but competitors
+// are NOT marked as lacking features they actually have — "limited" (Minus) is
+// used where an incumbent's capability is weaker/less integrated for our ICP,
+// and honest "full" (Check) where they genuinely match (e.g. Sembark/helloGTX
+// are also India-built). Edit marks here if a competitor's real capability
+// differs — false claims about named competitors are legally risky in India
+// (ASCI code) and erode trust.
+const COMPARE_COLS = [
+  "tripOS",
+  "Sembark",
+  "helloGTX",
+  "Travefy",
+  "Zoho / HubSpot",
+] as const;
+
+type Mark = "y" | "p" | "n";
+
+const COMPETITOR_ROWS: { label: string; marks: Mark[] }[] = [
+  { label: "AI-generated itineraries", marks: ["y", "p", "p", "p", "n"] },
+  { label: "Enquiry → proposal → booking → GST invoice, in one flow", marks: ["y", "p", "p", "n", "n"] },
+  { label: "Built for India (GST-compliant invoicing + INR)", marks: ["y", "y", "y", "n", "p"] },
+  { label: "WhatsApp messaging built in", marks: ["y", "p", "p", "n", "p"] },
+  { label: "Premium, white-labelled proposals", marks: ["y", "p", "p", "y", "n"] },
+  { label: "Self-serve setup + free trial, no sales cycle", marks: ["y", "n", "n", "y", "y"] },
+  { label: "Transparent pricing from ₹2,499/mo", marks: ["y", "p", "p", "p", "y"] },
+  { label: "Made for small, owner-led agencies", marks: ["y", "p", "n", "y", "p"] },
+];
+
+function MarkCell({ m, highlight }: { m: Mark; highlight?: boolean }) {
+  return (
+    <td className={"px-3 py-3 text-center " + (highlight ? "bg-gold-soft/40" : "")}>
+      {m === "y" ? (
+        <Check className="mx-auto h-5 w-5 text-ok" />
+      ) : m === "p" ? (
+        <Minus className="mx-auto h-4 w-4 text-muted" />
+      ) : (
+        <X className="mx-auto h-4 w-4 text-muted/40" />
+      )}
+    </td>
+  );
+}
+
+function CompetitorComparison() {
+  return (
+    <section className="mx-auto max-w-5xl px-5 md:px-10 py-24 md:py-28">
+      <Reveal className="text-center mb-12">
+        <p className="tc-eyebrow gold">How we compare</p>
+        <h2 className="mt-3 font-display text-4xl md:text-5xl text-ink">
+          tripOS vs the other travel tools
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-muted">
+          One AI-first, all-in-one platform built for Indian agencies — versus
+          point tools, legacy software and generic CRMs.
+        </p>
+      </Reveal>
+      <Reveal className="overflow-hidden rounded-xl border border-line bg-paper shadow-soft">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead>
+              <tr className="border-b border-line bg-paper-2">
+                <th className="px-4 py-4 text-left font-medium text-ink">
+                  Capability
+                </th>
+                {COMPARE_COLS.map((c) => (
+                  <th key={c} className="px-3 py-4 text-center">
+                    {c === "tripOS" ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-soft border border-[var(--gold-line)] px-3 py-1 font-semibold text-gold-deep">
+                        <Sparkles className="h-3.5 w-3.5" /> tripOS
+                      </span>
+                    ) : (
+                      <span className="font-medium text-muted">{c}</span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPETITOR_ROWS.map((r) => (
+                <tr key={r.label} className="border-b border-line last:border-0">
+                  <td className="px-4 py-3 text-ink/85">{r.label}</td>
+                  {r.marks.map((m, i) => (
+                    <MarkCell key={i} m={m} highlight={i === 0} />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted">
+        <span className="inline-flex items-center gap-1">
+          <Check className="h-3.5 w-3.5 text-ok" /> Full
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Minus className="h-3 w-3" /> Limited / partial
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <X className="h-3 w-3 text-muted/40" /> Not built for it
+        </span>
+      </div>
+      <p className="mx-auto mt-3 max-w-2xl text-center text-[11px] leading-relaxed text-muted/80">
+        Comparison reflects tripOS&apos;s assessment for small, owner-led travel
+        agencies; competitor products evolve, so please verify current details on
+        their own websites. All product names are trademarks of their respective
+        owners.
+      </p>
     </section>
   );
 }
