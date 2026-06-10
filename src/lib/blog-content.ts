@@ -514,6 +514,199 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "how-to-get-travel-leads-in-india",
+    title: "How to get travel leads in India (that actually book)",
+    description:
+      "Practical, low-budget ways to get travel agency leads in India — Instagram, referrals, Google, WhatsApp and partnerships — plus how to convert them into bookings.",
+    category: "Marketing",
+    date: "2026-06-04",
+    author: "tripOS Team",
+    readingMinutes: 8,
+    keywords: [
+      "how to get travel leads",
+      "travel agency leads india",
+      "get clients travel agency",
+      "travel agency marketing",
+    ],
+    body: [
+      {
+        type: "p",
+        text: "Most travel agencies don't have a lead problem so much as a follow-up and conversion problem — but you still need a steady flow of enquiries. Here are the channels that actually work for Indian agencies on a small budget, and how to turn those leads into paid bookings.",
+      },
+      { type: "h2", text: "Where travel leads actually come from" },
+      {
+        type: "ol",
+        items: [
+          "**Instagram** — post real itineraries and sample packages; let people DM to enquire. Niche content ('Bali for couples under ₹X') converts far better than generic 'book your dream holiday'.",
+          "**Referrals** — your happiest past clients are your cheapest channel. Ask for an intro after every trip.",
+          "**Google** — rank for what your buyers search ('Bali package from Mumbai', 'Kerala honeymoon') with simple pages and guides.",
+          "**WhatsApp + status** — share offers and itineraries to your contacts; it's where Indian clients reply.",
+          "**Partnerships** — tie up with wedding planners, corporates, hotels and local businesses whose customers travel.",
+        ],
+      },
+      { type: "h2", text: "The mistake that wastes most leads" },
+      {
+        type: "p",
+        text: "Speed. Enquiries convert dramatically better when your first proposal lands within hours, not days. The agent who replies first, with a polished proposal, usually wins — even at a higher price. If leads sit in your WhatsApp unanswered, you're paying to generate enquiries you then let go cold.",
+      },
+      {
+        type: "callout",
+        text: "tripOS captures every enquiry in one pipeline and lets you send a branded, AI-built proposal in minutes — so you're first in the client's inbox. Reminders make sure no lead is forgotten.",
+      },
+      { type: "h2", text: "Convert leads with a simple system" },
+      {
+        type: "ul",
+        items: [
+          "Log every enquiry in one place — not across notebooks, chats and memory. A [travel agency CRM](/travel-agency-crm) does this.",
+          "Reply fast with a [proposal that converts](/blog/how-to-send-a-travel-proposal-that-converts).",
+          "Follow up 2–4 times — same day, +2 days with a value-add, and near the quote's validity.",
+          "Track which source and which agent brings the best bookings, and do more of what works.",
+        ],
+      },
+      { type: "h2", text: "Turn your lead flow into a machine" },
+      {
+        type: "p",
+        text: "Generating leads is only worth it if you convert them. tripOS is [travel agency software for India](/travel-agency-software-india) that captures leads, builds proposals, collects payments and issues GST invoices — so more of your enquiries turn into paid trips.",
+      },
+      {
+        type: "cta",
+        label: "Start your free trial",
+        href: "/signup",
+        text: "Capture and convert more leads — 14 days free, no card.",
+      },
+    ],
+  },
+  {
+    slug: "how-to-sell-dubai-tour-packages",
+    title: "How to sell Dubai tour packages: a travel agent's playbook",
+    description:
+      "A practical playbook for selling Dubai packages — what travellers want, a sample 5-night itinerary, how to price it (with TCS), and how to send a proposal that closes.",
+    category: "Destinations",
+    date: "2026-06-03",
+    author: "tripOS Team",
+    readingMinutes: 9,
+    keywords: [
+      "how to sell dubai packages",
+      "dubai itinerary for travel agents",
+      "dubai tour package india",
+      "dubai holiday package",
+    ],
+    body: [
+      {
+        type: "p",
+        text: "Dubai is one of the easiest international packages for Indian agencies to sell — short flights, easy visas, year-round demand, and a huge price range from budget to ultra-luxury. This playbook covers what Dubai travellers want, a ready-to-adapt itinerary, how to price it, and how to close.",
+      },
+      { type: "h2", text: "Know your Dubai buyer" },
+      {
+        type: "ul",
+        items: [
+          "**Families:** theme parks, desert safari, easy transfers, a central hotel.",
+          "**Honeymoon/couples:** a Marina or Palm stay, a romantic dinner, sunset desert safari.",
+          "**Groups & friends:** beach clubs, nightlife, watersports, shopping.",
+          "**Budget vs premium:** the same route works at 3-star and 5-star — always offer two tiers.",
+        ],
+      },
+      { type: "h2", text: "A sample 5-night Dubai itinerary" },
+      {
+        type: "ol",
+        items: [
+          "**Day 1 — Arrival:** airport pickup, check in, evening at Dubai Marina / JBR.",
+          "**Day 2 — City tour + Burj Khalifa:** half-day city tour, At The Top, Dubai Mall fountain show.",
+          "**Day 3 — Desert safari:** dune bashing, camel ride, BBQ dinner with entertainment.",
+          "**Day 4 — Theme park or Abu Dhabi day trip:** (Ferrari World / Sheikh Zayed Mosque, or IMG/Atlantis).",
+          "**Day 5 — Leisure + shopping:** Global Village or Miracle Garden (seasonal), Gold Souk.",
+          "**Day 6 — Departure:** transfer to airport.",
+        ],
+      },
+      {
+        type: "callout",
+        text: "Don't rebuild this for every client. In tripOS you generate a Dubai itinerary with AI, switch the hotel tier, brand it, and send it on WhatsApp in minutes — then clone it for the next enquiry.",
+      },
+      { type: "h2", text: "How to price a Dubai package" },
+      {
+        type: "ul",
+        items: [
+          "Get **net rates** from your Dubai DMC for hotel, transfers, tours and visa, then add your markup — never show cost or margin.",
+          "Quote a single **all-in price per person/couple**, with clear inclusions and exclusions (flights, visa, tourism dirham, personal expenses).",
+          "Offer a **3-star and a 5-star** option so the question becomes 'which one'.",
+          "Factor **TCS on the foreign package** correctly — see [TCS on foreign tour packages](/blog/tcs-on-foreign-tour-packages-india).",
+        ],
+      },
+      { type: "h2", text: "Close the booking" },
+      {
+        type: "p",
+        text: "Dubai shoppers compare several agents. Reply first with a polished, branded proposal, follow up with a value-add, and collect the deposit with a payment link. The full method is in [how to send a travel proposal that converts](/blog/how-to-send-a-travel-proposal-that-converts).",
+      },
+      {
+        type: "cta",
+        label: "Build your Dubai proposal free",
+        href: "/signup",
+        text: "Try tripOS on your next Dubai enquiry — 14 days free.",
+      },
+    ],
+  },
+  {
+    slug: "best-travel-crm-india-2026",
+    title: "The best travel CRM in India (2026): how to choose",
+    description:
+      "What to look for in a travel CRM for an Indian agency in 2026 — the features that matter, how generic CRMs fall short, and how to evaluate the options.",
+    category: "Guides",
+    date: "2026-06-02",
+    author: "tripOS Team",
+    readingMinutes: 8,
+    keywords: [
+      "best travel crm india",
+      "travel crm",
+      "crm for travel agents",
+      "travel agency crm",
+    ],
+    body: [
+      {
+        type: "p",
+        text: "A travel CRM should do more than store contacts — it should capture every enquiry, move it through your pipeline, and help you convert it into a paid, GST-invoiced booking. Here's how to choose the right one for an Indian agency in 2026.",
+      },
+      { type: "h2", text: "What a travel CRM must do" },
+      {
+        type: "ol",
+        items: [
+          "**Capture leads from everywhere** — Instagram, WhatsApp, referrals, your website — into one pipeline.",
+          "**Manage a visible pipeline** — new → quoted → won, assignable to agents.",
+          "**Do travel work, not just sales admin** — itineraries, branded proposals, vouchers.",
+          "**Handle money the Indian way** — GST-compliant invoices, INR payments.",
+          "**Live on WhatsApp** — send and follow up where clients actually reply.",
+          "**Report what matters** — conversion, margins and performance by agent and source.",
+        ],
+      },
+      { type: "h2", text: "Why a generic CRM falls short" },
+      {
+        type: "p",
+        text: "Zoho and HubSpot are excellent general CRMs, but they're not built for travel — no AI itineraries, no travel proposals, no GST tax invoicing, no vouchers. You end up bolting on Canva, Word and a separate invoicing tool. A travel-native CRM does it all in one. See why a [generic CRM doesn't fit travel](/zoho-crm-for-travel-agency-alternative).",
+      },
+      { type: "h2", text: "How to evaluate the options" },
+      {
+        type: "ul",
+        items: [
+          "Can you send a branded proposal on day one, without an onboarding project?",
+          "Does it issue **GST-compliant** tax invoices, or just 'bills'?",
+          "Is it built for India — INR, WhatsApp, Indian gateways?",
+          "Is there a **free trial** so you can test it on a real enquiry?",
+          "Compare a few head-to-head — start with our [comparison hub](/compare).",
+        ],
+      },
+      { type: "h2", text: "Where tripOS fits" },
+      {
+        type: "p",
+        text: "tripOS is a [travel agency CRM](/travel-agency-crm) built for India — it captures leads, builds AI itineraries and branded proposals, collects payments and issues GST invoices, with WhatsApp throughout. It's complete [travel agency software](/travel-agency-software-india), from ₹2,499/month with a free 14-day trial.",
+      },
+      {
+        type: "cta",
+        label: "Start your free trial",
+        href: "/signup",
+        text: "Run tripOS as your travel CRM — 14 days free, no card.",
+      },
+    ],
+  },
 ];
 
 const sorted = [...BLOG_POSTS].sort((a, b) => (a.date < b.date ? 1 : -1));
