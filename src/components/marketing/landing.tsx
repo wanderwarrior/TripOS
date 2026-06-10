@@ -77,6 +77,7 @@ export async function Landing({
           credibility → agitate the problem → show the solution (overview →
           breadth → depth) → prove it → de-risk → convert. */}
       <PlatformShowcase />
+      <CompetitorComparison />
       <TrustBar />
       <ProblemSection />
       <Features />
@@ -86,7 +87,6 @@ export async function Landing({
       <SocialProof />
       <FounderNote />
       <Comparison />
-      <CompetitorComparison />
       <Integrations />
       <UrgencyBanner status={founding} />
       <PricingTeaser status={founding} />
@@ -560,13 +560,20 @@ const COMPETITOR_ROWS: { label: string; marks: Mark[] }[] = [
 
 function MarkCell({ m, highlight }: { m: Mark; highlight?: boolean }) {
   return (
-    <td className={"px-3 py-3 text-center " + (highlight ? "bg-gold-soft/40" : "")}>
+    <td className={"px-3 py-4 text-center " + (highlight ? "bg-gold-soft/50" : "")}>
       {m === "y" ? (
-        <Check className="mx-auto h-5 w-5 text-ok" />
+        <span
+          className={
+            "mx-auto flex items-center justify-center " +
+            (highlight ? "h-7 w-7 rounded-full bg-gold-soft" : "")
+          }
+        >
+          <Check className={"text-ok " + (highlight ? "h-4 w-4" : "h-5 w-5")} />
+        </span>
       ) : m === "p" ? (
-        <Minus className="mx-auto h-4 w-4 text-muted" />
+        <Minus className="mx-auto h-4 w-4 text-muted/70" />
       ) : (
-        <X className="mx-auto h-4 w-4 text-muted/40" />
+        <X className="mx-auto h-4 w-4 text-muted/30" />
       )}
     </td>
   );
@@ -574,42 +581,50 @@ function MarkCell({ m, highlight }: { m: Mark; highlight?: boolean }) {
 
 function CompetitorComparison() {
   return (
-    <section className="mx-auto max-w-5xl px-5 md:px-10 py-24 md:py-28">
-      <Reveal className="text-center mb-12">
+    <section className="mx-auto max-w-5xl px-5 md:px-10 py-20 md:py-24">
+      <Reveal className="text-center mb-10">
         <p className="tc-eyebrow gold">How we compare</p>
-        <h2 className="mt-3 font-display text-4xl md:text-5xl text-ink">
+        <h2 className="mt-3 font-display text-3xl md:text-5xl text-ink">
           tripOS vs the other travel tools
         </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-muted">
+        <p className="mx-auto mt-3 max-w-xl text-sm md:text-base text-muted">
           One AI-first, all-in-one platform built for Indian agencies — versus
           point tools, legacy software and generic CRMs.
         </p>
       </Reveal>
-      <Reveal className="overflow-hidden rounded-xl border border-line bg-paper shadow-soft">
+      <Reveal className="overflow-hidden rounded-2xl border border-[var(--gold-line)] bg-paper shadow-lift">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
             <thead>
               <tr className="border-b border-line bg-paper-2">
-                <th className="px-4 py-4 text-left font-medium text-ink">
+                <th className="px-4 py-5 text-left font-medium text-muted">
                   Capability
                 </th>
-                {COMPARE_COLS.map((c) => (
-                  <th key={c} className="px-3 py-4 text-center">
-                    {c === "tripOS" ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-soft border border-[var(--gold-line)] px-3 py-1 font-semibold text-gold-deep">
+                {COMPARE_COLS.map((c) =>
+                  c === "tripOS" ? (
+                    <th key={c} className="bg-gold-soft px-3 py-4 text-center align-top">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--gold-line)] bg-paper px-3 py-1 font-semibold text-gold-deep shadow-soft">
                         <Sparkles className="h-3.5 w-3.5" /> tripOS
                       </span>
-                    ) : (
-                      <span className="font-medium text-muted">{c}</span>
-                    )}
-                  </th>
-                ))}
+                      <span className="mt-1.5 block text-[10px] font-medium uppercase tracking-[0.16em] text-gold-deep/80">
+                        Most complete
+                      </span>
+                    </th>
+                  ) : (
+                    <th key={c} className="px-3 py-5 text-center font-medium text-ink/55">
+                      {c}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody>
               {COMPETITOR_ROWS.map((r) => (
-                <tr key={r.label} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3 text-ink/85">{r.label}</td>
+                <tr
+                  key={r.label}
+                  className="border-b border-line last:border-0 transition-colors hover:bg-paper-2/60"
+                >
+                  <td className="px-4 py-4 text-ink/85">{r.label}</td>
                   {r.marks.map((m, i) => (
                     <MarkCell key={i} m={m} highlight={i === 0} />
                   ))}
@@ -619,7 +634,7 @@ function CompetitorComparison() {
           </table>
         </div>
       </Reveal>
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted">
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted">
         <span className="inline-flex items-center gap-1">
           <Check className="h-3.5 w-3.5 text-ok" /> Full
         </span>
@@ -630,7 +645,16 @@ function CompetitorComparison() {
           <X className="h-3 w-3 text-muted/40" /> Not built for it
         </span>
       </div>
-      <p className="mx-auto mt-3 max-w-2xl text-center text-[11px] leading-relaxed text-muted/80">
+      <div className="mt-8 text-center">
+        <Link
+          href="/signup"
+          className="inline-flex items-center gap-2 rounded-[8px] bg-inkwash px-6 py-3 text-sm font-medium text-[var(--on-dark)] transition-colors hover:bg-inkwash/90"
+        >
+          See why agencies switch — start free
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+      <p className="mx-auto mt-5 max-w-2xl text-center text-[11px] leading-relaxed text-muted/80">
         Comparison reflects tripOS&apos;s assessment for small, owner-led travel
         agencies; competitor products evolve, so please verify current details on
         their own websites. All product names are trademarks of their respective

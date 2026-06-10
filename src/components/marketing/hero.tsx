@@ -108,7 +108,7 @@ export function Hero({
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative mx-auto max-w-3xl px-5 py-24 text-center md:px-10 md:py-28"
+        className="relative mx-auto max-w-4xl px-5 py-24 text-center md:px-10 md:py-28"
       >
         {/* Brand intro — the C·Stack mark stacks itself in on first paint. */}
         <div className="brand-intro run mb-5 flex justify-center text-white">
@@ -125,7 +125,7 @@ export function Hero({
 
         <motion.h1
           variants={item}
-          className="mt-5 font-display text-4xl leading-[1.02] tracking-tight text-white md:text-6xl"
+          className="mt-5 font-display text-[2rem] leading-[1.05] tracking-tight text-white sm:text-4xl md:text-5xl"
         >
           Stop running your agency on
           <br className="hidden md:block" /> WhatsApp, Excel and Word.
