@@ -135,10 +135,10 @@ export function Hero({
           variants={item}
           className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
         >
-          tripOS replaces the patchwork with one platform —{" "}
-          <span className="text-white">AI itineraries, branded proposals, CRM
-          &amp; lead pipeline, bookings, WhatsApp, payments and GST
-          invoicing</span>. Turn an enquiry into a paid booking, faster.
+          One platform for{" "}
+          <span className="text-white">AI itineraries, branded proposals,
+          WhatsApp and GST invoicing</span> — turn an enquiry into a paid
+          booking, faster.
         </motion.p>
 
         {isAuthed ? (
