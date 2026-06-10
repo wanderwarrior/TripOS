@@ -1024,6 +1024,246 @@ export const SEO_LANDINGS: SeoLandingContent[] = [
       ...RELATED_COMMON,
     ],
   },
+  {
+    slug: "travel-agency-software-ahmedabad",
+    metaTitle: "Travel Agency Software in Ahmedabad | tripOS",
+    metaDescription:
+      "Travel agency software for Ahmedabad agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for outbound, group and pilgrimage specialists. Free trial.",
+    keywords: [
+      "travel agency software ahmedabad",
+      "travel crm ahmedabad",
+      "tour operator software ahmedabad",
+      "travel software gujarat",
+    ],
+    eyebrow: "Ahmedabad",
+    h1: "Travel agency software for Ahmedabad agencies",
+    intro:
+      "Ahmedabad agencies sell big volumes of outbound holidays, Gujarati group departures, pilgrimage circuits (Dwarka, Somnath) and business travel. **tripOS** turns every enquiry into a branded proposal, a paid booking and a GST invoice — in one fast flow.",
+    sections: [
+      {
+        h2: "Built for Ahmedabad's travel mix",
+        body: "From Dubai, Southeast Asia and Europe packages to large group tours and pilgrimage trips, tripOS drafts the itinerary with AI and sends a premium, white-labelled proposal on WhatsApp.",
+        bullets: [
+          "**AI itineraries** for outbound, group and pilgrimage trips.",
+          "**Branded, customer-safe proposals** — your margin stays private.",
+          "**GST invoicing + INR payments** built in.",
+          "**Pipeline + agent reporting** for busy, multi-agent teams.",
+        ],
+      },
+      {
+        h2: "Handle group volume without the chaos",
+        body: "Group departures and high enquiry volume are where spreadsheets and WhatsApp break down. tripOS keeps every lead, quote and follow-up in one place — see [travel agency software for India](/travel-agency-software-india).",
+      },
+      {
+        h2: "Start the same day",
+        body: "Self-serve setup and a free 14-day trial, from ₹2,499/month — no card required.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What is the best travel agency software in Ahmedabad?",
+        a: "Ahmedabad agencies selling outbound, group and pilgrimage travel need AI itineraries, branded proposals, GST invoicing and WhatsApp in one platform. tripOS is built for this, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency software in Surat", href: "/travel-agency-software-surat" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-pune",
+    metaTitle: "Travel Agency Software in Pune | tripOS",
+    metaDescription:
+      "Travel agency software for Pune agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for outbound, honeymoon and corporate travel. Free trial.",
+    keywords: [
+      "travel agency software pune",
+      "travel crm pune",
+      "tour operator software pune",
+      "travel software maharashtra",
+    ],
+    eyebrow: "Pune",
+    h1: "Travel agency software for Pune agencies",
+    intro:
+      "Pune agencies serve a young, well-travelled market — international holidays, honeymoons, weekend getaways and corporate/MICE trips. **tripOS** helps you reply faster with proposals that look as premium as your clients expect.",
+    sections: [
+      {
+        h2: "Built for how Pune agencies sell",
+        body: "Whether it's a Bali honeymoon, a Europe holiday, a Lonavala/Mahabaleshwar getaway or a corporate offsite, tripOS drafts the itinerary with AI and sends a branded proposal on WhatsApp.",
+        bullets: [
+          "**AI itineraries** for honeymoon, leisure and corporate trips.",
+          "**Premium white-label proposals** that win discerning clients.",
+          "**GST invoicing + INR payments** built in.",
+          "**Pipeline + follow-ups** so no lead goes cold.",
+        ],
+      },
+      {
+        h2: "One platform, not a patchwork",
+        body: "Replace Word, Canva, spreadsheets and scattered chats with one flow — see [travel agency software for India](/travel-agency-software-india). It works as your [travel CRM](/travel-agency-crm) and proposal tool together.",
+      },
+      {
+        h2: "Start free",
+        body: "Self-serve setup, free 14-day trial, from ₹2,499/month — no card.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Which travel software is best for a Pune travel agency?",
+        a: "For Pune agencies selling outbound, honeymoon, getaway and corporate travel, tripOS combines AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      { label: "Travel proposal software", href: "/travel-proposal-software" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-kochi",
+    metaTitle: "Travel Agency Software in Kochi | tripOS",
+    metaDescription:
+      "Travel agency software for Kochi & Kerala agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for Kerala inbound, backwaters and outbound. Free trial.",
+    keywords: [
+      "travel agency software kochi",
+      "travel crm kerala",
+      "tour operator software kochi",
+      "kerala travel agency software",
+    ],
+    eyebrow: "Kochi",
+    h1: "Travel agency software for Kochi & Kerala agencies",
+    intro:
+      "Kochi and Kerala agencies sell backwaters, houseboats, Munnar and Alleppey to domestic and international tourists — and outbound holidays and Gulf travel to locals and NRIs. **tripOS** brings it all into one platform, with GST invoicing and WhatsApp built in.",
+    sections: [
+      {
+        h2: "Built for Kerala tourism",
+        body: "From Alleppey houseboat stays and Munnar tea-country itineraries to outbound and Gulf packages, tripOS drafts the day-by-day plan with AI and sends a premium, white-labelled proposal on WhatsApp.",
+        bullets: [
+          "**AI itineraries** for Kerala circuits and outbound trips.",
+          "**Branded proposals** for domestic, inbound and NRI clients.",
+          "**GST invoicing + INR payments** built in.",
+          "**WhatsApp** delivery and follow-ups where clients reply.",
+        ],
+      },
+      {
+        h2: "Inbound and outbound, one workflow",
+        body: "Running Kerala inbound packages and outbound holidays from separate tools? tripOS handles both — itineraries, proposals, bookings, GST invoices and vendor ops in one place. See [travel agency software for India](/travel-agency-software-india).",
+      },
+      {
+        h2: "Switch in an afternoon",
+        body: "No setup project — generate your first itinerary and send a branded proposal the same day. From ₹2,499/month with a free 14-day trial.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What is the best travel agency software for a Kerala agency?",
+        a: "Kochi and Kerala agencies handling backwaters and houseboat tours, inbound tourists and outbound holidays need AI itineraries, branded proposals, GST invoicing and WhatsApp in one tool. tripOS is built for this, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      { label: "Travel agency software in Coimbatore", href: "/travel-agency-software-coimbatore" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-coimbatore",
+    metaTitle: "Travel Agency Software in Coimbatore | tripOS",
+    metaDescription:
+      "Travel agency software for Coimbatore agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for hill-station, pilgrimage and outbound travel. Free trial.",
+    keywords: [
+      "travel agency software coimbatore",
+      "travel crm coimbatore",
+      "tour operator software coimbatore",
+      "travel software tamil nadu",
+    ],
+    eyebrow: "Coimbatore",
+    h1: "Travel agency software for Coimbatore agencies",
+    intro:
+      "Coimbatore agencies sell Ooty and Kodaikanal hill-station trips, temple and pilgrimage circuits, family holidays and a growing book of outbound packages. **tripOS** turns those enquiries into branded proposals and GST invoices — fast.",
+    sections: [
+      {
+        h2: "Built for Coimbatore's travel mix",
+        body: "From Ooty/Kodaikanal getaways and South India temple circuits to Southeast Asia and Europe packages, tripOS drafts itineraries with AI and sends branded proposals on WhatsApp.",
+        bullets: [
+          "**AI itineraries** for hill-station, pilgrimage and outbound trips.",
+          "**Branded, customer-safe proposals** — your margin stays private.",
+          "**GST invoicing + INR payments** built in.",
+          "**Pipeline + follow-ups** so no enquiry slips.",
+        ],
+      },
+      {
+        h2: "More than a CRM",
+        body: "Unlike a generic CRM, tripOS is travel-native — itineraries, proposals, GST invoices and vouchers included. See [travel agency software for India](/travel-agency-software-india) and our [travel CRM](/travel-agency-crm).",
+      },
+      {
+        h2: "Start free",
+        body: "Self-serve setup and a free 14-day trial, from ₹2,499/month — no card required.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Which travel software is best for a Coimbatore agency?",
+        a: "For Coimbatore agencies selling hill-station, pilgrimage and outbound travel, tripOS combines AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency software in Kochi", href: "/travel-agency-software-kochi" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      ...RELATED_COMMON,
+    ],
+  },
+  {
+    slug: "travel-agency-software-chandigarh",
+    metaTitle: "Travel Agency Software in Chandigarh | tripOS",
+    metaDescription:
+      "Travel agency software for Chandigarh agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform. Built for outbound, Himachal/Kashmir and NRI travel. Free trial.",
+    keywords: [
+      "travel agency software chandigarh",
+      "travel crm chandigarh",
+      "tour operator software chandigarh",
+      "travel software punjab",
+    ],
+    eyebrow: "Chandigarh",
+    h1: "Travel agency software for Chandigarh agencies",
+    intro:
+      "Chandigarh and tri-city agencies sell heavy outbound — Dubai, Southeast Asia, Europe — plus Himachal and Kashmir getaways and NRI travel. **tripOS** helps you quote faster, look more professional, and never lose a lead.",
+    sections: [
+      {
+        h2: "Built for North India's outbound trade",
+        body: "From Europe and Dubai packages to Manali, Shimla and Kashmir getaways, tripOS drafts the itinerary with AI, brands the proposal, and sends it on WhatsApp with a payment link and GST invoice ready to follow.",
+        bullets: [
+          "**AI itineraries** for outbound and Himalayan getaway trips.",
+          "**Premium white-label proposals** sent on WhatsApp.",
+          "**GST invoicing + INR payments** built in.",
+          "**Pipeline + agent reporting** for busy teams.",
+        ],
+      },
+      {
+        h2: "One platform, not a patchwork",
+        body: "Replace spreadsheets, Word, Canva and scattered WhatsApp chats with one flow — see [travel agency software for India](/travel-agency-software-india). Use it as your [travel CRM](/travel-agency-crm) and proposal tool together.",
+      },
+      {
+        h2: "Start the same day",
+        body: "Self-serve setup, free 14-day trial, from ₹2,499/month — no card.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Which travel software is best for a Chandigarh agency?",
+        a: "For Chandigarh and tri-city agencies selling outbound, Himachal/Kashmir and NRI travel, tripOS combines AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform, from ₹2,499/month with a free trial.",
+      },
+    ],
+    related: [
+      { label: "Travel agency software (India)", href: "/travel-agency-software-india" },
+      { label: "Travel agency CRM", href: "/travel-agency-crm" },
+      { label: "Travel proposal software", href: "/travel-proposal-software" },
+      ...RELATED_COMMON,
+    ],
+  },
 ];
 
 export const SEO_LANDING_SLUGS = SEO_LANDINGS.map((l) => l.slug);
