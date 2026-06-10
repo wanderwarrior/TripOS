@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Instagram, Linkedin } from "lucide-react";
 import { getSessionUser } from "@/lib/session";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
 import { WhatsappFab } from "@/components/marketing/whatsapp-fab";
 import { Logo, BrandIntro } from "@/components/brand";
+import { SOCIAL_LINKS } from "@/lib/structured-data";
 
 // Public, logged-out chrome for the marketing surface (landing, pricing,
 // legal). Distinct from PageShell (the authenticated app frame with the
@@ -35,6 +37,26 @@ export async function MarketingShell({
               The all-in-one platform for modern travel agencies — itineraries,
               proposals, payments and operations.
             </p>
+            <div className="mt-4 flex items-center gap-3">
+              <a
+                href={SOCIAL_LINKS.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="tripOS on Instagram"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted transition-colors hover:border-line-2 hover:text-ink"
+              >
+                <Instagram className="h-4 w-4" />
+              </a>
+              <a
+                href={SOCIAL_LINKS.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="tripOS on LinkedIn"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted transition-colors hover:border-line-2 hover:text-ink"
+              >
+                <Linkedin className="h-4 w-4" />
+              </a>
+            </div>
           </div>
 
           <FooterCol

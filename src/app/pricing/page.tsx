@@ -10,6 +10,7 @@ import {
   standardMonthly,
 } from "@/lib/founding";
 import { getFoundingStatus } from "@/server/services/founding";
+import { verifiedReviews } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const metadata = {
   alternates: { canonical: "/pricing" },
   title: "Pricing · tripOS",
   description:
-    "Simple per-agency pricing for tripOS — the all-in-one travel agency platform. Start with a 14-day free trial.",
+    "Simple per-agency pricing for tripOS — the operating system for Indian travel agencies. From ₹2,499/month, billed per agency (not per seat). Start with a 14-day free trial, no card required.",
 };
 
 const COMPARISON: { label: string; key: "starter" | "pro-only" }[] = [
@@ -58,6 +59,8 @@ const FAQ = [
 export default async function PricingPage() {
   const founding = await getFoundingStatus();
   const isFounding = founding.isOpen;
+  // First verified customer quote — real social proof at the decision point.
+  const proof = verifiedReviews()[0];
   return (
     <MarketingShell>
       <JsonLd
@@ -72,8 +75,8 @@ export default async function PricingPage() {
           One price per agency. No surprises.
         </h1>
         <p className="mt-4 max-w-xl mx-auto text-base text-ink/75">
-          Start free for {TRIAL_DAYS} days. Pick a plan when you&apos;re ready —
-          everything your team needs, billed simply.
+          Billed per agency, not per seat. Start free for {TRIAL_DAYS} days —
+          and one extra booking a month more than pays for it.
         </p>
         {isFounding && (
           <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-[var(--gold-line)] bg-gold-soft px-4 py-1.5 text-xs font-semibold text-gold-deep">
@@ -213,6 +216,16 @@ export default async function PricingPage() {
             </div>
           ))}
         </div>
+        {proof && (
+          <figure className="mx-auto mt-14 max-w-2xl rounded-xl border border-line bg-paper-2 p-7 text-center shadow-soft">
+            <blockquote className="font-display text-lg leading-snug text-ink md:text-xl">
+              &ldquo;{proof.body}&rdquo;
+            </blockquote>
+            <figcaption className="mt-4 text-sm text-muted">
+              — {proof.name}, {proof.role}, {proof.city}
+            </figcaption>
+          </figure>
+        )}
         <div className="mt-12 text-center">
           <Link
             href="/signup"

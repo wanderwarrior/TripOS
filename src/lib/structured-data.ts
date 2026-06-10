@@ -3,6 +3,11 @@
 // Rendered via <JsonLd> (src/components/seo/json-ld.tsx).
 
 import { PRICING_ORDER, PLANS } from "@/lib/plans";
+import {
+  verifiedReviews,
+  MIN_REVIEWS_FOR_AGGREGATE,
+  type Review,
+} from "@/lib/reviews";
 
 export const SITE_NAME = "tripOS";
 export const SITE_TAGLINE = "Run your travel agency on one platform";
@@ -16,6 +21,16 @@ export function siteUrl(): string {
     "https://thetripos.com"
   ).replace(/\/+$/, "");
 }
+
+/**
+ * Official brand social profiles — single source of truth, consumed by the
+ * footer AND the Organization `sameAs` (which is how Google/Gemini bind these
+ * profiles to the brand entity in the knowledge graph). Add new profiles here.
+ */
+export const SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/tripos_app/",
+  linkedin: "https://www.linkedin.com/in/trip-os-b19842413/",
+} as const;
 
 /** Stable @id for the Organization node so other nodes can reference it. */
 function orgId(base: string) {
@@ -37,6 +52,7 @@ export function organizationSchema() {
     description: SITE_DESCRIPTION,
     slogan: SITE_TAGLINE,
     areaServed: { "@type": "Country", name: "India" },
+    sameAs: Object.values(SOCIAL_LINKS),
     knowsAbout: [
       "Travel agency software",
       "Travel CRM",
@@ -60,6 +76,53 @@ export function websiteSchema() {
     description: SITE_DESCRIPTION,
     inLanguage: "en-IN",
     publisher: { "@id": orgId(base) },
+  };
+}
+
+/** One schema.org Review node from a real, approved customer review. */
+function reviewNode(base: string, r: Review) {
+  return {
+    "@type": "Review",
+    author: { "@type": "Person", name: r.name },
+    reviewBody: r.body,
+    ...(r.date ? { datePublished: r.date } : {}),
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: String(r.rating ?? 5),
+      bestRating: "5",
+      worstRating: "1",
+    },
+    itemReviewed: { "@id": `${base}/#software` },
+  };
+}
+
+/**
+ * AggregateRating + Review nodes — emitted ONLY from verified reviews, and the
+ * aggregate only once we clear MIN_REVIEWS_FOR_AGGREGATE genuine reviews (a lone
+ * self-hosted rating reads as self-serving and risks a Google manual action).
+ * Returns the fragment to spread into softwareApplicationSchema, or {} when
+ * there's nothing honest to show. This is the gate that keeps fabricated proof
+ * impossible — there's simply no code path that invents a rating.
+ */
+function reviewSchemaFragment(base: string) {
+  const reviews = verifiedReviews();
+  if (reviews.length === 0) return {};
+  const reviewNodes = reviews.map((r) => reviewNode(base, r));
+  if (reviews.length < MIN_REVIEWS_FOR_AGGREGATE) {
+    // Individual reviews only — no aggregate yet.
+    return { review: reviewNodes };
+  }
+  const avg =
+    reviews.reduce((s, r) => s + (r.rating ?? 5), 0) / reviews.length;
+  return {
+    review: reviewNodes,
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: avg.toFixed(1),
+      reviewCount: String(reviews.length),
+      bestRating: "5",
+      worstRating: "1",
+    },
   };
 }
 
@@ -101,6 +164,7 @@ export function softwareApplicationSchema() {
     ],
     offers,
     provider: { "@id": orgId(base) },
+    ...reviewSchemaFragment(base),
   };
 }
 

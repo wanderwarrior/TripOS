@@ -120,25 +120,25 @@ export function Hero({
           className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/90 backdrop-blur-sm"
         >
           <Sparkles className="h-3.5 w-3.5 text-[#e3c98f]" />
-          The operating system for travel agencies
+          The operating system for Indian travel agencies
         </motion.span>
 
         <motion.h1
           variants={item}
           className="mt-5 font-display text-4xl leading-[1.02] tracking-tight text-white md:text-6xl"
         >
-          From idea to itinerary
-          <br className="hidden md:block" /> in seconds.
+          Stop running your agency on
+          <br className="hidden md:block" /> WhatsApp, Excel and Word.
         </motion.h1>
 
         <motion.p
           variants={item}
           className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
         >
-          AI itineraries are just the start. tripOS runs your whole agency —{" "}
-          <span className="text-white">CRM &amp; lead pipeline, branded
-          proposals, bookings, WhatsApp, payments and GST invoicing</span> — on
-          one platform.
+          tripOS replaces the patchwork with one platform —{" "}
+          <span className="text-white">AI itineraries, branded proposals, CRM
+          &amp; lead pipeline, bookings, WhatsApp, payments and GST
+          invoicing</span>. Turn an enquiry into a paid booking, faster.
         </motion.p>
 
         {isAuthed ? (

@@ -9,7 +9,7 @@ export const metadata = {
   alternates: { canonical: "/about" },
   title: "About",
   description:
-    "tripOS is the all-in-one platform built for modern travel agencies — so you can spend less time fighting tools and more time crafting trips.",
+    "tripOS is the operating system for Indian travel agencies — AI itineraries, branded proposals, GST invoicing, WhatsApp and payments in one platform, so you spend less time fighting tools and more time crafting trips.",
 };
 
 const VALUES = [
@@ -45,10 +45,11 @@ export default function AboutPage() {
               Travel agencies deserve better tools
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-ink/75">
-              Most agencies still run on a patchwork of spreadsheets, Word docs
-              and WhatsApp. tripOS replaces all of it with one beautiful
-              platform — so you can get back to what you do best: crafting
-              unforgettable trips.
+              Most Indian agencies still run on a patchwork of spreadsheets,
+              Word docs, Canva and WhatsApp. tripOS is the operating system that
+              replaces all of it — turning an enquiry into a branded proposal, a
+              paid booking and a GST invoice in one flow — so you can get back to
+              what you do best: crafting unforgettable trips.
             </p>
           </Reveal>
         </div>

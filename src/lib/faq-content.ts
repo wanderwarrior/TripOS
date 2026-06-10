@@ -29,4 +29,20 @@ export const MARKETING_FAQS: FaqItem[] = [
     q: "What if I already use spreadsheets and WhatsApp?",
     a: "Most agencies that switch were doing exactly that. tripOS replaces the scattered mess with one flow — and you can keep using WhatsApp, except now proposals, invoices and reminders go out branded and tracked.",
   },
+  {
+    q: "How much does tripOS cost?",
+    a: "tripOS starts at ₹2,499/month for Starter and ₹4,999/month for Pro, billed per agency (not per seat). Every plan begins with a 14-day free trial, no credit card required, and you can cancel anytime.",
+  },
+  {
+    q: "How is tripOS different from Sembark or helloGTX?",
+    a: "tripOS is AI-first and proposal-led: the enquiry-to-proposal moment that wins the booking sits at the centre, with CRM, GST invoicing, WhatsApp, payments and operations flowing from it. It's built for small and owner-led agencies that want a modern, all-in-one tool with transparent INR pricing and self-serve setup, rather than an enterprise rollout.",
+  },
+  {
+    q: "Can I just use a generic CRM like Zoho or HubSpot instead?",
+    a: "You can, but generic CRMs aren't built for travel — no AI itineraries, no travel proposals, no GST tax invoicing and no vouchers, so you end up bolting on several tools. tripOS is travel-native out of the box, so it works on day one without weeks of configuration.",
+  },
+  {
+    q: "Can I send proposals and invoices on WhatsApp?",
+    a: "Yes. tripOS uses the official WhatsApp Cloud API to send branded proposals, GST invoices, payment links and reminders where your clients actually reply — with templates and, on Pro, automated follow-ups.",
+  },
 ];

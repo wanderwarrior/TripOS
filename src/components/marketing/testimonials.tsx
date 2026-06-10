@@ -17,15 +17,13 @@
 //   },
 
 import { Star } from "lucide-react";
+import { REVIEWS, type Review } from "@/lib/reviews";
 
-type Quote = {
-  name: string;
-  role: string;
-  city: string;
-  body: string;
-};
+// Real reviews live in src/lib/reviews.ts (single source of truth, shared with
+// the Review JSON-LD). The marquee renders every entry there.
+type Quote = Review;
 
-export const QUOTES: Quote[] = [];
+export const QUOTES: Quote[] = REVIEWS;
 
 function Card({ q }: { q: Quote }) {
   return (

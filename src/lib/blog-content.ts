@@ -290,6 +290,230 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "how-to-start-a-travel-agency-in-india",
+    title: "How to start a travel agency in India (2026): the complete guide",
+    description:
+      "A step-by-step guide to starting a travel agency in India in 2026 — registration, GST, IATA, finding suppliers, getting your first clients, and the tools to run it.",
+    category: "Guides",
+    date: "2026-06-09",
+    author: "tripOS Team",
+    readingMinutes: 11,
+    keywords: [
+      "how to start a travel agency in india",
+      "start a travel business india",
+      "travel agency registration india",
+      "become a travel agent india",
+    ],
+    body: [
+      {
+        type: "p",
+        text: "Starting a travel agency in India has never been cheaper or faster — you can launch from home, sell packages on WhatsApp and Instagram, and grow without an office. But the agents who last are the ones who set up the boring foundations right (registration, GST, supplier relationships) and look professional from day one. This guide walks through exactly how to start, in order.",
+      },
+      { type: "h2", text: "1. Pick a focus before you pick a name" },
+      {
+        type: "p",
+        text: "The biggest early mistake is selling 'everything to everyone'. The agencies that grow fastest specialise: a destination (Bali, Dubai, Vietnam, Europe, Kashmir), a trip type (honeymoons, family holidays, pilgrimage, corporate MICE, destination weddings), or a customer (NRIs, a specific city's outbound travellers). A focus makes your marketing cheaper and your proposals sharper.",
+      },
+      { type: "h2", text: "2. Register your business" },
+      {
+        type: "ul",
+        items: [
+          "**Choose a structure** — sole proprietorship is simplest to start; an LLP or Pvt Ltd makes sense once you have partners or scale.",
+          "**Register the entity** and open a current account in the business name.",
+          "**GST registration** — required once you cross the turnover threshold, and most B2B clients and suppliers will expect it. See our [GST guide for travel agents](/blog/gst-invoice-for-travel-agents-india).",
+          "**Trade licence / Shops & Establishment** registration as applicable in your state.",
+        ],
+      },
+      {
+        type: "callout",
+        text: "This is general guidance, not legal or tax advice — confirm registration and GST specifics for your situation with a CA or company secretary.",
+      },
+      { type: "h2", text: "3. Decide: package seller or commission agent?" },
+      {
+        type: "p",
+        text: "Your model shapes your taxes and margins. As a **package seller (principal)** you bundle hotels, transfers and activities and sell one price — GST is commonly 5% without input tax credit. As a **commission agent** you book third-party products and earn commission, commonly taxed at 18% with ITC. Many agents do both; just invoice each correctly.",
+      },
+      { type: "h2", text: "4. Build supplier relationships (DMCs & vendors)" },
+      {
+        type: "ul",
+        items: [
+          "Find reliable **DMCs (destination management companies)** for the destinations you sell — they give you ground rates for hotels, transfers and activities.",
+          "Get on **B2B portals** and join DMC WhatsApp groups for live rates and offers.",
+          "Negotiate **net rates** so you control your markup, and keep a clean vendor list with contacts and payment terms.",
+        ],
+      },
+      { type: "h2", text: "5. Look professional from the first message" },
+      {
+        type: "p",
+        text: "Clients judge a new agency in seconds. A polished, branded proposal sent within hours of an enquiry beats a cheaper competitor's Word document every time. This is where most new agencies under-invest — and where you can instantly look bigger than you are.",
+      },
+      {
+        type: "callout",
+        text: "tripOS lets a brand-new agency send a beautiful, white-labelled proposal — AI itinerary, your logo, GST invoice and a WhatsApp payment link — from day one, with no setup project. It's [travel agency software built for India](/travel-agency-software-india).",
+      },
+      { type: "h2", text: "6. Get your first 10 clients" },
+      {
+        type: "ol",
+        items: [
+          "**Start with your network** — tell everyone you now plan trips; your first bookings are friends, family and referrals.",
+          "**Instagram + WhatsApp** — post real itineraries and sample packages; let people DM you to enquire.",
+          "**Niche down your content** — 'Bali for couples under ₹X' converts better than generic 'book your dream holiday'.",
+          "**Respond fast** — speed of first reply is the single biggest predictor of closing a travel lead. Read [how to send a proposal that converts](/blog/how-to-send-a-travel-proposal-that-converts).",
+          "**Ask for referrals and reviews** after every trip — word of mouth is an agency's cheapest growth.",
+        ],
+      },
+      { type: "h2", text: "7. Set up the tools that scale with you" },
+      {
+        type: "p",
+        text: "Spreadsheets and WhatsApp work for your first few trips, but leads start slipping as you grow. A [travel agency CRM](/travel-agency-crm) keeps every enquiry, proposal, booking and follow-up in one place — so nothing is lost and you can see what's actually converting.",
+      },
+      {
+        type: "p",
+        text: "tripOS brings AI itineraries, branded proposals, GST invoicing, WhatsApp and online payments into one platform built for Indian agencies — from ₹2,499/month with a free 14-day trial. You can be sending proposals the same day you start.",
+      },
+      {
+        type: "cta",
+        label: "Start your free trial",
+        href: "/signup",
+        text: "Launch your agency on tripOS — 14 days free, no card required.",
+      },
+    ],
+  },
+  {
+    slug: "how-to-sell-bali-tour-packages",
+    title: "How to sell Bali tour packages: a travel agent's playbook (with sample itinerary)",
+    description:
+      "A practical playbook for selling Bali packages — what travellers want, a sample 6-night itinerary, how to price it, and how to send a proposal that closes.",
+    category: "Destinations",
+    date: "2026-06-07",
+    author: "tripOS Team",
+    readingMinutes: 9,
+    keywords: [
+      "how to sell bali packages",
+      "bali itinerary for travel agents",
+      "bali tour package india",
+      "bali honeymoon itinerary",
+    ],
+    body: [
+      {
+        type: "p",
+        text: "Bali is one of the highest-converting outbound destinations for Indian agencies — visa-on-arrival, strong honeymoon and family demand, and a wide price range you can sell up. This playbook covers what Bali travellers actually want, a ready-to-adapt itinerary, how to price it, and how to turn the enquiry into a booking.",
+      },
+      { type: "h2", text: "What Bali travellers want (segment your pitch)" },
+      {
+        type: "ul",
+        items: [
+          "**Honeymooners:** privacy, a pool villa for 1–2 nights, a romantic dinner, sunset views. Sell the experience, not the line items.",
+          "**Families:** waterparks, easy transfers, a central hotel, kid-friendly activities.",
+          "**Groups & friends:** beach clubs, watersports, nightlife in Seminyak/Canggu.",
+          "**Budget vs premium:** the same route works at 4-star and 5-star — always offer two tiers.",
+        ],
+      },
+      { type: "h2", text: "A sample 6-night Bali itinerary" },
+      {
+        type: "ol",
+        items: [
+          "**Day 1 — Arrival, South Bali:** airport pickup, check in around Kuta/Seminyak, evening at the beach.",
+          "**Day 2 — Water sports & Uluwatu:** watersports at Tanjung Benoa, Uluwatu temple, Kecak fire dance at sunset.",
+          "**Day 3 — Transfer to Ubud:** Tegenungan waterfall en route, check in to an Ubud villa, evening at Ubud market.",
+          "**Day 4 — Ubud highlights:** rice terraces, swing, coffee plantation, Tegallalang.",
+          "**Day 5 — Nusa Penida day trip:** Kelingking beach, Broken beach, Angel's Billabong.",
+          "**Day 6 — Leisure / Instagram spots:** handara gate, temples, spa, shopping.",
+          "**Day 7 — Departure:** transfer to airport.",
+        ],
+      },
+      {
+        type: "callout",
+        text: "Don't rebuild this from scratch for every client. In tripOS you generate a Bali itinerary with AI, tweak the days, swap the villa tier, and send it branded — in minutes. Clone it for the next enquiry and you've built a repeatable Bali product.",
+      },
+      { type: "h2", text: "How to price a Bali package" },
+      {
+        type: "ul",
+        items: [
+          "Get **net rates** from your Bali DMC for hotels, transfers and activities, then add your markup — never show cost or margin to the client.",
+          "Quote a single **all-in price per couple/person**, with inclusions and exclusions clearly listed (visa, flights, GST, personal expenses).",
+          "Offer a **4-star and a 5-star option** so the question becomes 'which one', not 'yes or no'.",
+          "Remember **TCS on the foreign package** — factor it correctly. See [TCS on foreign tour packages](/blog/tcs-on-foreign-tour-packages-india).",
+        ],
+      },
+      { type: "h2", text: "Turn the enquiry into a booking" },
+      {
+        type: "p",
+        text: "Bali shoppers compare 3–4 agents. The one who replies first with a polished, branded proposal usually wins — even at a higher price. Send it on WhatsApp, follow up after two days with a value-add ('added a floating breakfast on day 3'), and nudge near the quote's validity. For the full method, read [how to send a travel proposal that converts](/blog/how-to-send-a-travel-proposal-that-converts).",
+      },
+      {
+        type: "p",
+        text: "tripOS lets you build, brand and send that Bali proposal in minutes, collect the deposit with a WhatsApp payment link, and issue a GST invoice automatically — so you're first in the client's inbox and faster to a confirmed booking.",
+      },
+      {
+        type: "cta",
+        label: "Build your Bali proposal free",
+        href: "/signup",
+        text: "Try tripOS on your next Bali enquiry — 14 days free.",
+      },
+    ],
+  },
+  {
+    slug: "tcs-on-foreign-tour-packages-india",
+    title: "TCS on foreign tour packages in India: what travel agents need to know",
+    description:
+      "A practical explainer on TCS for overseas tour packages — the rates and thresholds, who collects it, how it appears on your invoice, and how to handle it cleanly.",
+    category: "Finance",
+    date: "2026-06-05",
+    author: "tripOS Team",
+    readingMinutes: 7,
+    keywords: [
+      "tcs on foreign tour packages",
+      "tcs on overseas tour package",
+      "tcs travel agent india",
+      "tcs foreign travel",
+    ],
+    body: [
+      {
+        type: "p",
+        text: "TCS (Tax Collected at Source) on overseas tour packages confuses a lot of agents — and getting it wrong means awkward conversations with clients or a compliance gap. This is a practical overview of how TCS applies when you sell a foreign tour package, and how to handle it without friction.",
+      },
+      {
+        type: "callout",
+        text: "This is general guidance, not tax advice. TCS rates, thresholds and conditions change and depend on specifics — always confirm the current position with your CA before invoicing.",
+      },
+      { type: "h2", text: "What TCS is, in one line" },
+      {
+        type: "p",
+        text: "When a seller of an overseas tour package collects payment from a traveller, the seller must collect a percentage as TCS and deposit it with the government. The traveller can later claim it against their income tax — it's not an extra cost to them, but it does increase the amount they pay you upfront.",
+      },
+      { type: "h2", text: "Who collects it — and the threshold question" },
+      {
+        type: "ul",
+        items: [
+          "The **seller of the overseas tour programme** is generally responsible for collecting TCS on the package amount.",
+          "A **threshold** typically applies per traveller per financial year, with a **lower rate up to the threshold and a higher rate beyond it** — confirm the current figures with your CA.",
+          "Keep the traveller's **PAN** on file; the rate is higher without it.",
+        ],
+      },
+      { type: "h2", text: "How TCS should appear to your client" },
+      {
+        type: "p",
+        text: "Show TCS as a clearly labelled line, separate from the package price and from GST. Travellers accept it far more easily when you explain upfront that it's refundable against their taxes — surprise charges at payment time are where bookings wobble.",
+      },
+      { type: "h2", text: "Keep TCS and GST clean as you scale" },
+      {
+        type: "p",
+        text: "TCS and GST are different taxes with different rules — mixing them up on an invoice is a common and avoidable error. Pair this with our [GST invoices for travel agents guide](/blog/gst-invoice-for-travel-agents-india), and make sure your invoicing handles each correctly.",
+      },
+      {
+        type: "callout",
+        text: "tripOS issues clean, GST-compliant tax invoices and helps you present package pricing, GST and TCS clearly to clients — so foreign-package billing stays correct as your volume grows.",
+      },
+      {
+        type: "cta",
+        label: "Try tripOS free",
+        href: "/signup",
+        text: "Proposals, GST invoicing and payments in one place — 14 days free.",
+      },
+    ],
+  },
 ];
 
 const sorted = [...BLOG_POSTS].sort((a, b) => (a.date < b.date ? 1 : -1));
