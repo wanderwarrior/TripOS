@@ -24,11 +24,20 @@ export const authEdgeConfig: NextAuthConfig = {
         path === "/" ||
         path.startsWith("/pricing") ||
         path.startsWith("/blog") ||
-        // Public SEO landing pages (keep in sync with lib/seo-landings.ts).
+        // Public SEO landing pages (keep in sync with lib/seo-landings.ts —
+        // these are served by app/[slug]/page.tsx and the explicit folders).
         path === "/travel-agency-software-india" ||
         path === "/travel-agency-crm" ||
         path === "/gst-invoicing-for-travel-agents" ||
         path === "/travel-proposal-software" ||
+        // Comparison / alternative landing pages.
+        path === "/best-travel-agency-software-india" ||
+        path === "/sembark-alternative" ||
+        path === "/hellogtx-alternative" ||
+        path === "/crmtravel-alternative" ||
+        path === "/travefy-alternative-india" ||
+        path === "/tourwriter-alternative-india" ||
+        path === "/zoho-crm-for-travel-agency-alternative" ||
         path.startsWith("/legal") ||
         path.startsWith("/login") ||
         path.startsWith("/signup") ||
